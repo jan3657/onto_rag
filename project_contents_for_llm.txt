@@ -1,0 +1,2223 @@
+--- File: requirements.txt ---
+# onto_rag/requirements.txt
+
+# Core Ontology Processing
+rdflib>=6.0.0
+
+# Lexical Indexing
+whoosh>=2.7.0
+
+# Embeddings & Semantic Search
+sentence-transformers>=2.2.0
+faiss-cpu>=1.7.0   # Or faiss-gpu if you have a CUDA-enabled GPU and want to use it
+
+# Utilities
+numpy>=1.21.0     # Often a dependency, good to specify
+pandas>=1.3.0     # Dependency for libraries like 'datasets' used by sentence-transformers
+python-dotenv>=0.19.0 # For loading .env files
+tqdm>=4.60.0      # For progress bars in long operations
+
+# Testing (optional, but good for development)
+pytest>=6.2.0
+--- END File: requirements.txt ---
+
+--- File: README.md ---
+# onto_rag
+A Retrieval Augmented Generation system for matching extracted entities to ontologies
+
+--- END File: README.md ---
+
+--- File: .gitignore ---
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+
+# Environment & secrets
+.env
+api_key.json
+
+# VSCode, macOS
+.vscode/
+.DS_Store
+
+--- END File: .gitignore ---
+
+--- File: export_files_contents.py ---
+import os
+import argparse
+
+# --- Configuration ---
+# Files or directories to explicitly skip by their exact name or path (relative to root_dir)
+EXCLUDE_ITEMS_EXACT = {
+    ".git",
+    "__pycache__",
+    "data",               # <<< Exclude the entire data directory
+    "docs",               # <<< Exclude the entire docs directory
+    "ontologies",         # <<< Exclude the entire ontologies directory
+    "api_key.json",       # Sensitive file
+    ".env",               # Sensitive file (though .env.example is fine)
+    # Add other specific files or directories if needed
+    # e.g. "some_large_binary_asset.dat"
+}
+
+# File extensions to skip (typically binary or non-text files)
+EXCLUDE_EXTENSIONS = {
+    ".pyc",
+    ".pyo",
+    ".bin",
+    ".exe",
+    ".dll",
+    ".so",
+    ".o",
+    ".a",
+    ".lib",
+    ".jar",
+    ".war",
+    ".ear",
+    ".class",
+    ".swo",
+    ".swp",
+    # Image/Media files
+    ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".webp",
+    ".mp3", ".wav", ".ogg", ".mp4", ".avi", ".mkv", ".mov",
+    # Archives
+    ".zip", ".tar", ".gz", ".bz2", ".rar", ".7z",
+    # Other common binary formats
+    ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx",
+    ".odt", ".ods", ".odp",
+    ".sqlite", ".db",
+    ".pkl", ".joblib", # Python pickled objects
+    ".pt", ".pth", ".pb", ".onnx", # Model files
+    ".DS_Store" # macOS specific
+}
+
+# --- End Configuration ---
+
+def should_skip(item_path, root_dir, output_filename):
+    """
+    Determines if a file or directory should be skipped.
+    item_path: absolute path to the item.
+    root_dir: absolute path to the project's root directory.
+    output_filename: name of the script's output file.
+    """
+    relative_item_path = os.path.relpath(item_path, root_dir)
+
+    # Skip the output file itself
+    if os.path.basename(item_path) == output_filename:
+        return True
+
+    # Check against exact items to exclude (can be dir names or file names or relative paths)
+    # Normalize paths for comparison
+    normalized_relative_item_path = relative_item_path.replace(os.sep, "/")
+    for excluded in EXCLUDE_ITEMS_EXACT:
+        normalized_excluded = excluded.replace(os.sep, "/")
+        if normalized_relative_item_path == normalized_excluded or \
+           normalized_relative_item_path.startswith(normalized_excluded + "/"):
+            # print(f"Skipping '{relative_item_path}' due to exact match/prefix with '{excluded}'")
+            return True
+        # Also check just the basename for simple directory/file names at the root level
+        # if os.path.dirname(relative_item_path) == "" and os.path.basename(item_path) == excluded:
+        # The above check for basename is now effectively covered by the first part of the condition
+        # if normalized_relative_item_path (e.g., "data") == normalized_excluded (e.g., "data")
+
+
+    # If it's a file, check its extension
+    if os.path.isfile(item_path):
+        _, ext = os.path.splitext(item_path)
+        if ext.lower() in EXCLUDE_EXTENSIONS:
+            # print(f"Skipping '{relative_item_path}' due to extension '{ext}'")
+            return True
+
+    return False
+
+def generate_project_context(root_dir, output_filename="project_contents_for_llm.txt"):
+    """
+    Generates a text file containing the names and contents of project files.
+    """
+    root_dir_abs = os.path.abspath(root_dir)
+    output_file_abs_path = os.path.join(root_dir_abs, output_filename)
+
+
+    print(f"Starting project context generation for: {root_dir_abs}")
+    print(f"Output will be saved to: {output_file_abs_path}")
+    print(f"Excluded items (exact name/path relative to root): {EXCLUDE_ITEMS_EXACT}")
+    print(f"Excluded extensions: {EXCLUDE_EXTENSIONS}")
+    print("-" * 30)
+
+    collected_files_count = 0
+    skipped_files_count = 0
+    skipped_dirs_count = 0
+
+    with open(output_file_abs_path, "w", encoding="utf-8", errors="replace") as outfile:
+        for dirpath, dirnames, filenames in os.walk(root_dir_abs, topdown=True):
+            # Modify dirnames in-place to skip directories
+            # This is important for os.walk(topdown=True)
+            original_dirnames_count = len(dirnames)
+            current_dir_relative_to_root = os.path.relpath(dirpath, root_dir_abs)
+
+            # Filter out directories to be skipped
+            dirs_to_keep = []
+            for d in dirnames:
+                dir_full_path = os.path.join(dirpath, d)
+                if not should_skip(dir_full_path, root_dir_abs, output_filename):
+                    dirs_to_keep.append(d)
+                else:
+                    # Print skipped directory relative to root for clarity
+                    skipped_dir_relative_path = os.path.relpath(dir_full_path, root_dir_abs).replace(os.sep, "/")
+                    print(f"Skipping directory (and its contents): {skipped_dir_relative_path}")
+                    skipped_dirs_count += 1
+            dirnames[:] = dirs_to_keep
+
+
+            for filename in filenames:
+                file_abs_path = os.path.join(dirpath, filename)
+                relative_file_path = os.path.relpath(file_abs_path, root_dir_abs)
+                # Normalize for display
+                display_path = relative_file_path.replace(os.sep, "/")
+
+
+                if should_skip(file_abs_path, root_dir_abs, output_filename):
+                    # This check might be redundant for files if their parent dir was already skipped,
+                    # but good for files directly in an otherwise included dir that match other skip criteria.
+                    if not any(display_path.startswith(excluded_dir + "/") for excluded_dir in EXCLUDE_ITEMS_EXACT if os.path.isdir(os.path.join(root_dir_abs, excluded_dir))):
+                         print(f"Skipping file: {display_path}") # Only print if not part of an already reported skipped dir
+                    skipped_files_count += 1
+                    continue
+
+                print(f"Processing file: {display_path}")
+                outfile.write(f"--- File: {display_path} ---\n")
+                try:
+                    with open(file_abs_path, "r", encoding="utf-8", errors="ignore") as infile:
+                        content = infile.read()
+                        outfile.write(content)
+                except Exception as e:
+                    outfile.write(f"[Error reading file: {e}]\n")
+                outfile.write(f"\n--- END File: {display_path} ---\n\n")
+                collected_files_count += 1
+
+    print("-" * 30)
+    print(f"Project context generation complete.")
+    print(f"Collected content from {collected_files_count} files.")
+    print(f"Skipped {skipped_files_count} files (may include files within explicitly skipped dirs).")
+    print(f"Skipped {skipped_dirs_count} directories (and their contents).")
+    print(f"Output saved to: {output_file_abs_path}")
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Scans a project directory and saves file names and contents to a text file for LLM context."
+    )
+    parser.add_argument(
+        "root_dir",
+        nargs="?",
+        default=".",
+        help="The root directory of the project to scan (default: current directory).",
+    )
+    parser.add_argument(
+        "--output",
+        default="project_contents_for_llm.txt",
+        help="The name of the output file (default: project_contents_for_llm.txt).",
+    )
+    args = parser.parse_args()
+
+    generate_project_context(args.root_dir, args.output)
+--- END File: export_files_contents.py ---
+
+--- File: .env.example ---
+# OpenAI & vector DB credentials
+OPENAI_API_KEY=your_openai_api_key_here
+PINECONE_API_KEY=your_pinecone_api_key_here
+PINECONE_ENV=your_pinecone_env
+
+--- END File: .env.example ---
+
+--- File: .pytest_cache/CACHEDIR.TAG ---
+Signature: 8a477f597d28d172789f06886806bc55
+# This file is a cache directory tag created by pytest.
+# For information about cache directory tags, see:
+#	https://bford.info/cachedir/spec.html
+
+--- END File: .pytest_cache/CACHEDIR.TAG ---
+
+--- File: .pytest_cache/README.md ---
+# pytest cache directory #
+
+This directory contains data from the pytest's cache plugin,
+which provides the `--lf` and `--ff` options, as well as the `cache` fixture.
+
+**Do not** commit this to version control.
+
+See [the docs](https://docs.pytest.org/en/stable/how-to/cache.html) for more information.
+
+--- END File: .pytest_cache/README.md ---
+
+--- File: .pytest_cache/.gitignore ---
+# Created by pytest automatically.
+*
+
+--- END File: .pytest_cache/.gitignore ---
+
+--- File: .pytest_cache/v/cache/nodeids ---
+[
+  "src/tests/test_lexical_index.py::test_index_exists",
+  "src/tests/test_lexical_index.py::test_query_by_definition_keyword",
+  "src/tests/test_lexical_index.py::test_query_by_label_exact",
+  "src/tests/test_lexical_index.py::test_query_by_label_fuzzy",
+  "src/tests/test_lexical_index.py::test_query_by_relations_keyword",
+  "src/tests/test_lexical_index.py::test_query_by_synonym",
+  "src/tests/test_parse_ontology.py::test_extract_definitions",
+  "src/tests/test_parse_ontology.py::test_extract_hierarchy",
+  "src/tests/test_parse_ontology.py::test_extract_labels_and_synonyms",
+  "src/tests/test_parse_ontology.py::test_extract_relations",
+  "src/tests/test_parse_ontology.py::test_load_ontology"
+]
+--- END File: .pytest_cache/v/cache/nodeids ---
+
+--- File: .pytest_cache/v/cache/lastfailed ---
+{
+  "src/tests/test_lexical_index.py::test_index_exists": true,
+  "src/tests/test_lexical_index.py::test_query_by_label_exact": true,
+  "src/tests/test_lexical_index.py::test_query_by_label_fuzzy": true,
+  "src/tests/test_lexical_index.py::test_query_by_synonym": true,
+  "src/tests/test_lexical_index.py::test_query_by_definition_keyword": true,
+  "src/tests/test_lexical_index.py::test_query_by_relations_keyword": true,
+  "src/tests/test_parse_ontology.py::test_extract_labels_and_synonyms": true,
+  "src/tests/test_parse_ontology.py::test_extract_definitions": true,
+  "src/tests/test_parse_ontology.py::test_extract_hierarchy": true,
+  "src/tests/test_parse_ontology.py::test_extract_relations": true
+}
+--- END File: .pytest_cache/v/cache/lastfailed ---
+
+--- File: .pytest_cache/v/cache/stepwise ---
+[]
+--- END File: .pytest_cache/v/cache/stepwise ---
+
+--- File: src/config.py ---
+# src/config.py
+import os
+from rdflib import Namespace # This is fine, though rdflib.Namespace is not directly used for string constants below.
+
+# Project Root Directory
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "."))
+# print(f"Project root directory: {PROJECT_ROOT}") # Keep for debugging if you like
+
+# Data Directory (for ontology dump, indexes, etc.)
+DATA_DIR = os.path.join(PROJECT_ROOT, "data")
+os.makedirs(DATA_DIR, exist_ok=True)
+
+# Ontologies Directory
+ONTOLOGIES_DIR = os.path.join(PROJECT_ROOT, "ontologies")
+FOODON_PATH = os.path.join(ONTOLOGIES_DIR, "foodon.owl")
+TEST_FOODON_SNIPPET_PATH = os.path.join(ONTOLOGIES_DIR, "test_foodon_snippet.owl")
+
+
+# Output file from parse_ontology.py
+ONTOLOGY_DUMP_JSON = os.path.join(DATA_DIR, "ontology_dump.json")
+
+# Output file for enriched documents
+ENRICHED_DOCUMENTS_FILE = os.path.join(DATA_DIR, "enriched_documents.json")
+
+# Output file for embeddings (used for building FAISS index)
+EMBEDDINGS_FILE = os.path.join(DATA_DIR, "embeddings.json")
+
+# Whoosh Index Directory
+WHOOSH_INDEX_DIR = os.path.join(DATA_DIR, "whoosh_index")
+os.makedirs(WHOOSH_INDEX_DIR, exist_ok=True)
+
+# FAISS Index Paths
+FAISS_INDEX_PATH = os.path.join(DATA_DIR, "faiss_index.bin")
+FAISS_METADATA_PATH = os.path.join(DATA_DIR, "faiss_metadata.json")
+
+# Embedding Model Configuration
+EMBEDDING_MODEL_NAME = "all-MiniLM-L6-v2"
+# EMBEDDING_MODEL_TYPE = "sentence-transformers" # Good for clarity if you support multiple types
+EMBEDDING_BATCH_SIZE = 32 # For batch embedding script
+EMBEDDING_DEVICE = 'cpu'  # or 'cuda' if available, for embedding script
+
+# Default K values for retrieval
+DEFAULT_K_LEXICAL = 10
+DEFAULT_K_VECTOR = 10
+
+# Namespaces (using string constants for broader compatibility if rdflib not always imported)
+RDFS_NS_STR = "http://www.w3.org/2000/01/rdf-schema#"
+RDF_NS_STR = "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+OWL_NS_STR = "http://www.w3.org/2002/07/owl#"
+SKOS_NS_STR = "http://www.w3.org/2004/02/skos/core#"
+OBO_NS_STR = "http://purl.obolibrary.org/obo/"
+OBOINOWL_NS_STR = "http://www.geneontology.org/formats/oboInOwl#"
+IAO_NS_STR = "http://purl.obolibrary.org/obo/IAO_"
+
+# For rdflib usage where Namespace objects are preferred:
+RDFS_NS = Namespace(RDFS_NS_STR)
+RDF_NS = Namespace(RDF_NS_STR)
+OWL_NS = Namespace(OWL_NS_STR)
+SKOS_NS = Namespace(SKOS_NS_STR)
+OBO_NS = Namespace(OBO_NS_STR)
+OBOINOWL_NS = Namespace(OBOINOWL_NS_STR)
+IAO_NS = Namespace(IAO_NS_STR)
+
+
+# Mapping of common relation URIs/CURIEs to human-readable names and default prefixes
+# Used by parse_ontology.py and potentially enrich_documents.py
+RELATION_CONFIG = {
+    "obo:BFO_0000050": {"label": "part of", "prefix": "obo"},
+    "obo:RO_0001000": {"label": "derives from", "prefix": "obo"},
+    "obo:RO_0002200": {"label": "has phenotype", "prefix": "obo"},
+    "obo:RO_0002451": {"label": "has part", "prefix": "obo"},
+    "obo:FOODON_0000246": {"label": "has ingredient", "prefix": "obo"},
+    "obo:RO_0000056": {"label": "participates in", "prefix": "obo"},
+    "obo:RO_0000057": {"label": "has participant", "prefix": "obo"},
+    "obo:RO_0000085": {"label": "functionally related to", "prefix": "obo"},
+    "obo:RO_0002090": {"label": "adjacent to", "prefix": "obo"},
+    "obo:RO_0002131": {"label": "overlaps", "prefix": "obo"},
+    "obo:RO_0002150": {"label": "connected to", "prefix": "obo"},
+    "obo:RO_0002202": {"label": "develops from", "prefix": "obo"},
+    "obo:RO_0002350": {"label": "member of", "prefix": "obo"},
+    "obo:RO_0002351": {"label": "has member", "prefix": "obo"},
+    "obo:RO_0002353": {"label": "output of", "prefix": "obo"},
+    "obo:RO_0002440": {"label": "causally related to", "prefix": "obo"},
+    "obo:RO_0002450": {"label": "contains", "prefix": "obo"},
+    "obo:RO_0002500": {"label": "surrounds", "prefix": "obo"},
+    "obo:RO_0002573": {"label": "has quality", "prefix": "obo"},
+    "obo:RO_0002606": {"label": "is transformation of", "prefix": "obo"},
+    "obo:RO_0002607": {"label": "has input", "prefix": "obo"},
+    "obo:RO_0003000": {"label": "used in", "prefix": "obo"},
+    "obo:FOODON_0000380": {"label": "has preparation method", "prefix": "obo"},
+    "obo:FOODON_0000226": {"label": "has food source", "prefix": "obo"},
+    "obo:FOODON_0000388": {"label": "has maturity state", "prefix": "obo"},
+    "obo:FOODON_0000286": {"label": "has packaging", "prefix": "obo"},
+    "obo:FOODON_0000240": {"label": "has preservation method", "prefix": "obo"},
+    "obo:FOODON_0000440": {"label": "has physical state", "prefix": "obo"},
+    # "obo:FOODON_": {"label": "FoodON specific relation", "prefix": "obo"}, # This generic one might be too broad
+    "obo:ERO_0000039": {"label": "has nutrient", "prefix": "obo"},
+    "obo:ERO_0000589": {"label": "dietary context of", "prefix": "obo"},
+    "obo:NCIT_C25277": {"label": "is allergen of", "prefix": "obo"},
+    "obo:NCIT_C48670": {"label": "has active ingredient", "prefix": "obo"},
+    "obo:NCIT_C64548": {"label": "part of human diet", "prefix": "obo"},
+    "obo:PATO_0000001": {"label": "has quality PATO", "prefix": "obo"},
+}
+
+TARGET_RELATIONS_CURIES = list(RELATION_CONFIG.keys())
+
+# CURIE Prefix Map for uri_to_curie and curie_to_uri conversions
+# Ensure the keys are the *base URIs* that prefixes are expected for.
+CURIE_PREFIX_MAP = {
+    "http://purl.obolibrary.org/obo/FOODON_": "FOODON",
+    "http://purl.obolibrary.org/obo/BFO_": "BFO",
+    "http://purl.obolibrary.org/obo/RO_": "RO",
+    "http://purl.obolibrary.org/obo/ERO_": "ERO",
+    "http://purl.obolibrary.org/obo/NCIT_": "NCIT",
+    "http://purl.obolibrary.org/obo/PATO_": "PATO",
+    "http://purl.obolibrary.org/obo/IAO_": "IAO",
+    "http://www.w3.org/2000/01/rdf-schema#": "rdfs",
+    "http://www.w3.org/1999/02/22-rdf-syntax-ns#": "rdf",
+    "http://www.w3.org/2002/07/owl#": "owl",
+    "http://www.w3.org/2004/02/skos/core#": "skos",
+    "http://www.geneontology.org/formats/oboInOwl#": "oboInOwl",
+    # General OBO prefix - should be last or handled carefully to avoid overly broad matches
+    # if specific OBO sub-ontologies are listed above.
+    "http://purl.obolibrary.org/obo/": "obo",
+}
+
+# LLM API Key (placeholders)
+# GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+# OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
+# Logging configuration
+LOG_LEVEL = "INFO"
+LOG_FILE = os.path.join(PROJECT_ROOT, "app.log") # Example log file in project root
+--- END File: src/config.py ---
+
+--- File: src/__init__.py ---
+
+--- END File: src/__init__.py ---
+
+--- File: src/main.py ---
+
+--- END File: src/main.py ---
+
+--- File: src/ingestion/build_lexical_index.py ---
+# src/ingestion/build_lexical_index.py
+import sys
+import os
+
+# --- Add project root to sys.path ---
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+# --- End sys.path modification ---
+
+import json
+from whoosh.index import create_in, open_dir
+from whoosh.fields import Schema, ID, TEXT
+from whoosh.qparser import QueryParser
+import traceback
+
+# Now import using the 'src' package prefix
+from src.config import ONTOLOGY_DUMP_PATH, WHOOSH_INDEX_DIR
+
+# ... (rest of the build_lexical_index.py code, ensuring imports like `from src.config` are used)
+def build_index(json_path: str, index_dir: str):
+    print(f"Building lexical index from {json_path} into {index_dir}")
+
+    schema = Schema(
+        curie=ID(stored=True, unique=True),
+        label=TEXT(stored=True, analyzer=None), # Keep None analyzer for exact matches if needed, or use default
+        synonyms=TEXT(stored=True),
+        definition=TEXT(stored=True),
+        relations_text=TEXT(stored=False)
+    )
+
+    os.makedirs(index_dir, exist_ok=True)
+    
+    try:
+        # create_in will overwrite if index exists. If you want to open, use open_dir.
+        ix = create_in(index_dir, schema)
+        print(f"Whoosh index schema created in {index_dir}")
+    except Exception as e:
+         print(f"Error creating Whoosh index directory or schema: {e}")
+         traceback.print_exc()
+         return
+
+    writer = ix.writer()
+    try:
+        with open(json_path, 'r', encoding='utf-8') as f:
+            ontology_data = json.load(f)
+
+        print(f"Indexing {len(ontology_data)} entities...")
+        indexed_count = 0
+        for curie, data in ontology_data.items():
+            label = data.get('label', '') or '' # Ensure string
+            synonyms_list = data.get('synonyms', [])
+            synonyms = " ".join(s for s in synonyms_list if s) # Join non-empty synonyms
+
+            definition = data.get('definition', '') or ''
+
+            relations_text = ""
+            relations_dict = data.get('relations', {})
+            if relations_dict:
+                 relations_text = " ".join([
+                     f"{prop.replace('_', ' ')} {' '.join(targets)}" for prop, targets in relations_dict.items()
+                 ])
+            
+            # Skip adding document if all text fields are empty (optional)
+            # if not label and not synonyms and not definition and not relations_text:
+            #     print(f"Skipping empty document for CURIE: {curie}")
+            #     continue
+
+            writer.add_document(
+                curie=curie,
+                label=label,
+                synonyms=synonyms,
+                definition=definition,
+                relations_text=relations_text
+            )
+            indexed_count += 1
+            if indexed_count % 1000 == 0:
+                 print(f"Indexed {indexed_count} entities...")
+        
+        print(f"Committing index with {indexed_count} documents.")
+        writer.commit()
+        print("Lexical index built successfully.")
+
+    except FileNotFoundError:
+        print(f"Error: Ontology dump file not found at {json_path}")
+        traceback.print_exc()
+        writer.cancel() 
+    except Exception as e:
+        print(f"An error occurred during index building: {e}")
+        traceback.print_exc()
+        writer.cancel()
+
+if __name__ == "__main__":
+    if not os.path.exists(ONTOLOGY_DUMP_PATH):
+        print(f"Error: Ontology dump file {ONTOLOGY_DUMP_PATH} not found.")
+        print("Please run src/ingestion/parse_ontology.py first.")
+    else:
+        build_index(ONTOLOGY_DUMP_PATH, WHOOSH_INDEX_DIR)
+--- END File: src/ingestion/build_lexical_index.py ---
+
+--- File: src/ingestion/__init__.py ---
+
+--- END File: src/ingestion/__init__.py ---
+
+--- File: src/ingestion/parse_ontology.py ---
+# src/ingestion/parse_ontology.py
+import sys
+import os
+
+# --- Add project root to sys.path ---
+# This ensures that 'src' can be imported as a top-level package.
+# The path added is the parent directory of 'src/', i.e., 'onto_rag/'.
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+# --- End sys.path modification ---
+
+import rdflib
+from rdflib import Graph, Namespace, URIRef, RDFS, OWL, RDF
+from typing import Dict, List, Any
+import json
+import traceback # For detailed error logging
+
+# Now import using the 'src' package prefix
+from src.config import ONTOLOGY_FILE, ONTOLOGY_DUMP_PATH, NAMESPACE_MAP, RELATION_PROPERTIES
+from src.utils.ontology_utils import uri_to_curie, curie_to_uri # CORRECTED IMPORT
+
+
+# Define commonly used namespaces (can still use these locally for convenience)
+FOODON = Namespace(NAMESPACE_MAP["FOODON"])
+IAO = Namespace(NAMESPACE_MAP["IAO"])
+OBOINOWL = Namespace(NAMESPACE_MAP["OBOINOWL"])
+# BFO and RO URIs should come directly from RELATION_PROPERTIES or NAMESPACE_MAP if needed
+# BFO = Namespace(NAMESPACE_MAP["BFO"])
+# RO = Namespace(NAMESPACE_MAP["RO"])
+
+
+def load_ontology(path: str) -> rdflib.Graph:
+    g = Graph()
+    try:
+        print(f"Loading ontology from: {path}")
+        # RDFLib can often guess, but 'xml' is a common explicit choice for OWL/XML
+        # For .owl files, it's typically rdf/xml or turtle.
+        # Try common formats explicitly if auto-detection fails.
+        try:
+            g.parse(path, format="application/rdf+xml") # Common for .owl
+        except Exception as e_xml:
+            print(f"Failed to parse as RDF/XML: {e_xml}. Trying Turtle...")
+            try:
+                g.parse(path, format="turtle")
+            except Exception as e_ttl:
+                print(f"Failed to parse as Turtle: {e_ttl}. Trying auto-detection...")
+                g.parse(path) # Fallback to auto-detection
+
+        print(f"Ontology loaded successfully. Contains {len(g)} triples.")
+        return g
+    except FileNotFoundError:
+        print(f"Error: Ontology file not found at {path}")
+        raise
+    except Exception as e:
+        print(f"Error parsing ontology file {path}: {e}")
+        traceback.print_exc()
+        raise
+
+def get_ancestors(g: Graph, term_uri: URIRef, prefix_map: Dict[str, str], visited_uris: set = None) -> List[str]:
+    if visited_uris is None:
+        visited_uris = set()
+
+    ancestor_curies = set()
+    # Find direct parents using rdfs:subClassOf
+    # The object of rdfs:subClassOf is the parent class
+    for parent_uri in g.objects(subject=term_uri, predicate=RDFS.subClassOf):
+        if isinstance(parent_uri, URIRef) and parent_uri != OWL.Thing: # Ensure it's a URI and not owl:Thing
+            if parent_uri not in visited_uris: # Avoid cycles and redundant processing
+                visited_uris.add(parent_uri)
+                parent_curie = uri_to_curie(parent_uri, prefix_map)
+                if parent_curie and parent_curie != str(parent_uri): # Successfully converted to CURIE
+                    ancestor_curies.add(parent_curie)
+                    # Recursively get ancestors of this parent
+                    ancestor_curies.update(get_ancestors(g, parent_uri, prefix_map, visited_uris))
+    return list(ancestor_curies)
+
+
+def extract_labels_and_synonyms(g: Graph) -> Dict[str, Dict[str, Any]]:
+    data = {}
+    # Consider all subjects that have a label or any OBOInOwl synonym property
+    relevant_predicates = [
+        RDFS.label,
+        OBOINOWL.hasExactSynonym, OBOINOWL.hasRelatedSynonym,
+        OBOINOWL.hasNarrowSynonym, OBOINOWL.hasBroadSynonym
+    ]
+    
+    processed_subjects = set() # To avoid processing a subject multiple times if it has many relevant predicates
+
+    for pred in relevant_predicates:
+        for s_uri in g.subjects(predicate=pred):
+            if not isinstance(s_uri, URIRef) or s_uri in processed_subjects:
+                continue # Skip literals, blank nodes, or already processed subjects
+            
+            curie = uri_to_curie(s_uri, NAMESPACE_MAP)
+            if not curie or curie == str(s_uri): # Skip if not converted or not a FOODON curie (optional strictness)
+                 if "FOODON:" not in curie and "IAO:" not in curie and "RO:" not in curie and "BFO:" not in curie: # Example filter
+                    # print(f"Skipping non-ontology CURIE for labels/syns: {curie} from {s_uri}")
+                    continue
+
+            if curie not in data:
+                data[curie] = {"label": None, "synonyms": []}
+
+            label_val = g.value(subject=s_uri, predicate=RDFS.label)
+            if label_val and isinstance(label_val, rdflib.Literal):
+                data[curie]["label"] = str(label_val)
+
+            synonyms = []
+            for syn_prop in [OBOINOWL.hasExactSynonym, OBOINOWL.hasRelatedSynonym,
+                             OBOINOWL.hasNarrowSynonym, OBOINOWL.hasBroadSynonym]:
+                for syn_obj in g.objects(subject=s_uri, predicate=syn_prop):
+                    if isinstance(syn_obj, rdflib.Literal):
+                        synonyms.append(str(syn_obj))
+            if synonyms:
+                 data[curie]["synonyms"].extend(s for s in synonyms if s not in data[curie]["synonyms"]) # Avoid duplicates
+
+            processed_subjects.add(s_uri)
+            
+    # Clean up entries that ended up with no label and no synonyms
+    final_data = {k: v for k, v in data.items() if v.get("label") or v.get("synonyms")}
+    print(f"Extracted labels and synonyms for {len(final_data)} terms.")
+    return final_data
+
+
+def extract_definitions(g: Graph) -> Dict[str, str]:
+    definitions = {}
+    definition_prop_uri = IAO['0000115'] # IAO:0000115 is 'definition'
+    for s_uri in g.subjects(predicate=definition_prop_uri):
+        if not isinstance(s_uri, URIRef):
+            continue
+        
+        curie = uri_to_curie(s_uri, NAMESPACE_MAP)
+        if not curie or curie == str(s_uri) :
+            if "FOODON:" not in curie and "IAO:" not in curie and "RO:" not in curie and "BFO:" not in curie:
+                # print(f"Skipping non-ontology CURIE for definitions: {curie} from {s_uri}")
+                continue
+        
+        def_obj = g.value(subject=s_uri, predicate=definition_prop_uri)
+        if def_obj and isinstance(def_obj, rdflib.Literal):
+            definitions[curie] = str(def_obj)
+            
+    print(f"Extracted definitions for {len(definitions)} terms.")
+    return definitions
+
+def extract_hierarchy(g: Graph) -> Dict[str, Dict[str, List[str]]]:
+    hierarchy_data = {}
+    # Consider all terms that are subjects or objects of rdfs:subClassOf triples
+    # This ensures we capture all terms involved in the class hierarchy.
+    all_terms_in_hierarchy = set()
+    for s, p, o in g.triples((None, RDFS.subClassOf, None)):
+        if isinstance(s, URIRef): all_terms_in_hierarchy.add(s)
+        if isinstance(o, URIRef): all_terms_in_hierarchy.add(o)
+    
+    for term_uri in all_terms_in_hierarchy:
+        if term_uri == OWL.Thing: # Skip owl:Thing itself
+            continue
+
+        curie = uri_to_curie(term_uri, NAMESPACE_MAP)
+        if not curie or curie == str(term_uri):
+            if "FOODON:" not in curie and "IAO:" not in curie and "RO:" not in curie and "BFO:" not in curie:
+                # print(f"Skipping non-ontology CURIE for hierarchy: {curie} from {term_uri}")
+                continue
+
+        # Direct Parents
+        direct_parent_curies = []
+        for parent_uri in g.objects(subject=term_uri, predicate=RDFS.subClassOf):
+            if isinstance(parent_uri, URIRef) and parent_uri != OWL.Thing:
+                parent_curie = uri_to_curie(parent_uri, NAMESPACE_MAP)
+                if parent_curie and parent_curie != str(parent_uri): # Successfully converted
+                    direct_parent_curies.append(parent_curie)
+        
+        # All Ancestors (transitive closure of parents)
+        # Pass a new visited set for each term to avoid issues across calls
+        ancestor_curies = get_ancestors(g, term_uri, NAMESPACE_MAP, visited_uris=set())
+        
+        if direct_parent_curies or ancestor_curies:
+            hierarchy_data[curie] = {
+                "parents": list(set(direct_parent_curies)), # Use set for uniqueness
+                "ancestors": list(set(ancestor_curies))    # Use set for uniqueness
+            }
+            
+    print(f"Extracted hierarchy data for {len(hierarchy_data)} terms.")
+    return hierarchy_data
+
+
+def extract_relations(g: Graph, props_to_extract: Dict[str, str]) -> Dict[str, Dict[str, List[str]]]:
+    relations_data = {}
+    
+    for term_uri in g.subjects(unique=True): # Iterate over all unique subjects in the graph
+        if not isinstance(term_uri, URIRef):
+            continue
+
+        curie = uri_to_curie(term_uri, NAMESPACE_MAP)
+        if not curie or curie == str(term_uri):
+             if "FOODON:" not in curie and "IAO:" not in curie and "RO:" not in curie and "BFO:" not in curie:
+                # print(f"Skipping non-ontology CURIE for relations: {curie} from {term_uri}")
+                continue
+
+        term_specific_relations = {}
+        for rel_name, rel_uri_str in props_to_extract.items():
+            rel_uri = URIRef(rel_uri_str)
+            target_curies = []
+            for target_obj in g.objects(subject=term_uri, predicate=rel_uri):
+                if isinstance(target_obj, URIRef): # Ensure target is a URI
+                    target_curie = uri_to_curie(target_obj, NAMESPACE_MAP)
+                    if target_curie and target_curie != str(target_obj): # Successfully converted
+                        target_curies.append(target_curie)
+            
+            if target_curies:
+                term_specific_relations[rel_name] = list(set(target_curies)) # Unique targets
+
+        if term_specific_relations:
+            relations_data[curie] = term_specific_relations
+            
+    print(f"Extracted relations for {len(relations_data)} terms based on specified properties.")
+    return relations_data
+
+
+def main():
+    print("Starting ontology parsing...")
+    data_dir = os.path.dirname(ONTOLOGY_DUMP_PATH)
+    os.makedirs(data_dir, exist_ok=True)
+
+    try:
+        g = load_ontology(ONTOLOGY_FILE)
+
+        print("\nExtracting data...")
+        labels_synonyms = extract_labels_and_synonyms(g)
+        definitions = extract_definitions(g)
+        hierarchy = extract_hierarchy(g)
+        relations = extract_relations(g, RELATION_PROPERTIES)
+
+        print("\nMerging extracted data...")
+        merged_data = {}
+        all_curies = set(labels_synonyms.keys()) | \
+                     set(definitions.keys()) | \
+                     set(hierarchy.keys()) | \
+                     set(relations.keys())
+
+        for curie in all_curies:
+            # Skip if the CURIE doesn't seem to belong to a relevant ontology (optional filter)
+            # if not any(curie.startswith(p) for p in ["FOODON:", "IAO:", "RO:", "BFO:"]):
+            #     # print(f"Skipping merge for non-primary CURIE: {curie}")
+            #     continue
+
+            merged_data[curie] = {
+                "label": labels_synonyms.get(curie, {}).get("label"),
+                "synonyms": labels_synonyms.get(curie, {}).get("synonyms", []),
+                "definition": definitions.get(curie),
+                "parents": hierarchy.get(curie, {}).get("parents", []),
+                "ancestors": hierarchy.get(curie, {}).get("ancestors", []),
+                "relations": relations.get(curie, {})
+            }
+        
+        # Remove entries that are completely empty after merging
+        final_merged_data = {}
+        for curie, data_dict in merged_data.items():
+            if data_dict.get("label") or \
+               data_dict.get("synonyms") or \
+               data_dict.get("definition") or \
+               data_dict.get("parents") or \
+               data_dict.get("ancestors") or \
+               data_dict.get("relations"):
+                final_merged_data[curie] = data_dict
+
+
+        print(f"\nTotal merged entities with some data: {len(final_merged_data)}")
+
+        print(f"Writing merged data to {ONTOLOGY_DUMP_PATH}")
+        with open(ONTOLOGY_DUMP_PATH, 'w', encoding='utf-8') as f:
+            json.dump(final_merged_data, f, indent=4, ensure_ascii=False)
+
+        print("Ontology parsing and data dump complete.")
+
+    except FileNotFoundError:
+        print(f"Parsing aborted: Ontology file not found at {ONTOLOGY_FILE}")
+        traceback.print_exc()
+    except Exception as e:
+        print(f"An error occurred during parsing: {e}")
+        traceback.print_exc()
+
+if __name__ == "__main__":
+    main()
+--- END File: src/ingestion/parse_ontology.py ---
+
+--- File: src/ingestion/enrich_documents.py ---
+import json
+import os
+import logging
+from typing import Dict, Any, List, Optional
+
+# --- Start of corrected import block ---
+import sys
+# Calculate the project root directory based on the script's location
+# For .../onto_rag/src/ingestion/enrich_documents.py, _PROJECT_ROOT becomes .../onto_rag
+_PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+
+# Add the project root to sys.path if it's not already there
+if _PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, _PROJECT_ROOT) # Insert at the beginning
+
+try:
+    from src import config
+    # from src.utils.ontology_utils import curie_to_uri # This specific utility is not used in this script,
+                                                      # but this is how you'd import it if needed.
+except ModuleNotFoundError as e:
+    print(f"CRITICAL ERROR: Could not import project modules. Exception: {e}")
+    print(f"This script expects to be run in a way that the 'src' package is discoverable.")
+    print(f"Attempted to add project root '{_PROJECT_ROOT}' to sys.path.")
+    print(f"Current sys.path: {sys.path}")
+    print("Please ensure you are running this script from the project's root directory ('onto_rag/'), for example:")
+    print("  python src/ingestion/enrich_documents.py")
+    print("Also ensure that 'src/__init__.py' and 'src/utils/__init__.py' (if using utils) exist.")
+    sys.exit(1)
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+def get_label_for_curie(curie: str, ontology_data: Dict[str, Dict[str, Any]], default_value: Optional[str] = None) -> Optional[str]:
+    """
+    Retrieves the label for a given CURIE from the ontology data.
+    Args:
+        curie: The CURIE string (e.g., "FOODON:00001234").
+        ontology_data: The loaded ontology data dictionary.
+        default_value: Value to return if CURIE not found or has no label. Defaults to the CURIE itself.
+    Returns:
+        The label string, or the default_value.
+    """
+    if default_value is None:
+        default_value = curie # Fallback to CURIE if no specific default
+
+    term_info = ontology_data.get(curie)
+    if term_info and term_info.get("label"):
+        return term_info["label"]
+    return default_value
+
+def get_relation_name(relation_curie: str) -> str:
+    """
+    Gets a human-readable name for a relation CURIE using RELATION_CONFIG.
+    """
+    # Exact match
+    if relation_curie in config.RELATION_CONFIG:
+        return config.RELATION_CONFIG[relation_curie]["label"]
+    
+    # Check for generic FoodON prefix if specific one not found
+    generic_foodon_prefix = "obo:FOODON_"
+    if relation_curie.startswith(generic_foodon_prefix) and generic_foodon_prefix in config.RELATION_CONFIG:
+         # Attempt to make it slightly more readable if it's like "obo:FOODON_0000XXXX"
+        relation_suffix = relation_curie.split('_')[-1]
+        return f"FoodON relation {relation_suffix}" # or config.RELATION_CONFIG[generic_foodon_prefix]["label"]
+
+    # Fallback for other OBO relations
+    if relation_curie.startswith("obo:"):
+        name_part = relation_curie.split(':')[-1].replace("_", " ")
+        return name_part
+
+    return relation_curie # Fallback to the CURIE itself
+
+def create_enriched_documents(ontology_data_path: str, output_path: str) -> List[Dict[str, Any]]:
+    """
+    Creates enriched text documents for each ontology entry.
+    Args:
+        ontology_data_path: Path to the ontology_dump.json file.
+        output_path: Path to save the enriched_documents.json file.
+    Returns:
+        A list of enriched document dictionaries.
+    """
+    logging.info(f"Loading ontology data from {ontology_data_path}...")
+    try:
+        with open(ontology_data_path, 'r', encoding='utf-8') as f:
+            ontology_data = json.load(f)
+    except FileNotFoundError:
+        logging.error(f"Error: Ontology data file not found at {ontology_data_path}")
+        return []
+    except json.JSONDecodeError:
+        logging.error(f"Error: Could not decode JSON from {ontology_data_path}")
+        return []
+
+    logging.info(f"Successfully loaded {len(ontology_data)} terms.")
+
+    enriched_docs = []
+
+    for term_curie, term_data in ontology_data.items():
+        doc_parts = []
+
+        # 1. Label
+        label = term_data.get("label")
+        if not label:
+            logging.warning(f"Term {term_curie} has no label. Skipping for enriched document (or using CURIE as label).")
+            # Consider if we want to enrich docs for terms without labels. For now, let's use CURIE if no label.
+            label = term_curie 
+        
+        doc_parts.append(f"{label}.")
+
+        # 2. Definition
+        definition = term_data.get("definition")
+        if definition:
+            doc_parts.append(f"{definition}.")
+
+        # 3. Synonyms
+        synonyms = term_data.get("synonyms")
+        if synonyms:
+            synonyms_text = "; ".join(synonyms)
+            doc_parts.append(f"Also known as: {synonyms_text}.")
+
+        # 4. Parents (direct subclasses)
+        parent_curies = term_data.get("parents", [])
+        if parent_curies:
+            parent_labels = [get_label_for_curie(p_curie, ontology_data) for p_curie in parent_curies]
+            parent_labels_filtered = [l for l in parent_labels if l] # Filter out None if get_label_for_curie returns None
+            if parent_labels_filtered:
+                if len(parent_labels_filtered) == 1:
+                    doc_parts.append(f"Is a type of: {parent_labels_filtered[0]}.")
+                else:
+                    doc_parts.append(f"Is a type of: {'; '.join(parent_labels_filtered)}.")
+        
+        # 5. Relations (including facets expressed as object properties)
+        relations = term_data.get("relations", {})
+        relation_texts = []
+        for rel_curie, target_curies_list in relations.items():
+            rel_name = get_relation_name(rel_curie)
+            target_labels = [get_label_for_curie(t_curie, ontology_data) for t_curie in target_curies_list]
+            target_labels_filtered = [l for l in target_labels if l]
+            if target_labels_filtered:
+                relation_texts.append(f"{rel_name}: {', '.join(target_labels_filtered)}")
+        
+        if relation_texts:
+            doc_parts.append("Key characteristics include: " + "; ".join(relation_texts) + ".")
+
+        # Combine all parts into a single text
+        enriched_text = " ".join(doc_parts).replace("..", ".").strip() # Clean up potential double periods
+
+        enriched_docs.append({
+            "id": term_curie,
+            "label": label if label != term_curie else term_data.get("label", term_curie), # Store original label if available
+            "text": enriched_text
+        })
+
+    logging.info(f"Created {len(enriched_docs)} enriched documents.")
+
+    logging.info(f"Saving enriched documents to {output_path}...")
+    try:
+        with open(output_path, 'w', encoding='utf-8') as f:
+            json.dump(enriched_docs, f, indent=2)
+        logging.info("Successfully saved enriched documents.")
+    except IOError:
+        logging.error(f"Error: Could not write enriched documents to {output_path}")
+
+    return enriched_docs
+
+def main():
+    """Main function to create enriched documents."""
+    # Ensure data directory exists (though config.py should handle it)
+    os.makedirs(config.DATA_DIR, exist_ok=True)
+
+    enriched_documents = create_enriched_documents(
+        ontology_data_path=config.ONTOLOGY_DUMP_JSON,
+        output_path=config.ENRICHED_DOCUMENTS_FILE
+    )
+
+    if enriched_documents:
+        logging.info(f"Processed {len(enriched_documents)} documents.")
+        # Optionally print a sample
+        if len(enriched_documents) > 0:
+            logging.info("Sample enriched document:")
+            logging.info(json.dumps(enriched_documents[0], indent=2))
+    else:
+        logging.warning("No enriched documents were created.")
+
+if __name__ == "__main__":
+    main()
+--- END File: src/ingestion/enrich_documents.py ---
+
+--- File: src/embeddings/embed_docs.py ---
+import json
+import os
+import logging
+import time
+from typing import List, Dict, Any
+
+# Ensure src is in path for imports if run directly
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))) # To import from src
+
+try:
+    from sentence_transformers import SentenceTransformer
+    import torch 
+except ModuleNotFoundError:
+    logging.error("Modules sentence_transformers or torch not found. Please install them: pip install sentence-transformers torch")
+    sys.exit(1)
+
+try:
+    from src import config # Use 'from src import config'
+except ModuleNotFoundError:
+    # Fallback for running script directly from src/embeddings where src might not be seen as a package root
+    # This is less ideal but can help during direct script execution
+    sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+    try:
+        import config
+    except ModuleNotFoundError:
+        logging.error("Error: Could not import 'config'. "
+                    "Ensure the script is run from the project root or 'src' is in PYTHONPATH.")
+        sys.exit(1)
+
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+def load_enriched_documents(file_path: str) -> List[Dict[str, Any]]:
+    """Loads enriched documents from a JSON file."""
+    logging.info(f"Loading enriched documents from {file_path}...")
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            documents = json.load(f)
+        logging.info(f"Successfully loaded {len(documents)} documents.")
+        return documents
+    except FileNotFoundError:
+        logging.error(f"Error: Enriched documents file not found at {file_path}")
+        return []
+    except json.JSONDecodeError:
+        logging.error(f"Error: Could not decode JSON from {file_path}")
+        return []
+
+def batch_embed_documents(
+    documents: List[Dict[str, Any]], 
+    model_name: str, 
+    batch_size: int = 32,
+    device: str = None
+) -> List[Dict[str, Any]]:
+    """
+    Generates embeddings for a list of documents using a SentenceTransformer model.
+
+    Args:
+        documents: A list of dictionaries, each with at least "id", "label", and "text" keys.
+        model_name: The name of the SentenceTransformer model to use.
+        batch_size: The number of documents to process in each batch.
+        device: The device to use for computation (e.g., "cuda", "cpu"). Auto-detects if None.
+
+    Returns:
+        A list of dictionaries, each containing "id", "label", and "embedding" (list of floats).
+    """
+    if not documents:
+        logging.warning("No documents provided for embedding.")
+        return []
+
+    if device is None:
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+    logging.info(f"Using device: {device}")
+
+    logging.info(f"Loading SentenceTransformer model: {model_name}")
+    try:
+        model = SentenceTransformer(model_name, device=device)
+    except Exception as e:
+        logging.error(f"Failed to load model {model_name}: {e}")
+        # Fallback to CPU if CUDA error during model loading (e.g. out of memory)
+        if "cuda" in str(e).lower() and device == "cuda":
+            logging.warning("CUDA error during model load. Attempting to load on CPU.")
+            device = "cpu"
+            model = SentenceTransformer(model_name, device=device)
+        else:
+            raise
+
+    logging.info("Model loaded. Starting embedding process...")
+
+    texts_to_embed = [doc.get("text", "") for doc in documents] # Get text, default to empty string if missing
+    ids = [doc.get("id") for doc in documents]
+    labels = [doc.get("label") for doc in documents]
+
+    all_embeddings_data = []
+    start_time = time.time()
+
+    for i in range(0, len(texts_to_embed), batch_size):
+        batch_texts = texts_to_embed[i:i+batch_size]
+        batch_ids = ids[i:i+batch_size]
+        batch_labels = labels[i:i+batch_size]
+
+        logging.info(f"Processing batch {i//batch_size + 1}/{(len(texts_to_embed) -1)//batch_size + 1} (size: {len(batch_texts)})")
+        
+        try:
+            embeddings = model.encode(batch_texts, convert_to_tensor=False, show_progress_bar=False) # Returns numpy array
+            
+            for idx, embedding in enumerate(embeddings):
+                all_embeddings_data.append({
+                    "id": batch_ids[idx],
+                    "label": batch_labels[idx],
+                    "embedding": embedding.tolist() # Convert numpy array to list for JSON serialization
+                })
+        except Exception as e:
+            logging.error(f"Error embedding batch starting at index {i}: {e}")
+            # Optionally, decide how to handle batch errors (e.g., skip batch, add placeholders)
+            # For now, we'll just log and continue, resulting in missing embeddings for that batch.
+            # To add placeholders:
+            # for j in range(len(batch_texts)):
+            #     all_embeddings_data.append({
+            #         "id": batch_ids[j],
+            #         "label": batch_labels[j],
+            #         "embedding": None # Or a zero vector of correct dimensionality
+            #     })
+
+
+    end_time = time.time()
+    logging.info(f"Embedding process completed for {len(all_embeddings_data)} documents in {end_time - start_time:.2f} seconds.")
+    
+    if hasattr(model, 'tokenizer') and hasattr(model.tokenizer, 'model_max_length'):
+        logging.info(f"Model max sequence length: {model.tokenizer.model_max_length}")
+    elif hasattr(model, 'max_seq_length'):
+         logging.info(f"Model max sequence length: {model.max_seq_length}")
+
+
+    return all_embeddings_data
+
+def save_embeddings(embeddings_data: List[Dict[str, Any]], output_path: str):
+    """Saves the embeddings data to a JSON file."""
+    if not embeddings_data:
+        logging.warning("No embeddings data to save.")
+        return
+
+    logging.info(f"Saving {len(embeddings_data)} embeddings to {output_path}...")
+    try:
+        with open(output_path, 'w', encoding='utf-8') as f:
+            json.dump(embeddings_data, f, indent=2) # Use indent for readability, can remove for smaller file size
+        logging.info("Successfully saved embeddings.")
+    except IOError:
+        logging.error(f"Error: Could not write embeddings to {output_path}")
+    except TypeError as e:
+        logging.error(f"TypeError during JSON serialization: {e}. Check embedding data format.")
+
+
+def main():
+    """Main function to generate and save document embeddings."""
+    # Ensure data directory exists
+    os.makedirs(config.DATA_DIR, exist_ok=True)
+
+    enriched_docs = load_enriched_documents(config.ENRICHED_DOCUMENTS_FILE)
+    if not enriched_docs:
+        logging.error("Failed to load enriched documents. Exiting.")
+        return
+
+    embeddings_data = batch_embed_documents(
+        documents=enriched_docs,
+        model_name=config.EMBEDDING_MODEL_NAME,
+        batch_size=64 # Adjust batch size based on available VRAM/RAM
+    )
+
+    if embeddings_data:
+        save_embeddings(embeddings_data, config.EMBEDDINGS_FILE)
+        logging.info(f"Generated and saved {len(embeddings_data)} embeddings.")
+        if embeddings_data:
+            sample_embedding = embeddings_data[0]['embedding']
+            logging.info(f"Sample embedding vector dimension: {len(sample_embedding) if sample_embedding else 'N/A'}")
+            logging.info(f"Sample embedding data point: {json.dumps(embeddings_data[0], indent=2, default=lambda x: str(x)[:100])}") # Truncate long embedding
+    else:
+        logging.warning("No embeddings were generated.")
+
+if __name__ == "__main__":
+    main()
+--- END File: src/embeddings/embed_docs.py ---
+
+--- File: src/tests/test_lexical_index.py ---
+import pytest
+import os
+import json
+import tempfile
+import shutil
+from whoosh.index import open_dir
+from whoosh.qparser import QueryParser
+
+# Adjust path to import modules from src
+import sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from ingestion.parse_ontology import main as parse_ontology_main # Need to run parsing first
+from ingestion.build_lexical_index import build_index
+import config # Need config to override paths
+
+# Define a known CURIE and search terms from the test snippet
+TEST_CURIE = "FOODON:00001100" # apple
+TEST_LABEL = "apple"
+TEST_SYNONYM = "eating apple"
+TEST_DEFINITION_KEYWORD = "fruit" # Keyword from definition "The fruit of a Malus domestica tree."
+TEST_RELATION_KEYWORD = "apple tree" # Keyword from relations_text (target label)
+
+
+# Fixture to create a temporary directory for the test index
+@pytest.fixture(scope="module")
+def temp_index_dir():
+    """Creates a temporary directory for the Whoosh index."""
+    path = tempfile.mkdtemp(prefix="whoosh_test_index_")
+    print(f"Created temp index dir: {path}")
+    yield path
+    print(f"Cleaning up temp index dir: {path}")
+    shutil.rmtree(path)
+
+# Fixture to run the full ingestion pipeline on the test snippet and build index
+@pytest.fixture(scope="module")
+def built_test_index(temp_index_dir):
+    """Runs parse_ontology and build_index on the test snippet."""
+    # Use temp files/dirs for test data and index
+    with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as tmp_json:
+        test_json_path = tmp_json.name
+
+    # Temporarily override config paths for the test
+    original_ontology_file = config.ONTOLOGY_FILE
+    original_dump_path = config.ONTOLOGY_DUMP_PATH
+    original_index_dir = config.WHOOSH_INDEX_DIR
+
+    config.ONTOLOGY_FILE = config.TEST_ONTOLOGY_FILE # Use the small test snippet
+    config.ONTOLOGY_DUMP_PATH = test_json_path
+    config.WHOOSH_INDEX_DIR = temp_index_dir
+
+    try:
+        # 1. Run parsing
+        print("\nRunning parse_ontology_main for test index build...")
+        parse_ontology_main()
+        assert os.path.exists(test_json_path), "Ontology dump JSON not created!"
+
+        # 2. Run index building
+        print("\nRunning build_index for test index build...")
+        build_index(test_json_path, temp_index_dir)
+        assert os.path.exists(os.path.join(temp_index_dir, 'SCHEMA')), "Whoosh index not created!"
+
+        # Yield the index directory path
+        yield temp_index_dir
+
+    finally:
+        # Restore original paths
+        config.ONTOLOGY_FILE = original_ontology_file
+        config.ONTOLOGY_DUMP_PATH = original_dump_path
+        config.WHOOSH_INDEX_DIR = original_index_dir
+        # Clean up temporary JSON file
+        if os.path.exists(test_json_path):
+            os.unlink(test_json_path)
+
+
+def test_index_exists(built_test_index):
+    """Tests if the index directory was created and contains index files."""
+    assert os.path.exists(built_test_index)
+    assert os.path.exists(os.path.join(built_test_index, 'SCHEMA'))
+    assert os.path.exists(os.path.join(built_test_index, 'MAIN')) # Or other index files
+
+def test_query_by_label_exact(built_test_index):
+    """Tests exact search on the label field."""
+    ix = open_dir(built_test_index)
+    searcher = ix.searcher()
+    # Query the 'label' field
+    parser = QueryParser("label", ix.schema)
+    query = parser.parse(TEST_LABEL) # "apple"
+    results = searcher.search(query)
+
+    print(f"\nSearch results for '{TEST_LABEL}': {results}")
+
+    assert len(results) > 0, f"No results found for '{TEST_LABEL}'"
+    # Check if the expected CURIE is among the results, preferably the top one
+    assert results[0]['curie'] == TEST_CURIE
+    assert results[0]['label'] == TEST_LABEL # Verify stored label
+
+    searcher.close()
+    ix.close() # Close index readers/writers
+
+def test_query_by_label_fuzzy(built_test_index):
+    """Tests fuzzy search on the label field."""
+    ix = open_dir(built_test_index)
+    searcher = ix.searcher()
+    parser = QueryParser("label", ix.schema)
+    # Fuzzy search for "appl" (e.g. "appl~")
+    query = parser.parse("appl~") # Whoosh fuzzy syntax
+    results = searcher.search(query)
+
+    print(f"\nFuzzy search results for 'appl~': {results}")
+
+    assert len(results) > 0, "No results found for 'appl~'"
+    assert results[0]['curie'] == TEST_CURIE
+    assert results[0]['label'] == TEST_LABEL
+
+    searcher.close()
+    ix.close()
+
+def test_query_by_synonym(built_test_index):
+    """Tests search on the synonyms field."""
+    ix = open_dir(built_test_index)
+    searcher = ix.searcher()
+    # Query the 'synonyms' field
+    parser = QueryParser("synonyms", ix.schema)
+    query = parser.parse(TEST_SYNONYM) # "eating apple"
+    results = searcher.search(query)
+
+    print(f"\nSearch results for synonym '{TEST_SYNONYM}': {results}")
+
+    assert len(results) > 0, f"No results found for synonym '{TEST_SYNONYM}'"
+    assert results[0]['curie'] == TEST_CURIE
+
+    searcher.close()
+    ix.close()
+
+def test_query_by_definition_keyword(built_test_index):
+    """Tests search on the definition field."""
+    ix = open_dir(built_test_index)
+    searcher = ix.searcher()
+    # Query the 'definition' field
+    parser = QueryParser("definition", ix.schema)
+    query = parser.parse(TEST_DEFINITION_KEYWORD) # "fruit"
+    results = searcher.search(query)
+
+    print(f"\nSearch results for definition keyword '{TEST_DEFINITION_KEYWORD}': {results}")
+
+    assert len(results) > 0, f"No results found for definition keyword '{TEST_DEFINITION_KEYWORD}'"
+    assert results[0]['curie'] == TEST_CURIE
+
+    searcher.close()
+    ix.close()
+
+def test_query_by_relations_keyword(built_test_index):
+    """Tests search on the flattened relations_text field."""
+    ix = open_dir(built_test_index)
+    searcher = ix.searcher()
+    # Query the 'relations_text' field
+    parser = QueryParser("relations_text", ix.schema)
+    # Search for a keyword expected in the relations_text (e.g., target's label or part of target's CURIE)
+    # Note: Indexing targets as just CURIEs requires searching for 'FOODON:00001101'
+    # Indexing target labels requires adding that logic in build_lexical_index
+    # Let's assume for now we search for the CURIE or part of it if indexed as text
+    # Or if we enhance build_index to add target labels to relations_text:
+    # relations_text = " ".join([f"{prop}: {' '.join(targets)} {' '.join(target_labels)}" for ...])
+    # For simplicity with current build_index, let's search the target CURIE part
+    query = parser.parse("00001101") # Search part of the target CURIE FOODON:00001101
+    results = searcher.search(query)
+
+    print(f"\nSearch results for relations keyword '00001101': {results}")
+
+    assert len(results) > 0, f"No results found for relations keyword '00001101'"
+    assert results[0]['curie'] == TEST_CURIE
+
+    searcher.close()
+    ix.close()
+--- END File: src/tests/test_lexical_index.py ---
+
+--- File: src/tests/test_parse_ontology.py ---
+import pytest
+import os
+import json
+import rdflib
+from rdflib import Graph
+
+# Adjust path to import modules from src
+import sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from ingestion.parse_ontology import (
+    load_ontology,
+    extract_labels_and_synonyms,
+    extract_definitions,
+    extract_hierarchy,
+    extract_relations,
+)
+from config import TEST_ONTOLOGY_FILE, NAMESPACE_MAP, RELATION_PROPERTIES
+from utils.ontology_utils import uri_to_curie # Import if needed for assertions
+
+# Define a fixture to load the test graph once for all tests
+@pytest.fixture(scope="module")
+def test_graph():
+    """Loads the test ontology snippet into a graph."""
+    if not os.path.exists(TEST_ONTOLOGY_FILE):
+        pytest.skip(f"Test ontology snippet not found at {TEST_ONTOLOGY_FILE}")
+    try:
+        return load_ontology(TEST_ONTOLOGY_FILE)
+    except Exception as e:
+        pytest.fail(f"Failed to load test ontology: {e}")
+
+# Define a known CURIE from the test snippet
+TEST_CURIE = "FOODON:00001100" # apple
+TEST_CURIE_PARENT1 = "FOODON:00001000" # plant-based food
+TEST_CURIE_PARENT2 = "FOODON:00002000" # Pome fruit
+TEST_CURIE_RELATION_TARGET = "FOODON:00001101" # apple tree (example target)
+TEST_RELATION_NAME = "part_of" # example relation name
+
+def test_load_ontology(test_graph):
+    """Tests if the ontology loads and is an RDFLib Graph."""
+    assert isinstance(test_graph, Graph)
+    assert len(test_graph) > 0, "Test graph is empty!"
+    print(f"Loaded test graph with {len(test_graph)} triples.")
+
+
+def test_extract_labels_and_synonyms(test_graph):
+    """Tests extraction of labels and synonyms."""
+    labels_synonyms = extract_labels_and_synonyms(test_graph)
+    print(f"Extracted labels/synonyms: {labels_synonyms}")
+
+    assert TEST_CURIE in labels_synonyms
+    apple_data = labels_synonyms[TEST_CURIE]
+    assert apple_data['label'] == "apple"
+    assert "eating apple" in apple_data['synonyms']
+    assert "apple fruit" in apple_data['synonyms']
+    assert TEST_CURIE_PARENT1 in labels_synonyms # Should also extract its label/synonyms
+    assert labels_synonyms[TEST_CURIE_PARENT1]['label'] == "plant-based food"
+
+
+def test_extract_definitions(test_graph):
+    """Tests extraction of definitions."""
+    definitions = extract_definitions(test_graph)
+    print(f"Extracted definitions: {definitions}")
+
+    assert TEST_CURIE in definitions
+    assert "The fruit of a Malus domestica tree." in definitions[TEST_CURIE] # Use 'in' for substring check or exact match
+
+
+def test_extract_hierarchy(test_graph):
+    """Tests extraction of hierarchy (parents and ancestors)."""
+    hierarchy = extract_hierarchy(test_graph)
+    print(f"Extracted hierarchy: {hierarchy}")
+
+    assert TEST_CURIE in hierarchy
+    apple_hierarchy = hierarchy[TEST_CURIE]
+
+    # Check direct parents
+    assert TEST_CURIE_PARENT1 in apple_hierarchy['parents']
+    assert TEST_CURIE_PARENT2 in apple_hierarchy['parents']
+    assert len(apple_hierarchy['parents']) >= 2 # At least 2 parents from the snippet
+
+    # Check ancestors (should include parents and parents' ancestors)
+    assert TEST_CURIE_PARENT1 in apple_hierarchy['ancestors']
+    assert TEST_CURIE_PARENT2 in apple_hierarchy['ancestors']
+    # Assuming plant-based food has no ancestors in this snippet, ancestors == parents here
+    # If plant-based food had parents, they should appear in apple's ancestors.
+    # For this snippet, ancestors should be the same as parents.
+    assert set(apple_hierarchy['ancestors']) == set(apple_hierarchy['parents'])
+
+
+def test_extract_relations(test_graph):
+    """Tests extraction of specific relations."""
+    relations = extract_relations(test_graph, RELATION_PROPERTIES)
+    print(f"Extracted relations: {relations}")
+
+    assert TEST_CURIE in relations
+    apple_relations = relations[TEST_CURIE]
+
+    # Check if the specific relation from the snippet was found
+    assert TEST_RELATION_NAME in apple_relations
+    assert TEST_CURIE_RELATION_TARGET in apple_relations[TEST_RELATION_NAME]
+    assert len(apple_relations[TEST_RELATION_NAME]) >= 1
+
+
+# You could add a test that runs the full main parsing flow using the test snippet
+# and checks the structure/content of the resulting JSON file.
+# Example (requires a temporary file):
+# import tempfile
+# @pytest.fixture
+# def temp_json_path():
+#     with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as tmp:
+#         yield tmp.name
+#     os.unlink(tmp.name)
+#
+# def test_main_parsing_flow(temp_json_path):
+#      # Temporarily override config paths for the test
+#      original_ontology_file = config.ONTOLOGY_FILE
+#      original_dump_path = config.ONTOLOGY_DUMP_PATH
+#      config.ONTOLOGY_FILE = TEST_ONTOLOGY_FILE
+#      config.ONTOLOGY_DUMP_PATH = temp_json_path
+#
+#      try:
+#          parse_ontology.main()
+#          assert os.path.exists(temp_json_path)
+#          with open(temp_json_path, 'r', encoding='utf-8') as f:
+#              data = json.load(f)
+#
+#          assert TEST_CURIE in data
+#          apple_data = data[TEST_CURIE]
+#          assert apple_data['label'] == 'apple'
+#          assert 'synonyms' in apple_data and len(apple_data['synonyms']) > 0
+#          assert 'definition' in apple_data and apple_data['definition'] is not None
+#          assert 'parents' in apple_data and len(apple_data['parents']) > 0
+#          assert 'ancestors' in apple_data and len(apple_data['ancestors']) > 0
+#          assert 'relations' in apple_data and len(apple_data['relations']) > 0
+#
+#      finally:
+#          # Restore original paths
+#          config.ONTOLOGY_FILE = original_ontology_file
+#          config.ONTOLOGY_DUMP_PATH = original_dump_path
+--- END File: src/tests/test_parse_ontology.py ---
+
+--- File: src/tests/__init__.py ---
+
+--- END File: src/tests/__init__.py ---
+
+--- File: src/utils/__init__.py ---
+
+--- END File: src/utils/__init__.py ---
+
+--- File: src/utils/ontology_utils.py ---
+# src/utils/ontology_utils.py
+import rdflib
+from rdflib import URIRef, Namespace
+from typing import Optional, Dict, Union
+
+# This import assumes that the script/module *importing* ontology_utils
+# has already ensured that the project root (e.g., 'onto_rag') is on sys.path,
+# so that 'src' is resolvable as a top-level package.
+from src.config import NAMESPACE_MAP
+
+def uri_to_curie(uri: Union[str, URIRef], namespace_map: Dict[str, str] = NAMESPACE_MAP) -> str:
+    """Converts a full URI to a CURIE (e.g., http://...#term -> PREFIX:term)."""
+    uri_str = str(uri) # Ensure it's a string
+    for prefix, base_uri in namespace_map.items():
+        if uri_str.startswith(base_uri):
+            return f"{prefix}:{uri_str[len(base_uri):]}"
+
+    # Fallback for common RDF/RDFS/OWL/XSD prefixes if not in map (or if map doesn't have them as strings)
+    common_rdf_prefixes = {
+        "rdf": str(rdflib.RDF),
+        "rdfs": str(rdflib.RDFS),
+        "owl": str(rdflib.OWL),
+        "xsd": str(rdflib.XSD),
+    }
+    for prefix, base_uri in common_rdf_prefixes.items():
+        if uri_str.startswith(base_uri):
+            return f"{prefix}:{uri_str[len(base_uri):]}"
+            
+    # If rdflib can make a qname (usually for registered namespaces)
+    try:
+        g = rdflib.Graph()
+        # Bind known namespaces to help compute_qname
+        for prefix, ns_uri_str in namespace_map.items():
+            g.bind(prefix, Namespace(ns_uri_str))
+        g.bind("owl", rdflib.OWL)
+        g.bind("rdf", rdflib.RDF)
+        g.bind("rdfs", rdflib.RDFS)
+        g.bind("xsd", rdflib.XSD)
+
+        qname = g.compute_qname(URIRef(uri_str)) # Returns (prefix, namespace, name)
+        return f"{qname[0]}:{qname[2]}"
+    except: # noqa
+        pass # If rdflib fails, just return the original URI string
+
+    return uri_str # If no CURIE conversion possible, return original URI string
+
+def curie_to_uri(curie: str, namespace_map: Dict[str, str] = NAMESPACE_MAP) -> Optional[URIRef]:
+    """Converts a CURIE (e.g., PREFIX:term) to a full rdflib.URIRef."""
+    if ':' not in curie:
+        return None # Not a valid CURIE format
+
+    prefix, local_name = curie.split(':', 1)
+    base_uri = namespace_map.get(prefix)
+
+    if base_uri:
+        return URIRef(base_uri + local_name)
+    else:
+        # Try common RDF prefixes if not in custom map
+        common_rdf_prefixes_to_ns = {
+            "rdf": rdflib.RDF,
+            "rdfs": rdflib.RDFS,
+            "owl": rdflib.OWL,
+            "xsd": rdflib.XSD,
+        }
+        if prefix in common_rdf_prefixes_to_ns:
+            return URIRef(common_rdf_prefixes_to_ns[prefix][local_name])
+        return None # Prefix not found
+--- END File: src/utils/ontology_utils.py ---
+
+--- File: src/retriever/__init__.py ---
+
+--- END File: src/retriever/__init__.py ---
+
+--- File: src/retriever/hybrid_retriever.py ---
+# src/retriever/hybrid_retriever.py
+import json
+import os
+# import numpy as np # numpy is used by sentence_transformers and faiss internally
+from whoosh.index import open_dir as open_whoosh_index
+from whoosh.qparser import MultifieldParser, OrGroup
+from sentence_transformers import SentenceTransformer
+
+# --- Add project root to sys.path if running script directly ---
+# This block is useful if you ever run this script directly (e.g., for debugging)
+# and not as a module (python -m src.retriever.hybrid_retriever)
+if __name__ == '__main__':
+    import sys
+    PROJECT_ROOT_FOR_DIRECT_RUN = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+    if PROJECT_ROOT_FOR_DIRECT_RUN not in sys.path:
+        sys.path.insert(0, PROJECT_ROOT_FOR_DIRECT_RUN)
+# --- End sys.path modification ---
+
+
+from src.vector_store.faiss_store import FAISSVectorStore
+from src.config import (
+    ONTOLOGY_DUMP_JSON,
+    WHOOSH_INDEX_DIR,
+    FAISS_INDEX_PATH,
+    FAISS_METADATA_PATH,
+    EMBEDDING_MODEL_NAME,
+    DEFAULT_K_LEXICAL,
+    DEFAULT_K_VECTOR,
+)
+# from src.utils.logger import get_logger # Placeholder for future logging
+# logger = get_logger(__name__) # Placeholder
+
+class HybridRetriever:
+    def __init__(self,
+                 ontology_data_path=ONTOLOGY_DUMP_JSON,
+                 whoosh_index_dir=WHOOSH_INDEX_DIR,
+                 faiss_index_path=FAISS_INDEX_PATH,
+                 faiss_metadata_path=FAISS_METADATA_PATH,
+                 embedding_model_name=EMBEDDING_MODEL_NAME):
+        """
+        Initializes the HybridRetriever.
+        """
+        print(f"Initializing HybridRetriever...")
+        # logger.info("Initializing HybridRetriever...")
+
+        print(f"Loading ontology data from: {ontology_data_path}")
+        if not os.path.exists(ontology_data_path):
+            raise FileNotFoundError(f"Ontology data file not found: {ontology_data_path}")
+        with open(ontology_data_path, 'r', encoding='utf-8') as f:
+            self.ontology_data = json.load(f)
+        print(f"Loaded {len(self.ontology_data)} ontology entries.")
+
+        print(f"Loading Whoosh index from: {whoosh_index_dir}")
+        if not os.path.exists(whoosh_index_dir) or not os.listdir(whoosh_index_dir):
+            raise FileNotFoundError(f"Whoosh index directory not found or empty: {whoosh_index_dir}. Run ingestion scripts.")
+        self.whoosh_ix = open_whoosh_index(whoosh_index_dir)
+        self.whoosh_searcher = self.whoosh_ix.searcher()
+        
+        # Fields to search in Whoosh, must match the schema in build_lexical_index.py
+        # 'relations_text' is indexed (stored=False) so it can be searched.
+        # 'curie' is an ID field, typically not directly searched with MultifieldParser unless intended.
+        self.whoosh_fields_to_search = ["label", "synonyms", "definition", "relations_text"]
+        self.whoosh_parser = MultifieldParser(self.whoosh_fields_to_search, schema=self.whoosh_ix.schema, group=OrGroup)
+        print("Whoosh index loaded.")
+
+        print(f"Loading embedding model: {embedding_model_name}")
+        self.embedding_model = SentenceTransformer(embedding_model_name)
+        print("Embedding model loaded.")
+
+        print(f"Initializing FAISS vector store (index: {faiss_index_path}, metadata: {faiss_metadata_path})...")
+        self.faiss_store = FAISSVectorStore(
+            index_path=faiss_index_path,
+            metadata_path=faiss_metadata_path,
+            embeddings_file_path=None 
+        )
+        if not self.faiss_store.index or not self.faiss_store.metadata:
+            raise FileNotFoundError(f"FAISS index file '{faiss_index_path}' or metadata file '{faiss_metadata_path}' not found or empty. Please build it first.")
+        print("FAISS vector store initialized.")
+        
+        print("HybridRetriever initialized successfully.")
+
+    def _lexical_search(self, query_string, limit=DEFAULT_K_LEXICAL):
+        """
+        Performs lexical search using Whoosh.
+        Returns a list of dicts: {'id': str, 'label': str, 'score': float, 'source': 'lexical', 'details': dict}
+        """
+        results = []
+        if not query_string:
+            return results
+
+        try:
+            query = self.whoosh_parser.parse(query_string)
+            search_results = self.whoosh_searcher.search(query, limit=limit)
+            
+            for hit in search_results:
+                hit_fields = hit.fields()  # Get all stored fields as a dictionary
+                term_curie = hit_fields.get('curie') # *** CHANGED: 'id' to 'curie' ***
+
+                if term_curie is None:
+                    print(f"Warning: Lexical search hit found without a 'curie'. Hit details: {hit}")
+                    # logger.warning(f"Lexical search hit found without a 'curie'. Hit details: {hit}")
+                    continue
+
+                # 'relations_text' is not stored, so it won't be in hit_fields.
+                # We retrieve label, synonyms, definition if they were stored.
+                retrieved_label = hit_fields.get('label')
+                retrieved_synonyms_str = hit_fields.get('synonyms') # This will be a space-separated string
+                retrieved_definition = hit_fields.get('definition')
+
+                results.append({
+                    "id": term_curie, # Keep 'id' as the key in the result for consistency with vector search
+                    "label": retrieved_label if retrieved_label is not None else self.ontology_data.get(term_curie, {}).get('label', 'N/A'),
+                    "score": hit.score, 
+                    "source": "lexical",
+                    "details": {
+                        # Convert synonyms string back to list if needed, or keep as string
+                        "retrieved_synonyms": retrieved_synonyms_str.split() if retrieved_synonyms_str else [], 
+                        "retrieved_definition": retrieved_definition
+                    }
+                })
+        except Exception as e:
+            print(f"Error during lexical search for '{query_string}': {e}")
+            # logger.error(f"Error during lexical search for '{query_string}': {e}", exc_info=True)
+            import traceback
+            traceback.print_exc() # Print full traceback for debugging
+        return results
+
+    def _vector_search(self, query_string, k=DEFAULT_K_VECTOR):
+        """
+        Performs vector search using FAISS.
+        Returns a list of dicts: {'id': str, 'label': str, 'score': float, 'source': 'vector', 'details': dict}
+        """
+        results = []
+        if not query_string:
+            return results
+
+        try:
+            query_vector = self.embedding_model.encode([query_string], convert_to_numpy=True)
+            distances, _, metadata_items = self.faiss_store.search(query_vector, k=k)
+            
+            for i in range(len(metadata_items)):
+                term_id = metadata_items[i]['id'] # FAISS metadata stores 'id'
+                results.append({
+                    "id": term_id,
+                    "label": metadata_items[i]['label'],
+                    "score": float(distances[i]), 
+                    "source": "vector",
+                    "details": {}
+                })
+        except Exception as e:
+            print(f"Error during vector search for '{query_string}': {e}")
+            # logger.error(f"Error during vector search for '{query_string}': {e}", exc_info=True)
+            import traceback
+            traceback.print_exc() # Print full traceback for debugging
+        return results
+
+    def search(self, query_string, lexical_limit=DEFAULT_K_LEXICAL, vector_k=DEFAULT_K_VECTOR):
+        """
+        Performs hybrid search.
+        """
+        lexical_results = self._lexical_search(query_string, limit=lexical_limit)
+        vector_results = self._vector_search(query_string, k=vector_k)
+        
+        return {
+            "query": query_string,
+            "lexical_results": lexical_results,
+            "vector_results": vector_results,
+        }
+
+    def get_term_details(self, term_id):
+        """
+        Retrieves full details for a given term ID (CURIE) from the loaded ontology data.
+        """
+        return self.ontology_data.get(term_id)
+
+    def close(self):
+        """
+        Closes any open resources, like the Whoosh searcher.
+        """
+        if self.whoosh_searcher:
+            self.whoosh_searcher.close()
+        print("HybridRetriever resources closed.")
+
+# Example Usage (for testing purposes)
+if __name__ == '__main__':
+    # This sys.path modification is now at the top of the file for when __name__ == '__main__'
+    
+    from src.config import PROJECT_ROOT # Import after sys.path is potentially modified
+    print(f"Configured project root: {PROJECT_ROOT}")
+    if not os.getcwd().startswith(PROJECT_ROOT) and os.getcwd() != PROJECT_ROOT:
+         print(f"Warning: Current working directory ({os.getcwd()}) might not be the project root.")
+         print("Consider running with 'python -m src.retriever.hybrid_retriever' from the project root directory.")
+
+    print("Running HybridRetriever example...")
+    retriever = None
+    try:
+        retriever = HybridRetriever()
+        
+        queries = ["apple", "cheddar cheese", "whole milk", "plant based milk", "frozen pizza", "yoghurt"]
+        
+        for query in queries:
+            print(f"\nSearching for: '{query}'")
+            results = retriever.search(query, lexical_limit=3, vector_k=3)
+            
+            print("\n--- Lexical Results ---")
+            if results["lexical_results"]:
+                for res in results["lexical_results"]:
+                    print(f"  ID: {res['id']}, Label: {res['label']}, Score (Whoosh): {res['score']:.4f}")
+                    # print(f"    Details: {res['details']}") # Uncomment to see retrieved synonyms/def
+            else:
+                print("  No lexical results.")
+
+            print("\n--- Vector Results ---")
+            if results["vector_results"]:
+                for res in results["vector_results"]:
+                    print(f"  ID: {res['id']}, Label: {res['label']}, Score (L2 Distance): {res['score']:.4f}")
+            else:
+                print("  No vector results.")
+            print("-" * 40)
+            
+    except FileNotFoundError as e:
+        print(f"\nERROR: A required file was not found: {e}")
+        print("Please ensure all data files (ontology_dump.json) and indices (Whoosh, FAISS) are correctly built and paths are set in src/config.py.")
+        print("You might need to run the ingestion and embedding scripts first.")
+    except Exception as e:
+        print(f"\nAn unexpected error occurred during example run: {e}")
+        import traceback
+        traceback.print_exc()
+    finally:
+        if retriever:
+            retriever.close()
+--- END File: src/retriever/hybrid_retriever.py ---
+
+--- File: src/vector_store/__init__.py ---
+
+--- END File: src/vector_store/__init__.py ---
+
+--- File: src/vector_store/faiss_store.py ---
+# src/vector_store/faiss_store.py
+import faiss
+import json
+import numpy as np
+import os
+from src.config import EMBEDDINGS_FILE # Default embeddings file to build from
+
+# from src.utils.logger import get_logger # Placeholder for future logging
+# logger = get_logger(__name__)
+
+class FAISSVectorStore:
+    def __init__(self, index_path, metadata_path, embeddings_file_path=None, dimension=None):
+        """
+        Initializes the FAISSVectorStore.
+        Tries to load an existing index and metadata. If not found, and an
+        embeddings_file_path is provided, it will attempt to build them.
+
+        Args:
+            index_path (str): Path to save/load the FAISS index file (.bin).
+            metadata_path (str): Path to save/load the metadata JSON file (.json).
+            embeddings_file_path (str, optional): Path to the 'embeddings.json' file.
+                                                  Used only if the index/metadata needs to be built.
+                                                  Defaults to config.EMBEDDINGS_FILE.
+            dimension (int, optional): The dimension of the vectors.
+                                       Required if building the index and it cannot be inferred.
+                                       Usually inferred from the first embedding.
+        """
+        self.index_path = index_path
+        self.metadata_path = metadata_path
+        self.embeddings_file_path = embeddings_file_path if embeddings_file_path else EMBEDDINGS_FILE
+        self.dimension = dimension
+
+        self.index = None
+        self.metadata = []  # List of dicts, e.g., [{'id': 'FOODON_123', 'label': 'Apple'}, ...]
+
+        if os.path.exists(self.index_path) and os.path.exists(self.metadata_path):
+            print(f"Loading existing FAISS index from {self.index_path} and metadata from {self.metadata_path}")
+            # logger.info(f"Loading existing FAISS index from {self.index_path} and metadata from {self.metadata_path}")
+            try:
+                self.load_store()
+            except Exception as e:
+                print(f"Error loading existing FAISS store: {e}. Will attempt to build if embeddings file provided.")
+                # logger.error(f"Error loading existing FAISS store: {e}. Will attempt to build if embeddings file provided.", exc_info=True)
+                self._try_build_store()
+        elif self.embeddings_file_path and os.path.exists(self.embeddings_file_path):
+            print(f"FAISS index/metadata not found. Attempting to build from {self.embeddings_file_path}")
+            # logger.info(f"FAISS index/metadata not found. Attempting to build from {self.embeddings_file_path}")
+            self._try_build_store()
+        else:
+            message = "FAISS index/metadata not found. "
+            if self.embeddings_file_path:
+                message += f"Embeddings file {self.embeddings_file_path} also not found or not specified for building."
+            else:
+                message += "No embeddings file path provided to build a new store."
+            print(f"Warning: {message}")
+            # logger.warning(message)
+
+    def _try_build_store(self):
+        """Helper method to attempt building the store."""
+        embeddings_data = self._load_embeddings_data()
+        if embeddings_data:
+            self.build_index_from_embeddings(embeddings_data)
+            if self.index and self.metadata: # Check if build was successful
+                 self.save_store()
+            else:
+                print("Warning: FAISS index or metadata not built successfully from embeddings data.")
+                # logger.warning("FAISS index or metadata not built successfully from embeddings data.")
+        else:
+            print(f"Warning: No embeddings data loaded from {self.embeddings_file_path}, FAISS index not built.")
+            # logger.warning(f"No embeddings data loaded from {self.embeddings_file_path}, FAISS index not built.")
+
+
+    def _load_embeddings_data(self):
+        """
+        Loads embeddings data from the specified JSON file.
+        Expected format: list of {'id': str, 'label': str, 'embedding': list[float]}
+        """
+        if not self.embeddings_file_path or not os.path.exists(self.embeddings_file_path):
+            print(f"Error: Embeddings file not found: {self.embeddings_file_path}")
+            # logger.error(f"Embeddings file not found: {self.embeddings_file_path}")
+            return None
+        try:
+            with open(self.embeddings_file_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            # Sanity check the data structure
+            if not isinstance(data, list) or not data:
+                print(f"Error: Embeddings file {self.embeddings_file_path} is empty or not a list.")
+                # logger.error(f"Embeddings file {self.embeddings_file_path} is empty or not a list.")
+                return None
+            if not all('id' in item and 'label' in item and 'embedding' in item for item in data):
+                print(f"Error: Embeddings data in {self.embeddings_file_path} has incorrect format.")
+                # logger.error(f"Embeddings data in {self.embeddings_file_path} has incorrect format.")
+                return None
+
+            print(f"Loaded {len(data)} embeddings from {self.embeddings_file_path}")
+            # logger.info(f"Loaded {len(data)} embeddings from {self.embeddings_file_path}")
+            return data
+        except json.JSONDecodeError as e:
+            print(f"Error decoding JSON from embeddings file {self.embeddings_file_path}: {e}")
+            # logger.error(f"Error decoding JSON from embeddings file {self.embeddings_file_path}: {e}", exc_info=True)
+            return None
+        except Exception as e:
+            print(f"An unexpected error occurred while loading embeddings file {self.embeddings_file_path}: {e}")
+            # logger.error(f"An unexpected error occurred while loading embeddings file {self.embeddings_file_path}: {e}", exc_info=True)
+            return None
+
+    def build_index_from_embeddings(self, embeddings_data):
+        """
+        Builds the FAISS index and prepares metadata from loaded embeddings data.
+
+        Args:
+            embeddings_data (list): List of dictionaries, where each dict has
+                                    'id', 'label', and 'embedding' keys.
+        """
+        if not embeddings_data:
+            print("Warning: No embeddings data provided to build_index_from_embeddings.")
+            # logger.warning("No embeddings data provided to build_index_from_embeddings.")
+            return
+
+        vectors = []
+        current_metadata = [] # Use a temporary list to build metadata
+        for item in embeddings_data:
+            vectors.append(item['embedding'])
+            current_metadata.append({'id': item['id'], 'label': item['label']})
+
+        if not vectors:
+            print("Warning: No vectors extracted from embeddings_data.")
+            # logger.warning("No vectors extracted from embeddings_data.")
+            return
+
+        vectors_np = np.array(vectors).astype('float32')
+
+        if self.dimension is None:
+            self.dimension = vectors_np.shape[1]
+        elif self.dimension != vectors_np.shape[1]:
+            err_msg = f"Provided dimension {self.dimension} does not match embeddings dimension {vectors_np.shape[1]}"
+            print(f"Error: {err_msg}")
+            # logger.error(err_msg)
+            raise ValueError(err_msg)
+
+        # Using IndexFlatL2, a simple L2 distance index.
+        # For larger datasets, more advanced indexes like IndexIVFFlat might be better.
+        try:
+            self.index = faiss.IndexFlatL2(self.dimension)
+            self.index.add(vectors_np)
+            self.metadata = current_metadata # Assign once build is successful
+            print(f"FAISS index built successfully with {self.index.ntotal} vectors of dimension {self.dimension}.")
+            # logger.info(f"FAISS index built successfully with {self.index.ntotal} vectors of dimension {self.dimension}.")
+        except Exception as e:
+            print(f"Error building FAISS index: {e}")
+            # logger.error(f"Error building FAISS index: {e}", exc_info=True)
+            self.index = None # Ensure index is None if build fails
+            self.metadata = []
+
+
+    def save_store(self):
+        """Saves the FAISS index and metadata to their respective files."""
+        if self.index is None:
+            print("Warning: No FAISS index to save.")
+            # logger.warning("No FAISS index to save.")
+            return # Do not save metadata if index is not there or failed to build
+
+        os.makedirs(os.path.dirname(self.index_path), exist_ok=True)
+        faiss.write_index(self.index, self.index_path)
+        print(f"FAISS index saved to {self.index_path}")
+        # logger.info(f"FAISS index saved to {self.index_path}")
+
+        if not self.metadata:
+            print("Warning: No FAISS metadata to save (metadata list is empty).")
+            # logger.warning("No FAISS metadata to save (metadata list is empty).")
+            # If index exists but metadata is empty, this is an inconsistent state.
+            # Depending on strictness, one might choose to not save the index either,
+            # or clear the index file if it exists. For now, we save index if it exists.
+            return
+
+        os.makedirs(os.path.dirname(self.metadata_path), exist_ok=True)
+        with open(self.metadata_path, 'w', encoding='utf-8') as f:
+            json.dump(self.metadata, f, indent=4)
+        print(f"FAISS metadata saved to {self.metadata_path}")
+        # logger.info(f"FAISS metadata saved to {self.metadata_path}")
+
+    def load_store(self):
+        """Loads the FAISS index and metadata from files."""
+        if not os.path.exists(self.index_path):
+            # logger.error(f"FAISS index file not found: {self.index_path}")
+            raise FileNotFoundError(f"FAISS index file not found: {self.index_path}")
+        self.index = faiss.read_index(self.index_path)
+        if self.dimension is None: # Infer dimension if not set
+            self.dimension = self.index.d
+        elif self.dimension != self.index.d: # Check consistency
+            # logger.warning(f"Stored index dimension {self.index.d} differs from configured {self.dimension}. Using stored.")
+            print(f"Warning: Stored index dimension {self.index.d} differs from configured {self.dimension}. Using stored.")
+            self.dimension = self.index.d
+
+        print(f"FAISS index loaded from {self.index_path}. Index has {self.index.ntotal} vectors of dim {self.index.d}.")
+        # logger.info(f"FAISS index loaded from {self.index_path}. Index has {self.index.ntotal} vectors of dim {self.index.d}.")
+
+        if not os.path.exists(self.metadata_path):
+            # logger.error(f"FAISS metadata file not found: {self.metadata_path}")
+            raise FileNotFoundError(f"FAISS metadata file not found: {self.metadata_path}")
+        with open(self.metadata_path, 'r', encoding='utf-8') as f:
+            self.metadata = json.load(f)
+        print(f"FAISS metadata loaded from {self.metadata_path}. {len(self.metadata)} items.")
+        # logger.info(f"FAISS metadata loaded from {self.metadata_path}. {len(self.metadata)} items.")
+
+        if self.index and self.metadata and self.index.ntotal != len(self.metadata):
+            mismatch_msg = (f"Mismatch between FAISS index size ({self.index.ntotal}) "
+                            f"and metadata size ({len(self.metadata)}). This may lead to errors.")
+            print(f"Warning: {mismatch_msg}")
+            # logger.warning(mismatch_msg)
+            # Potentially raise an error or try to reconcile, for now, just warn.
+
+    def search(self, query_vector, k=5):
+        """
+        Performs a K-Nearest Neighbors search on the FAISS index.
+
+        Args:
+            query_vector (np.ndarray): A 2D numpy array of shape (num_queries, dimension)
+                                       or a 1D numpy array (single query).
+            k (int): The number of nearest neighbors to retrieve.
+
+        Returns:
+            tuple: (distances, indices, metadata_items)
+                   distances (np.ndarray): Distances to the k nearest neighbors.
+                   indices (np.ndarray): FAISS internal indices of the k nearest neighbors.
+                   metadata_items (list of lists or list of dicts): Corresponding metadata for the results.
+                                     If single query, returns list of dicts. If multiple, list of lists of dicts.
+        """
+        if self.index is None:
+            print("Error: FAISS index not initialized. Cannot perform search.")
+            # logger.error("FAISS index not initialized. Cannot perform search.")
+            return np.array([]), np.array([]), []
+
+        if not isinstance(query_vector, np.ndarray):
+            query_vector = np.array(query_vector)
+
+        if query_vector.ndim == 1: # Single query vector
+            query_vector = np.expand_dims(query_vector, axis=0)
+        
+        if query_vector.shape[1] != self.index.d:
+            err_msg = f"Query vector dimension ({query_vector.shape[1]}) does not match index dimension ({self.index.d})."
+            print(f"Error: {err_msg}")
+            # logger.error(err_msg)
+            raise ValueError(err_msg)
+
+        distances, faiss_indices = self.index.search(query_vector.astype('float32'), k)
+        
+        # faiss_indices will be shape (num_queries, k)
+        # distances will be shape (num_queries, k)
+        
+        all_results_metadata = []
+        for i in range(faiss_indices.shape[0]): # Iterate over queries
+            query_results_metadata = []
+            for j in range(faiss_indices.shape[1]): # Iterate over k results for that query
+                idx = faiss_indices[i][j]
+                if idx != -1 and idx < len(self.metadata): # faiss_index can be -1 if k > ntotal
+                    query_results_metadata.append(self.metadata[idx])
+                # else: could append a placeholder, or log. For now, items are just shorter if fewer than k found.
+            all_results_metadata.append(query_results_metadata)
+        
+        # For a single query_vector (most common use case here), return the inner list directly.
+        if query_vector.shape[0] == 1:
+            return distances[0], faiss_indices[0], all_results_metadata[0]
+        else: # If multiple query vectors were passed
+            return distances, faiss_indices, all_results_metadata
+
+# Example usage / test function
+if __name__ == '__main__':
+    from src.config import DATA_DIR, FAISS_INDEX_PATH, FAISS_METADATA_PATH, EMBEDDINGS_FILE
+
+    print("Running FAISSVectorStore example...")
+
+    # --- Test Case 1: Building the index if it doesn't exist ---
+    # For this test, we'll create a dummy embeddings.json if it doesn't exist
+    # Ensure EMBEDDINGS_FILE path is correct in config
+    
+    # Clean up old test files if they exist, to ensure a clean build test
+    if os.path.exists(FAISS_INDEX_PATH):
+        os.remove(FAISS_INDEX_PATH)
+        print(f"Removed existing test index: {FAISS_INDEX_PATH}")
+    if os.path.exists(FAISS_METADATA_PATH):
+        os.remove(FAISS_METADATA_PATH)
+        print(f"Removed existing test metadata: {FAISS_METADATA_PATH}")
+
+    # Create a dummy embeddings.json if it does not exist or is invalid
+    dummy_embeddings_data = [
+        {"id": "FOODON:001", "label": "Test Apple", "embedding": [0.1, 0.2, 0.3, 0.4]},
+        {"id": "FOODON:002", "label": "Test Banana", "embedding": [0.5, 0.6, 0.7, 0.8]},
+        {"id": "FOODON:003", "label": "Test Orange", "embedding": [0.2, 0.3, 0.4, 0.5]},
+        {"id": "FOODON:004", "label": "Test Grape", "embedding": [0.6, 0.7, 0.8, 0.9]},
+        {"id": "FOODON:005", "label": "Another Apple", "embedding": [0.11, 0.21, 0.31, 0.41]}, # Similar to Test Apple
+    ]
+    vector_dim = len(dummy_embeddings_data[0]["embedding"])
+
+    if not os.path.exists(EMBEDDINGS_FILE):
+        print(f"Creating dummy embeddings file: {EMBEDDINGS_FILE}")
+        with open(EMBEDDINGS_FILE, 'w', encoding='utf-8') as f:
+            json.dump(dummy_embeddings_data, f, indent=4)
+    else:
+        print(f"Using existing embeddings file: {EMBEDDINGS_FILE}")
+        # Optionally, load and check its dimension here or rely on FAISSVectorStore to do it.
+
+    # Initialize FAISSVectorStore - this should build and save if files are missing
+    print("\n--- Initializing FAISS store (should build if not present) ---")
+    try:
+        faiss_store = FAISSVectorStore(
+            index_path=FAISS_INDEX_PATH,
+            metadata_path=FAISS_METADATA_PATH,
+            embeddings_file_path=EMBEDDINGS_FILE, # Explicitly pass for build
+            dimension=vector_dim # Provide dimension if known, or let it infer
+        )
+
+        if faiss_store.index and faiss_store.metadata:
+            print("FAISS store initialized/built successfully.")
+            print(f"Index has {faiss_store.index.ntotal} items.")
+
+            # --- Test Case 2: Searching the index ---
+            print("\n--- Testing Search ---")
+            # Query for something similar to "Test Apple"
+            query_vec = np.array([0.1, 0.2, 0.3, 0.4]).astype('float32')
+            distances, indices, metadata_items = faiss_store.search(query_vec, k=3)
+
+            print(f"Query vector: {query_vec}")
+            print(f"Distances: {distances}")
+            print(f"FAISS Indices: {indices}") # These are row numbers in the original embeddings list
+            print("Metadata of results:")
+            for item in metadata_items:
+                print(f"  ID: {item['id']}, Label: {item['label']}")
+            
+            assert len(metadata_items) > 0, "Search returned no results"
+            assert metadata_items[0]['id'] == "FOODON:001", "Top search result mismatch"
+
+            # --- Test Case 3: Loading the existing index ---
+            print("\n--- Testing Loading Existing Store ---")
+            faiss_store_loaded = FAISSVectorStore(
+                index_path=FAISS_INDEX_PATH,
+                metadata_path=FAISS_METADATA_PATH
+                # Not providing embeddings_file_path, so it must load
+            )
+            if faiss_store_loaded.index and faiss_store_loaded.metadata:
+                print("FAISS store loaded successfully from disk.")
+                print(f"Loaded index has {faiss_store_loaded.index.ntotal} items.")
+                
+                # Re-run search to confirm
+                distances_loaded, _, metadata_items_loaded = faiss_store_loaded.search(query_vec, k=1)
+                print("Search result from loaded store:")
+                for item in metadata_items_loaded:
+                    print(f"  ID: {item['id']}, Label: {item['label']}")
+                assert metadata_items_loaded[0]['id'] == "FOODON:001", "Loaded store search result mismatch"
+            else:
+                print("Failed to load FAISS store from disk.")
+        else:
+            print("FAISS store could not be initialized or built.")
+
+    except Exception as e:
+        print(f"An error occurred during FAISSVectorStore example: {e}")
+        import traceback
+        traceback.print_exc()
+    finally:
+        # Clean up dummy files if you want to keep the data dir clean after tests
+        # For this example, we'll leave them so you can inspect
+        # if os.path.exists(EMBEDDINGS_FILE) and EMBEDDINGS_FILE.endswith("dummy_embeddings.json"):
+        #     os.remove(EMBEDDINGS_FILE)
+        # if os.path.exists(FAISS_INDEX_PATH) and FAISS_INDEX_PATH.endswith("dummy_faiss.bin"):
+        #     os.remove(FAISS_INDEX_PATH)
+        # if os.path.exists(FAISS_METADATA_PATH) and FAISS_METADATA_PATH.endswith("dummy_faiss_meta.json"):
+        #     os.remove(FAISS_METADATA_PATH)
+        pass
+--- END File: src/vector_store/faiss_store.py ---
+
+--- File: src/prompts/reranker.tpl ---
+
+--- END File: src/prompts/reranker.tpl ---
+
+--- File: src/prompts/hybrid_retriever.tpl ---
+
+--- END File: src/prompts/hybrid_retriever.tpl ---
+
+--- File: src/prompts/parse_ontology.tpl ---
+
+--- END File: src/prompts/parse_ontology.tpl ---
+

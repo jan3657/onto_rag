@@ -1,0 +1,115 @@
+onto_rag/
+├── .gitignore                      # ✓ (Assumed from previous, user confirmed)
+├── .env.example                    # ✓ (Assumed from previous, user confirmed)
+├── api_key.json                    # (Credentials, not version controlled ideally)
+├── README.md                       # ✓ (Documentation file)
+├── requirements.txt                # ✓ (Python package requirements)
+├── data/                           # ✓ (Created by scripts)
+│   ├── ontology_dump.json          # ✓ (Output of parse_ontology.py)
+│   ├── enriched_documents.json     # ✓ (Output of enrich_documents.py)
+│   ├── embeddings.json             # ✓ (Output of embed_docs.py)
+│   ├── faiss_index.bin             # ✓ (Output of faiss_store.py - FAISS index)
+│   ├── faiss_metadata.json         # ✓ (Output of faiss_store.py - IDs/Labels for FAISS)
+│   └── whoosh_index/               # ✓ (Contains Whoosh index files)
+│       └── _MAIN_1.toc             #   (Example Whoosh file, actual names vary)
+│       └──  MAIN_*.seg             #   (Example Whoosh file)
+│       └──  MAIN_WRITELOCK         #   (Example Whoosh file)
+├── docs/                           # (Directory for detailed documentation)
+│   ├── architecture.md
+│   ├── data_processing.md
+│   ├── pipeline.md
+│   ├── evaluation.md
+│   ├── project_outline.txt         # ✓ (This file, updated)
+│   └── tasks.txt                   # ✓ (User's file, updated)
+├── ontologies/
+│   ├── foodon.owl                  # ✓ (Main ontology file)
+│   └── test_foodon_snippet.owl     # ✓ (Snippet for testing)
+├── prompts/                        # (For LLM prompt templates)
+│   ├── hybrid_retriever.tpl
+│   ├── parse_ontology.tpl
+│   ├── reranker.tpl
+│   └── fallback_expansion.tpl
+├── src/
+│   ├── __init__.py                 # ✓ (Makes 'src' a package)
+│   ├── config.py                   # ✓ (Configuration, including paths and namespaces)
+│   ├── main.py                     # (Overall application entry point - To be developed)
+│   ├── ingestion/
+│   │   ├── __init__.py             # ✓ (Makes 'ingestion' a sub-package)
+│   │   ├── parse_ontology.py       # ✓ (Parses FoodON ontology)
+│   │   │   ├── load_ontology(path)
+│   │   │   ├── get_ancestors(g, term_uri, ...)
+│   │   │   ├── extract_labels_and_synonyms(g)
+│   │   │   ├── extract_definitions(g)
+│   │   │   ├── extract_hierarchy(g)
+│   │   │   ├── extract_relations(g, props_map)
+│   │   │   └── main()
+│   │   ├── build_lexical_index.py  # ✓ (Builds Whoosh index from parsed data)
+│   │   │   └── build_index(json_path, index_dir) # Schema: curie (ID, stored), label (TEXT, stored), synonyms (TEXT, stored), definition (TEXT, stored), relations_text (TEXT, stored=False)
+│   │   └── enrich_documents.py     # ✓ (Creates rich text docs for embedding)
+│   │       ├── get_label_for_curie(curie, ontology_data, ...)
+│   │       ├── get_relation_name(relation_curie)
+│   │       └── create_enriched_documents(ontology_data_path, output_path)
+│   ├── embeddings/
+│   │   ├── __init__.py             # ✓ (Makes 'embeddings' a sub-package)
+│   │   └── embed_docs.py           # ✓ (Generates embeddings for enriched documents)
+│   │       ├── load_enriched_documents(file_path)
+│   │       ├── batch_embed_documents(documents, model_name, batch_size, device)
+│   │       └── save_embeddings(embeddings_data, output_path)
+│   ├── vector_store/
+│   │   ├── __init__.py             # ✓ (Makes 'vector_store' a sub-package)
+│   │   ├── faiss_store.py          # ✓ (FAISS vector store implementation)
+│   │   │   ├── FAISSVectorStore (class)
+│   │   │   │   ├── __init__(index_path, metadata_path, embeddings_file_path, dimension)
+│   │   │   │   ├── _load_embeddings_data()
+│   │   │   │   ├── build_index_from_embeddings(embeddings_data)
+│   │   │   │   ├── save_store()
+│   │   │   │   ├── load_store()
+│   │   │   │   └── search(query_vector, k)
+│   │   ├── pinecone_store.py       # (Placeholder)
+│   │   └── weaviate_store.py       # (Placeholder)
+│   ├── retriever/
+│   │   ├── __init__.py             # ✓ (Makes 'retriever' a sub-package)
+│   │   └── hybrid_retriever.py     # ✓ (Implements hybrid lexical and vector search)
+│   │       ├── HybridRetriever (class)
+│   │       │   ├── __init__(ontology_data_path, whoosh_index_dir, ...)
+│   │       │   ├── _lexical_search(query_string, limit) # Adjusted for 'curie' field, retrieves stored fields
+│   │       │   ├── _vector_search(query_string, k)
+│   │       │   ├── search(query_string, lexical_limit, vector_k)
+│   │       │   ├── get_term_details(term_id)
+│   │       │   └── close()
+│   ├── reranker/
+│   │   ├── __init__.py             # (To be created)
+│   │   └── llm_reranker.py         # (To be developed)
+│   ├── pipeline/
+│   │   ├── __init__.py             # (To be created)
+│   │   └── pipeline.py             # (To be developed)
+│   ├── fallback/
+│   │   ├── __init__.py             # (To be created)
+│   │   └── query_expansion.py      # (To be developed)
+│   ├── evaluation/
+│   │   ├── __init__.py             # (To be created)
+│   │   └── evaluate.py             # (To be developed)
+│   ├── utils/
+│   │   ├── __init__.py             # ✓ (Makes 'utils' a sub-package)
+│   │   ├── ontology_utils.py       # ✓ (Utility functions for ontology processing)
+│   │   │   ├── uri_to_curie(uri, ...)
+│   │   │   └── curie_to_uri(curie, ...)
+│   │   ├── logging.py              # (To be developed)
+│   │   ├── caching.py              # (To be developed)
+│   │   └── errors.py               # (To be developed)
+│   └── tests/
+│       ├── __init__.py             # ✓ (Makes 'tests' a sub-package)
+│       ├── test_parse_ontology.py  # ✓ (Pytest tests for ontology parsing)
+│       ├── test_lexical_index.py   # ✓ (Pytest tests for Whoosh index)
+│       ├── test_hybrid_retriever.py # (To be developed)
+│       └── test_evaluate.py        # (To be developed)
+├── scripts/                        # (Shell scripts for automation)
+│   ├── ingest.sh                 # (To be developed/refined)
+│   ├── embed.sh                  # (To be developed)
+│   ├── deploy.sh                 # (To be developed)
+│   └── update_index.sh           # (To be developed)
+├── docker/                         # (For containerization - To be developed)
+│   ├── Dockerfile
+│   └── docker-compose.yml
+└── k8s/                            # (For Kubernetes deployment - To be developed)
+    └── deployment.yaml

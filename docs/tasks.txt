@@ -1,0 +1,119 @@
+# Project Tasks
+
+## Legend:
+# [✓] Completed
+# [>] In Progress / Next Up
+# [ ] To Do
+# [-] Optional / Deferred
+
+# ----------------------------------------------------------------------
+# Task 1: Build Lexical & Structural Index
+# ----------------------------------------------------------------------
+[✓] Parse Ontology: Process the FoodON ontology (OWL/OBO format).
+    [✓] Load & Iterate the OWL File (Implemented: `load_ontology` in `parse_ontology.py`)
+[✓] Extract Core Data: For each entry, extract its label, all synonyms, and its definition/description.
+    [✓] Extract Term IDs, Labels & Synonyms (Implemented: `extract_labels_and_synonyms` in `parse_ontology.py`)
+    [✓] Extract Definitions (Implemented: `extract_definitions` in `parse_ontology.py`)
+[✓] Extract Structural Data:
+    [✓] Hierarchy: Capture its direct parent(s) (subClassOf) and key ancestor classes. (Implemented: `extract_hierarchy`, `get_ancestors` in `parse_ontology.py`)
+    [✓] Key Relations & Properties: Extract important object properties (e.g., has_ingredient, part_of, derives_from) and their targets. (Implemented: `extract_relations` in `parse_ontology.py`)
+    [✓] Facets: Identify and extract FoodON-specific facets (e.g., food source, preservation, packaging) associated with the entry.
+        # NOTE: Current `extract_relations` can handle facets if they are standard object properties.
+        # Specific identification/logic for "FoodON-specific facets" beyond general relations needs review if they require special handling.
+[✓] Populate Lexical Index: Use Whoosh for exact/fuzzy lookups based on labels and synonyms. Indexed key relation text as well. (Implemented: `build_index` in `build_lexical_index.py`)
+[✓] Dump Everything to JSON (Implemented: `main` in `parse_ontology.py` creates `ontology_dump.json`)
+[✓] Smoke-Tests for the Parser (Implemented in `test_parse_ontology.py`)
+[✓] Smoke-Tests for the Index (Implemented in `test_lexical_index.py`)
+
+# ----------------------------------------------------------------------
+# Task 2: Choose & Configure Rich Embeddings
+# ----------------------------------------------------------------------
+[✓] Select Model: Choose an embedding model suitable for semantic richness (e.g., Gemini, OpenAI, or a fine-tuned model if feasible). # Selected 'all-MiniLM-L6-v2' (BERT-based)
+[✓] Create Enriched Documents: For each ontology entry, construct a detailed "document" for embedding. (File: `src/ingestion/enrich_documents.py`)
+    [✓] Don't just use label + synonyms + definition. Incorporate structural context:
+        [✓] Include a textual description of its primary parent(s) (e.g., "is a Pome Fruit").
+        [✓] List key relationships as text (e.g., "has ingredient: sugar; derives from: apple").
+        [✓] Add relevant facets (e.g., "processing: cooked; packaging: canned"). # Implemented by processing 'relations' from ontology_dump.json
+[✓] Batch Embed: Write a script to batch-embed these enriched documents. (File: `src/embeddings/embed_docs.py`)
+
+# ----------------------------------------------------------------------
+# Task 3: Stand Up Vector Store
+# ----------------------------------------------------------------------
+[✓] Choose DB: Select and set up your vector database (e.g., Chroma, FAISS, Pinecone, Weaviate). (Files: `src/vector_store/`) # Chose FAISS, implemented in faiss_store.py
+[✓] Ingest Embeddings: Load the enriched embeddings along with crucial metadata. (File: `src/vector_store/faiss_store.py`)
+    [✓] FoodON ID (Primary Key) # Stored in faiss_metadata.json, linked to FAISS index
+    [✓] Label # Stored in faiss_metadata.json, linked to FAISS index
+    [-] Synonyms # Not directly stored in FAISS metadata; retrievable via ID from ontology_dump.json
+    [-] Key Ancestors / Type (for potential filtering/pruning) # Not directly stored; retrievable via ID
+    [-] Key Relations (for context) # Not directly stored; retrievable via ID
+
+# ----------------------------------------------------------------------
+# Task 4: Implement Enhanced Hybrid Retriever
+# ----------------------------------------------------------------------
+[✓] Core Interface: Wrap lexical lookup and vector search in a single interface. (File: `src/retriever/hybrid_retriever.py`)
+[✓] Initial Retrieval Pass:
+    [✓] Lexical: Run exact/fuzzy string lookups.
+    [✓] Vector: Perform a K-Nearest Neighbors (KNN) search.
+[-] Hierarchical Pruning (Optional but Recommended):
+    [ ] If the initial pass yields many candidates, use the FoodON hierarchy.
+    [ ] Prompt an LLM (or use a rule-based approach) to ask: "Does the entity likely belong to 'Dairy Product' or 'Plant-Based Substitute'?" (based on the candidates' ancestors).
+    [ ] Filter the candidate list based on the response before proceeding.
+[ ] Merge & Rank: Combine results from lexical and vector passes (and pruning, if used) via Reciprocal Rank Fusion (RRF) or another suitable method.
+[-] Subgraph Retrieval (Optional): For top N candidates, retrieve their direct parents and key relations from your structural data store or the ontology directly.
+[ ] Linearize Context: Convert the retrieved candidates and their structural context/subgraphs into a readable text format.
+
+# ----------------------------------------------------------------------
+# Task 5: Integrate LLM Re-ranker with Rich Context
+# ----------------------------------------------------------------------
+[ ] Define Prompt: Create a prompt for your LLM (e.g., Gemini). (File: `prompts/reranker.tpl`)
+    [ ] Input: The original user entity and its context (if available).
+    [ ] Input: The top N linearized candidate entries, now including their hierarchical and relational context.
+    [ ] Task: "Rank these candidates in order of relevance for the entity '[User Entity]' in the context '[User Context]'. Explain your #1 choice briefly."
+[ ] Pipeline Integration: Add this re-ranking step after the hybrid retrieval and linearization. (File: `src/reranker/llm_reranker.py`)
+
+# ----------------------------------------------------------------------
+# Task 6: LangChain Pipeline Assembly
+# ----------------------------------------------------------------------
+[ ] Ingest NER Output: Ensure your pipeline starts with the output from your existing NER system.
+[ ] Plug in Retriever: Use your custom EnhancedHybridRetriever within LangChain.
+[ ] Plug in Re-ranker: Add the LLMReRanker step.
+[ ] LLM Formatter Chain: Create a final LLMChain. Its prompt should take the top-ranked, re-ranked candidate(s) and format them into a clear user answer, potentially including the LLM's brief explanation.
+[ ] Chain Steps: (Entities) → (EnhancedHybridRetriever) → (LLMReRanker) → (LLMFormatter) → User Answer. (File: `src/pipeline/pipeline.py`)
+
+# ----------------------------------------------------------------------
+# Task 7: Fallback Query Expansion (with Ontology Awareness)
+# ----------------------------------------------------------------------
+[ ] Trigger: Use when the retriever gives zero or low-confidence hits.
+[ ] Prompt Gemini: "Suggest synonyms, related terms, or broader/narrower concepts from a food ontology for '[User Entity]'." (File: `prompts/fallback_expansion.tpl`)
+[ ] Re-run: Execute the hybrid retrieval again using the expanded terms. (File: `src/fallback/query_expansion.py`)
+
+# ----------------------------------------------------------------------
+# Task 8: Evaluation & Metrics
+# ----------------------------------------------------------------------
+[ ] Test Set: Assemble known entity → FoodON ID mappings.
+[ ] Core Metrics: Measure Recall@K and Precision@1.
+[ ] Additional Metrics:
+    [ ] Mean Reciprocal Rank (MRR): To evaluate ranking quality.
+    [-] (Advanced) Hierarchical Metrics: Consider if you can give partial credit for linking to a correct parent/ancestor class.
+[ ] Tuning: Adjust 'k', thresholds, RRF weights, and prompt strategies based on results. (File: `src/evaluation/evaluate.py`)
+
+# ----------------------------------------------------------------------
+# Task 9: Logging, Error Handling & Caching
+# ----------------------------------------------------------------------
+[ ] Log Everything: Record queries, initial candidates, pruned lists, re-ranked lists, and final answers. Pay attention to how structural info influenced results. (File: `src/utils/logging.py`)
+[ ] Cache: Implement caching for embeddings and frequent lookups. (File: `src/utils/caching.py`)
+[ ] Handle Failures: Add robust error handling (retries, fallbacks). (File: `src/utils/errors.py`)
+
+# ----------------------------------------------------------------------
+# Task 10: Deployment & Monitoring
+# ----------------------------------------------------------------------
+[ ] Containerize & Deploy: Use Docker/Kubernetes or serverless functions. (Files: `docker/`, `k8s/`)
+[ ] API: Define a clear API for entity linking. (Likely in `src/main.py` or a dedicated API module)
+[ ] Monitor: Track latency, errors, and key metrics (Recall/MRR).
+
+# ----------------------------------------------------------------------
+# Task 11: Documentation & Maintenance
+# ----------------------------------------------------------------------
+[ ] README: Document setup, ontology data processing, and re-indexing procedures. (Update existing `README.md`)
+[ ] Re-indexing Schedule: Plan for regular updates when FoodON changes, ensuring your structural data parsing is part of this. (Document in `docs/data_processing.md` or `README.md`)
+[ ] Examples: Provide clear examples. (In `README.md` or `docs/`)
