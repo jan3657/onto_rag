@@ -1,0 +1,15 @@
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+
+# Environment & secrets
+.env
+api_key.json
+
+# VSCode, macOS
+.vscode/
+.DS_Store
+
+# Large generated data and ontology files
+/data/
+/ontologies/
