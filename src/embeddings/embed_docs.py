@@ -74,14 +74,14 @@ def batch_embed_documents(
 
     logging.info(f"Loading SentenceTransformer model: {model_name}")
     try:
-        model = SentenceTransformer(model_name, device=device)
+        model = SentenceTransformer(model_name, device=device, trust_remote_code=True)
     except Exception as e:
         logging.error(f"Failed to load model {model_name}: {e}")
         # Fallback to CPU if CUDA error during model loading (e.g. out of memory)
         if "cuda" in str(e).lower() and device == "cuda":
             logging.warning("CUDA error during model load. Attempting to load on CPU.")
             device = "cpu"
-            model = SentenceTransformer(model_name, device=device)
+            model = SentenceTransformer(model_name, device=device, trust_remote_code=True)
         else:
             raise
 

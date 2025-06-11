@@ -1,115 +1,216 @@
 onto_rag/
-├── .gitignore                      # ✓ (Assumed from previous, user confirmed)
-├── .env.example                    # ✓ (Assumed from previous, user confirmed)
-├── api_key.json                    # (Credentials, not version controlled ideally)
-├── README.md                       # ✓ (Documentation file)
-├── requirements.txt                # ✓ (Python package requirements)
-├── data/                           # ✓ (Created by scripts)
-│   ├── ontology_dump.json          # ✓ (Output of parse_ontology.py)
-│   ├── enriched_documents.json     # ✓ (Output of enrich_documents.py)
-│   ├── embeddings.json             # ✓ (Output of embed_docs.py)
-│   ├── faiss_index.bin             # ✓ (Output of faiss_store.py - FAISS index)
-│   ├── faiss_metadata.json         # ✓ (Output of faiss_store.py - IDs/Labels for FAISS)
-│   └── whoosh_index/               # ✓ (Contains Whoosh index files)
-│       └── _MAIN_1.toc             #   (Example Whoosh file, actual names vary)
-│       └──  MAIN_*.seg             #   (Example Whoosh file)
-│       └──  MAIN_WRITELOCK         #   (Example Whoosh file)
-├── docs/                           # (Directory for detailed documentation)
-│   ├── architecture.md
-│   ├── data_processing.md
-│   ├── pipeline.md
-│   ├── evaluation.md
-│   ├── project_outline.txt         # ✓ (This file, updated)
-│   └── tasks.txt                   # ✓ (User's file, updated)
-├── ontologies/
-│   ├── foodon.owl                  # ✓ (Main ontology file)
-│   └── test_foodon_snippet.owl     # ✓ (Snippet for testing)
-├── prompts/                        # (For LLM prompt templates)
-│   ├── hybrid_retriever.tpl
-│   ├── parse_ontology.tpl
-│   ├── reranker.tpl
-│   └── fallback_expansion.tpl
+├── .gitignore                      # [UPDATED] - Specifies intentionally untracked files.
+│                                   #   Actual content: __pycache__/, *.py[cod], .env, api_key.json, .vscode/, .DS_Store, /data/, /ontologies/.
+├── .env.example                    # [✓] - Example environment variables (OPENAI_API_KEY, PINECONE_API_KEY, PINECONE_ENV). To be copied to .env. Used by python-dotenv for loading, accessible via os.getenv in src/config.py if LLM modules are used.
+├── api_key.json                    # [✓] (Credentials, not version controlled) - Alternative for storing API keys locally (e.g., for Google Gemini); potentially read by specific API client modules or future LLM integration. Not present in export.
+├── README.md                       # [✓] (Documentation file) - "A Retrieval Augmented Generation system for matching extracted entities to ontologies".
+├── requirements.txt                # [UPDATED] (Python package requirements) - Lists:
+│                                   #   rdflib>=6.0.0, whoosh>=2.7.0, sentence-transformers>=2.2.0, faiss-cpu>=1.7.0,
+│                                   #   numpy>=1.21.0, pandas>=1.3.0, python-dotenv>=0.19.0, tqdm>=4.60.0, pytest>=6.2.0.
+├── export_files_contents.py        # [NEW] (Utility script) - Python script used to generate the project_contents.txt file. Not part of the RAG application logic.
+├── .pytest_cache/                  # [NEW] (Pytest cache, typically gitignored) - Directory containing pytest cache data.
+│   ├── CACHEDIR.TAG                #   [NEW] - Pytest cache directory tag.
+│   ├── README.md                   #   [NEW] - Explanation of the pytest cache directory.
+│   ├── .gitignore                  #   [NEW] - Gitignore file within .pytest_cache, instructing to ignore all its contents (*).
+│   ├── v/cache/                    #   [NEW] - Subdirectory for cache versions.
+│   │   ├── nodeids                 #   [NEW] - Cached test node IDs.
+│   │   ├── lastfailed              #   [NEW] - Cache of last failed tests.
+│   │   └── stepwise                #   [NEW] - Cache for pytest-stepwise plugin (empty in export).
+├── data/                           # [✓] (Created by scripts) - Directory for storing processed data, indices, and other script outputs. Not version controlled. (Content not in export)
+│   ├── ontology_dump.json          # [✓] (Output of src/ingestion/parse_ontology.py) - JSON file. A dictionary where keys are term CURIEs (e.g., "FOODON:012345"). Each value is a dictionary:
+│   │                               #   { "label": "term label" (str|None),
+│   │                               #     "synonyms": ["synonym1", "synonym2"] (List[str]),
+│   │                               #     "definition": "term definition" (str|None),
+│   │                               #     "parents": ["PARENT_CURIE1"] (List[str]),
+│   │                               #     "ancestors": ["ANCESTOR_CURIE1"] (List[str]),
+│   │                               #     "relations": {"relation_name": ["TARGET_CURIE1"]} (Dict[str, List[str]]) }
+│   │                               #   Input for src/ingestion/enrich_documents.py and src/ingestion/build_lexical_index.py.
+│   ├── enriched_documents.json     # [✓] (Output of src/ingestion/enrich_documents.py) - JSON file. A list of dictionaries:
+│   │                               #   [{ "id": "TERM_CURIE",
+│   │                               #      "label": "term label" (str),
+│   │                               #      "text": "enriched textual description of the term" (str) }]
+│   │                               #   Input for src/embeddings/embed_docs.py.
+│   ├── embeddings.json             # [✓] (Output of src/embeddings/embed_docs.py) - JSON file. A list of dictionaries:
+│   │                               #   [{ "id": "TERM_CURIE",
+│   │                               #      "label": "term label" (str),
+│   │                               #      "embedding": [0.1, 0.2, ...] (List[float]) }]
+│   │                               #   Input for src/vector_store/faiss_store.py (if building index).
+│   ├── faiss_index.bin             # [✓] (Output of src/vector_store/faiss_store.py - FAISS index) - Binary FAISS index file. Loaded by FAISSVectorStore.
+│   ├── faiss_metadata.json         # [✓] (Output of src/vector_store/faiss_store.py - IDs/Labels for FAISS) - JSON file. A list of dictionaries:
+│   │                               #   [{ "id": "TERM_CURIE", "label": "term label" }]
+│   │                               #   Maps FAISS vector indices to original term identifiers. Loaded by FAISSVectorStore.
+│   └── whoosh_index/               # [✓] (Output of src/ingestion/build_lexical_index.py) - Directory storing Whoosh index files. Loaded by HybridRetriever.
+│       ├── _MAIN_*.toc             #   (Example Whoosh file)
+│       ├── MAIN_*.seg              #   (Example Whoosh file)
+│       └── MAIN_WRITELOCK          #   (Example Whoosh file)
+├── docs/                           # [✓] (Directory for detailed documentation) (Content not in export)
+│   ├── architecture.md             # Describes overall system architecture, components, interactions, data flow.
+│   ├── data_processing.md          # Details data ingestion and processing pipeline.
+│   ├── pipeline.md                 # Outlines RAG query pipeline sequence.
+│   ├── evaluation.md               # Specifies evaluation methodology and metrics.
+│   ├── project_outline.txt         # [✓] (This file, updated) - Detailed project structure.
+│   └── tasks.txt                   # [✓] (User's file) - User-defined tasks.
+├── ontologies/                     # [✓] (Content not in export)
+│   ├── foodon.owl                  # [✓] (Main ontology file) - Primary ontology. Input for src/ingestion/parse_ontology.py (via config.FOODON_PATH).
+│   └── test_foodon_snippet.owl     # [✓] (Snippet for testing) - Smaller ontology subset for tests (via config.TEST_FOODON_SNIPPET_PATH).
+├── prompts/                        # [UPDATED] (For LLM prompt templates)
+│   ├── hybrid_retriever.tpl        # [✓] (Empty in export) Template for structuring queries or interpreting results related to HybridRetriever.
+│   ├── parse_ontology.tpl          # [✓] (Empty in export) Template for summaries or LLM-assisted parsing.
+│   ├── reranker.tpl                # [✓] (Empty in export) Prompt template for src/reranker/llm_reranker.py.
+│   └── fallback_expansion.tpl      # [REMOVED] (Was empty in export, now not present in export) Prompt template for src/fallback/query_expansion.py.
 ├── src/
-│   ├── __init__.py                 # ✓ (Makes 'src' a package)
-│   ├── config.py                   # ✓ (Configuration, including paths and namespaces)
-│   ├── main.py                     # (Overall application entry point - To be developed)
-│   ├── ingestion/
-│   │   ├── __init__.py             # ✓ (Makes 'ingestion' a sub-package)
-│   │   ├── parse_ontology.py       # ✓ (Parses FoodON ontology)
-│   │   │   ├── load_ontology(path)
-│   │   │   ├── get_ancestors(g, term_uri, ...)
-│   │   │   ├── extract_labels_and_synonyms(g)
-│   │   │   ├── extract_definitions(g)
-│   │   │   ├── extract_hierarchy(g)
-│   │   │   ├── extract_relations(g, props_map)
-│   │   │   └── main()
-│   │   ├── build_lexical_index.py  # ✓ (Builds Whoosh index from parsed data)
-│   │   │   └── build_index(json_path, index_dir) # Schema: curie (ID, stored), label (TEXT, stored), synonyms (TEXT, stored), definition (TEXT, stored), relations_text (TEXT, stored=False)
-│   │   └── enrich_documents.py     # ✓ (Creates rich text docs for embedding)
-│   │       ├── get_label_for_curie(curie, ontology_data, ...)
-│   │       ├── get_relation_name(relation_curie)
-│   │       └── create_enriched_documents(ontology_data_path, output_path)
-│   ├── embeddings/
-│   │   ├── __init__.py             # ✓ (Makes 'embeddings' a sub-package)
-│   │   └── embed_docs.py           # ✓ (Generates embeddings for enriched documents)
-│   │       ├── load_enriched_documents(file_path)
-│   │       ├── batch_embed_documents(documents, model_name, batch_size, device)
-│   │       └── save_embeddings(embeddings_data, output_path)
-│   ├── vector_store/
-│   │   ├── __init__.py             # ✓ (Makes 'vector_store' a sub-package)
-│   │   ├── faiss_store.py          # ✓ (FAISS vector store implementation)
-│   │   │   ├── FAISSVectorStore (class)
-│   │   │   │   ├── __init__(index_path, metadata_path, embeddings_file_path, dimension)
-│   │   │   │   ├── _load_embeddings_data()
-│   │   │   │   ├── build_index_from_embeddings(embeddings_data)
-│   │   │   │   ├── save_store()
-│   │   │   │   ├── load_store()
-│   │   │   │   └── search(query_vector, k)
-│   │   ├── pinecone_store.py       # (Placeholder)
-│   │   └── weaviate_store.py       # (Placeholder)
-│   ├── retriever/
-│   │   ├── __init__.py             # ✓ (Makes 'retriever' a sub-package)
-│   │   └── hybrid_retriever.py     # ✓ (Implements hybrid lexical and vector search)
-│   │       ├── HybridRetriever (class)
-│   │       │   ├── __init__(ontology_data_path, whoosh_index_dir, ...)
-│   │       │   ├── _lexical_search(query_string, limit) # Adjusted for 'curie' field, retrieves stored fields
-│   │       │   ├── _vector_search(query_string, k)
-│   │       │   ├── search(query_string, lexical_limit, vector_k)
-│   │       │   ├── get_term_details(term_id)
-│   │       │   └── close()
-│   ├── reranker/
-│   │   ├── __init__.py             # (To be created)
-│   │   └── llm_reranker.py         # (To be developed)
-│   ├── pipeline/
-│   │   ├── __init__.py             # (To be created)
-│   │   └── pipeline.py             # (To be developed)
-│   ├── fallback/
-│   │   ├── __init__.py             # (To be created)
-│   │   └── query_expansion.py      # (To be developed)
-│   ├── evaluation/
-│   │   ├── __init__.py             # (To be created)
-│   │   └── evaluate.py             # (To be developed)
-│   ├── utils/
-│   │   ├── __init__.py             # ✓ (Makes 'utils' a sub-package)
-│   │   ├── ontology_utils.py       # ✓ (Utility functions for ontology processing)
-│   │   │   ├── uri_to_curie(uri, ...)
-│   │   │   └── curie_to_uri(curie, ...)
-│   │   ├── logging.py              # (To be developed)
-│   │   ├── caching.py              # (To be developed)
-│   │   └── errors.py               # (To be developed)
-│   └── tests/
-│       ├── __init__.py             # ✓ (Makes 'tests' a sub-package)
-│       ├── test_parse_ontology.py  # ✓ (Pytest tests for ontology parsing)
-│       ├── test_lexical_index.py   # ✓ (Pytest tests for Whoosh index)
-│       ├── test_hybrid_retriever.py # (To be developed)
-│       └── test_evaluate.py        # (To be developed)
-├── scripts/                        # (Shell scripts for automation)
-│   ├── ingest.sh                 # (To be developed/refined)
-│   ├── embed.sh                  # (To be developed)
-│   ├── deploy.sh                 # (To be developed)
-│   └── update_index.sh           # (To be developed)
-├── docker/                         # (For containerization - To be developed)
-│   ├── Dockerfile
-│   └── docker-compose.yml
-└── k8s/                            # (For Kubernetes deployment - To be developed)
-    └── deployment.yaml
+│   ├── __init__.py                 # [✓] (Makes 'src' a Python package)
+│   ├── config.py                   # [UPDATED] (Centralized configuration)
+│   │                               #   Key Variables:
+│   │                               #     RERANKER_MODEL_NAME = "cross-encoder/ms-marco-MiniLM-L-6-v2"
+│   │                               #     PROJECT_ROOT (str): Absolute path to project root.
+│   │                               #     DATA_DIR (str): Path to data/ directory.
+│   │                               #     ONTOLOGIES_DIR (str): Path to ontologies/ directory.
+│   │                               #     FOODON_PATH (str): Path to foodon.owl.
+│   │                               #     TEST_FOODON_SNIPPET_PATH (str): Path to test_foodon_snippet.owl.
+│   │                               #     ONTOLOGY_DUMP_JSON (str): Path to data/ontology_dump.json.
+│   │                               #     ENRICHED_DOCUMENTS_FILE (str): Path to data/enriched_documents.json.
+│   │                               #     EMBEDDINGS_FILE (str): Path to data/embeddings.json.
+│   │                               #     WHOOSH_INDEX_DIR (str): Path to data/whoosh_index/.
+│   │                               #     FAISS_INDEX_PATH (str): Path to data/faiss_index.bin.
+│   │                               #     FAISS_METADATA_PATH (str): Path to data/faiss_metadata.json.
+│   │                               #     EMBEDDING_MODEL_NAME (str): e.g., "all-MiniLM-L6-v2".
+│   │                               #     EMBEDDING_BATCH_SIZE (int): Batch size for embedding generation.
+│   │                               #     EMBEDDING_DEVICE (str): "cpu" or "cuda".
+│   │                               #     DEFAULT_K_LEXICAL (int), DEFAULT_K_VECTOR (int): Default retrieval limits.
+│   │                               #     DEFAULT_RERANK_K (int): Default K for reranking (e.g., sum of lexical and vector K). [NEW in actual config.py]
+│   │                               #     RDFS_NS_STR, RDF_NS_STR, etc. (str): Namespace URI strings.
+│   │                               #     RDFS_NS, RDF_NS, etc. (rdflib.Namespace): Namespace objects.
+│   │                               #     RELATION_CONFIG (Dict[str, Dict[str,str]]): Extensive map of relation CURIEs to {"label": str, "prefix": str}. (e.g., {"obo:BFO_0000050": {"label": "part of", "prefix": "obo"}, ... many more ...}).
+│   │                               #     TARGET_RELATIONS_CURIES (List[str]): List of CURIEs from RELATION_CONFIG keys.
+│   │                               #     CURIE_PREFIX_MAP (Dict[str, str]): Extensive map of base URIs to prefixes for CURIE conversion (e.g., {"http://purl.obolibrary.org/obo/FOODON_": "FOODON", "http://purl.obolibrary.org/obo/GAZ_": "GAZ", ... many more ...}).
+│   │                               #     LOG_LEVEL (str), LOG_FILE (str): Logging configuration.
+│   │                               #     Commented out API Keys: OPENAI_API_KEY, GEMINI_API_KEY (placeholders for os.getenv).
+│   ├── main.py                     # [✓] (Overall application entry point - To be developed, currently empty) Orchestrates query -> retrieve -> rerank -> [fallback] -> context -> [generation].
+│   ├── ingestion/                  # Sub-package for data ingestion and preprocessing.
+│   │   ├── __init__.py             # [✓] (Makes 'ingestion' a sub-package)
+│   │   ├── parse_ontology.py       # [UPDATED] (Parses OWL ontology to JSON)
+│   │   │   # Key Configs Used: config.FOODON_PATH, config.ONTOLOGY_DUMP_JSON, config.CURIE_PREFIX_MAP, config.RELATION_CONFIG, config.TARGET_RELATIONS_CURIES, config.IAO_NS_STR, config.OBOINOWL_NS_STR. Logging is used.
+│   │   │   # Input: config.FOODON_PATH (OWL file).
+│   │   │   # Output: config.ONTOLOGY_DUMP_JSON (see data/ontology_dump.json for structure).
+│   │   │   ├── load_ontology(path: str) -> rdflib.Graph: Loads ontology using rdflib.Graph().parse(). Tries 'application/rdf+xml', 'turtle', then auto-detect. Uses logging.
+│   │   │   ├── get_ancestors(g: rdflib.Graph, term_uri: URIRef, prefix_map: Dict[str, str], visited_uris: set = None) -> List[str]: Recursively gets ancestor CURIEs via rdfs:subClassOf. Uses utils.ontology_utils.uri_to_curie.
+│   │   │   ├── extract_labels_and_synonyms(g: rdflib.Graph, prefix_map: Dict[str, str]) -> Dict[str, Dict[str, Any]]: Extracts rdfs:label and OBOInOwl synonyms. Returns {curie: {"label": str, "synonyms": List[str]}}.
+│   │   │   ├── extract_definitions(g: rdflib.Graph, prefix_map: Dict[str, str]) -> Dict[str, str]: Extracts IAO:0000115 definition. Returns {curie: definition_str}.
+│   │   │   ├── extract_hierarchy(g: rdflib.Graph, prefix_map: Dict[str, str]) -> Dict[str, Dict[str, List[str]]]: Extracts direct parents (rdfs:subClassOf) and all ancestors (using get_ancestors). Returns {curie: {"parents": List[str], "ancestors": List[str]}}.
+│   │   │   ├── extract_relations(g: rdflib.Graph, props_to_extract: Dict[str, str], prefix_map: Dict[str, str]) -> Dict[str, Dict[str, List[str]]]: Extracts relations defined in props_to_extract (mapping readable_name to URI string). Returns {curie: {readable_relation_name: [target_curie1, ...]}}.
+│   │   │   └── main(): Orchestrates parsing steps, prepares `relation_properties_for_extraction` from config, merges data, filters out empty entries, saves to config.ONTOLOGY_DUMP_JSON. Uses logging.
+│   │   ├── build_lexical_index.py  # [UPDATED] (Builds Whoosh index from parsed ontology data)
+│   │   │   # Key Configs Used: config.ONTOLOGY_DUMP_JSON, config.WHOOSH_INDEX_DIR.
+│   │   │   # Input: config.ONTOLOGY_DUMP_JSON.
+│   │   │   # Output: Whoosh index files in config.WHOOSH_INDEX_DIR.
+│   │   │   └── build_index(json_path: str, index_dir: str): Creates Whoosh index.
+│   │   │       # Whoosh Schema:
+│   │   │       #   curie: ID(stored=True, unique=True)
+│   │   │       #   label: TEXT(stored=True, analyzer=None) [UPDATED: analyzer=None]
+│   │   │       #   synonyms: TEXT(stored=True) (space-separated string of synonyms)
+│   │   │       #   definition: TEXT(stored=True)
+│   │   │       #   relations_text: TEXT(stored=False) (space-separated string of "prop_name target1_curie target2_curie ...")
+│   │   └── enrich_documents.py     # [UPDATED] (Creates rich text descriptions for embedding)
+│   │       # Key Configs Used: config.ONTOLOGY_DUMP_JSON, config.ENRICHED_DOCUMENTS_FILE, config.RELATION_CONFIG. Uses logging.
+│   │       # Input: config.ONTOLOGY_DUMP_JSON.
+│   │       # Output: config.ENRICHED_DOCUMENTS_FILE (see data/enriched_documents.json for structure).
+│   │       ├── get_label_for_curie(curie: str, ontology_data: Dict[str, Dict[str, Any]], default_value: Optional[str] = None) -> Optional[str]: Fetches label for a CURIE from parsed ontology data. [UPDATED: ontology_data type hint]
+│   │       ├── get_relation_name(relation_curie: str) -> str: Gets human-readable name for a relation CURIE using config.RELATION_CONFIG.
+│   │       ├── create_enriched_documents(ontology_data_path: str, output_path: str) -> List[Dict[str, Any]]: Main function. Combines label, definition, synonyms, parent labels, and relation texts.
+│   │       └── main(): Orchestrates document enrichment. [NEWLY ADDED main function]
+│   ├── embeddings/                 # Sub-package for generating vector embeddings.
+│   │   ├── __init__.py             # [✓] (Makes 'embeddings' a sub-package)
+│   │   └── embed_docs.py           # [UPDATED] (Generates embeddings for enriched documents)
+│   │       # Key Configs Used: config.ENRICHED_DOCUMENTS_FILE, config.EMBEDDINGS_FILE, config.EMBEDDING_MODEL_NAME, config.EMBEDDING_BATCH_SIZE (used by main), config.EMBEDDING_DEVICE (used by main). Uses logging.
+│   │       # Input: config.ENRICHED_DOCUMENTS_FILE.
+│   │       # Output: config.EMBEDDINGS_FILE (see data/embeddings.json for structure).
+│   │       ├── load_enriched_documents(file_path: str) -> List[Dict[str, Any]]: Loads data/enriched_documents.json.
+│   │       ├── batch_embed_documents(documents: List[Dict[str, Any]], model_name: str, batch_size: int = 32, device: str = None) -> List[Dict[str, Any]]: Uses SentenceTransformer(model_name) to embed "text" field. Auto-detects device if None, handles CUDA errors by falling back to CPU. Logs model max sequence length. [UPDATED: device default and behavior]
+│   │       ├── save_embeddings(embeddings_data: List[Dict[str, Any]], output_path: str): Saves embeddings to data/embeddings.json.
+│   │       └── main(): Orchestrates embedding generation. [NEWLY ADDED main function]
+│   ├── vector_store/               # Sub-package for vector storage and search.
+│   │   ├── __init__.py             # [✓] (Makes 'vector_store' a sub-package)
+│   │   ├── faiss_store.py          # [UPDATED] (FAISS vector store implementation)
+│   │   │   # Key Configs Used: config.EMBEDDINGS_FILE (default for building if embeddings_file_path is None). Paths (index_path, metadata_path) are passed during instantiation.
+│   │   │   # Input (for building): Path to embeddings file (e.g., config.EMBEDDINGS_FILE).
+│   │   │   # Output (files): FAISS index file (e.g., config.FAISS_INDEX_PATH), metadata file (e.g., config.FAISS_METADATA_PATH).
+│   │   │   ├── class FAISSVectorStore:
+│   │   │   │   ├── __init__(self, index_path: str, metadata_path: str, embeddings_file_path: Optional[str] = None, dimension: Optional[int] = None): Loads existing index/metadata or builds from embeddings_file_path (defaults to config.EMBEDDINGS_FILE if None) if they don't exist. [UPDATED: embeddings_file_path default behavior]
+│   │   │   │   │   # Stores FAISS index in `self.index` (faiss.IndexFlatL2) and metadata in `self.metadata` (List[Dict{'id': str, 'label': str}]).
+│   │   │   │   ├── _load_embeddings_data(self) -> Optional[List[Dict[str, Any]]]: Loads embeddings from `self.embeddings_file_path`.
+│   │   │   │   ├── build_index_from_embeddings(self, embeddings_data: List[Dict[str, Any]]): Builds FAISS index and `self.metadata`.
+│   │   │   │   ├── save_store(self): Saves `self.index` to `self.index_path` and `self.metadata` to `self.metadata_path`.
+│   │   │   │   ├── load_store(self): Loads index and metadata from `self.index_path` and `self.metadata_path`.
+│   │   │   │   ├── search(self, query_vector: np.ndarray, k: int) -> Tuple[np.ndarray, np.ndarray, List[Dict]]: Performs k-NN search. Returns (distances, faiss_indices, metadata_items_for_results). Handles single vs. multiple query vectors. [UPDATED: return for single query]
+│   │   │   │   └── _try_build_store(self): [NEW helper method] Attempts to build the store if not loaded.
+│   │   │   # Includes if __name__ == '__main__': block for testing store creation.
+│   │   ├── pinecone_store.py       # [REMOVED] (Placeholder, not present in export)
+│   │   └── weaviate_store.py       # [REMOVED] (Placeholder, not present in export)
+│   ├── retriever/                  # Sub-package for retrieval mechanisms.
+│   │   ├── __init__.py             # [✓] (Makes 'retriever' a sub-package)
+│   │   └── hybrid_retriever.py     # [UPDATED] (Implements hybrid lexical and vector search)
+│   │       # Key Configs Used: config.ONTOLOGY_DUMP_JSON, config.WHOOSH_INDEX_DIR, config.FAISS_INDEX_PATH, config.FAISS_METADATA_PATH, config.EMBEDDING_MODEL_NAME, config.DEFAULT_K_LEXICAL, config.DEFAULT_K_VECTOR. Uses print for logging (logger commented out).
+│   │       ├── class HybridRetriever:
+│   │       │   ├── __init__(self, ontology_data_path=config.ONTOLOGY_DUMP_JSON, whoosh_index_dir=config.WHOOSH_INDEX_DIR, faiss_index_path=config.FAISS_INDEX_PATH, faiss_metadata_path=config.FAISS_METADATA_PATH, embedding_model_name=config.EMBEDDING_MODEL_NAME):
+│   │       │   │   # Loads ontology_data (dict), Whoosh index (Whoosh.index.FileIndex, sets up Whoosh.qparser.MultifieldParser for "label", "synonyms", "definition", "relations_text"), SentenceTransformer model, and FAISSVectorStore.
+│   │       │   ├── _lexical_search(self, query_string: str, limit: int = config.DEFAULT_K_LEXICAL) -> List[Dict]: Performs Whoosh search. Returns list of dicts: `[{'id': curie, 'label': str, 'score': float, 'source': 'lexical', 'details': {'retrieved_synonyms': List[str], 'retrieved_definition': str}}]`. Gets 'curie' from Whoosh hit and stores as 'id'.
+│   │       │   ├── _vector_search(self, query_string: str, k: int = config.DEFAULT_K_VECTOR) -> List[Dict]: Embeds query, searches FAISS. Returns list of dicts: `[{'id': curie, 'label': str, 'score': float (L2 distance), 'source': 'vector', 'details': {}}]`. Gets 'id' from FAISS metadata.
+│   │       │   ├── search(self, query_string: str, lexical_limit: int = config.DEFAULT_K_LEXICAL, vector_k: int = config.DEFAULT_K_VECTOR) -> Dict:
+│   │       │   │   # Returns: `{"query": query_string, "lexical_results": List[Dict], "vector_results": List[Dict]}`. [✓]
+│   │       │   ├── get_term_details(self, term_id: str) -> Optional[Dict]: Retrieves full term info from `self.ontology_data`.
+│   │       │   └── close(self): Closes Whoosh searcher.
+│   │       # Includes if __name__ == '__main__': block for example usage.
+│   ├── reranker/                   # Sub-package for reranking retrieved results.
+│   │   ├── __init__.py             # (To be created, not present in export)
+│   │   └── llm_reranker.py         # (To be developed, not present in export)
+│   ├── pipeline/                   # Sub-package for orchestrating the RAG query pipeline.
+│   │   ├── __init__.py             # (To be created, not present in export)
+│   │   └── pipeline.py             # (To be developed, not present in export)
+│   ├── fallback/                   # Sub-package for fallback strategies like query expansion.
+│   │   ├── __init__.py             # (To be created, not present in export)
+│   │   └── query_expansion.py      # (To be developed, not present in export)
+│   ├── evaluation/                 # Sub-package for evaluating the RAG system.
+│   │   ├── __init__.py             # (To be created, not present in export)
+│   │   └── evaluate_retriever_recall.py # [UPDATED] (Evaluates retriever recall against a gold standard XML)
+│   │       # Key Configs Used: config.ONTOLOGY_DUMP_JSON, config.WHOOSH_INDEX_DIR, config.FAISS_INDEX_PATH, config.FAISS_METADATA_PATH, config.EMBEDDING_MODEL_NAME, config.CURIE_PREFIX_MAP, config.DEFAULT_K_LEXICAL, config.DEFAULT_K_VECTOR, config.DEFAULT_RERANK_K (as RECALL_AT_K). Uses logging.
+│   │       # Input XML format: Specific structure with <text> (entity mention) and <infon key="semantic_tags"> (semicolon-separated URIs).
+│   │       # Path to XML: EVALUATION_XML_FILE variable in script (e.g., "data/CafeteriaFCD_foodon.xml").
+│   │       ├── parse_evaluation_xml(xml_file_path: str) -> List[Dict]: Parses XML to `[{'text': str, 'true_curies': Set[str], 'doc_id': str, 'ann_id': str}]`. Uses `utils.ontology_utils.uri_to_curie` with `config.CURIE_PREFIX_MAP`.
+│   │       ├── evaluate_retriever(retriever: HybridRetriever, gold_standard_data: List[Dict], recall_at_k: int, lexical_k: int, vector_k: int) -> Tuple[float, int, int]:
+│   │       │   # Calls `retriever.search()`. [!] Correctly handles the dictionary output from `retriever.search()`, combining lexical and vector results before calculating recall. The mismatch noted in the old outline is resolved.
+│   │       │   # Calculates Recall@K: (number of queries where at least one true_curie is in top K combined_retrieved_curies) / total_queries.
+│   │       └── main(): Orchestrates evaluation. Checks for existence of necessary data files.
+│   ├── utils/                      # Sub-package for utility functions.
+│   │   ├── __init__.py             # [✓] (Makes 'utils' a sub-package)
+│   │   ├── ontology_utils.py       # [UPDATED] (Utility functions for ontology processing)
+│   │   │   # Key Configs Used: config.CURIE_PREFIX_MAP (as default for namespace_map).
+│   │   │   ├── uri_to_curie(uri: Union[str, URIRef], namespace_map: Dict[str, str] = config.CURIE_PREFIX_MAP) -> str: Converts URI to CURIE. Sorts map by base URI length, falls back to common RDF prefixes and rdflib's compute_qname.
+│   │   │   └── curie_to_uri(curie: str, namespace_map: Dict[str, str] = config.CURIE_PREFIX_MAP) -> Optional[URIRef]: Converts CURIE to URIRef. Falls back to common RDF prefixes.
+│   │   ├── logging.py              # (To be developed, not present in export)
+│   │   ├── caching.py              # (To be developed, not present in export)
+│   │   └── errors.py               # (To be developed, not present in export)
+│   └── tests/                      # Sub-package for unit and integration tests.
+│       ├── __init__.py             # [✓] (Makes 'tests' a sub-package)
+│       ├── test_parse_ontology.py  # [UPDATED] (Pytest tests for src.ingestion.parse_ontology)
+│       │   # Uses: Imports TEST_ONTOLOGY_FILE, NAMESPACE_MAP, RELATION_PROPERTIES from `config` (likely meaning `config.TEST_FOODON_SNIPPET_PATH`, `config.CURIE_PREFIX_MAP`, and a test-defined `RELATION_PROPERTIES` dict respectively). Sys.path adjusted to import from `src`.
+│       │   # Fixtures: test_graph (loads test ontology snippet using `config.TEST_FOODON_SNIPPET_PATH`).
+│       │   # Tests functions: load_ontology, extract_labels_and_synonyms, extract_definitions, extract_hierarchy, extract_relations.
+│       ├── test_lexical_index.py   # [UPDATED] (Pytest tests for src.ingestion.build_lexical_index)
+│       │   # Uses: Imports `config` and `config.TEST_ONTOLOGY_FILE` (likely meaning `config.TEST_FOODON_SNIPPET_PATH`). Temporarily overrides `config.ONTOLOGY_FILE` (to `config.TEST_FOODON_SNIPPET_PATH`), `config.ONTOLOGY_DUMP_PATH`, `config.WHOOSH_INDEX_DIR`. Sys.path adjusted.
+│       │   # Fixtures: temp_index_dir, built_test_index (runs parse_ontology.main() and build_lexical_index.build_index() on test data).
+│       │   # Tests: Index creation and querying specific fields (label, synonym, definition, relations_text) of the Whoosh index.
+│       ├── test_hybrid_retriever.py # (To be developed, not present in export)
+│       └── test_evaluate_retriever_recall.py # (To be developed, name confirmed) Tests src.evaluation.evaluate_retriever_recall.py, possibly with mock data or a small gold-standard dataset & mock retriever. (Not present in export)
+├── scripts/                        # [UPDATED] (Shell scripts for automation)
+│   ├── find_namespaces.py          # [NEW] (Python script) - Finds and lists all unique namespace URIs and their potential base URIs from an ontology file (e.g., config.FOODON_PATH).
+│   ├── rebuild_base.bash           # [NEW] (Bash script) - Rebuilds the entire pipeline: parse_ontology, enrich_documents, embed_docs, faiss_store (build), build_lexical_index, and optionally evaluate_retriever_recall. Supersedes `ingest.sh` from old outline.
+│   ├── ingest.sh                   # [REMOVED] (Superseded by rebuild_base.bash)
+│   ├── embed.sh                    # (To be developed) Runs src/embeddings/embed_docs.py and FAISS index building. (Still relevant if only partial rebuild needed)
+│   ├── deploy.sh                   # (To be developed) For application deployment (e.g., Docker, K8s).
+│   └── update_index.sh             # (To be developed) For updating search indices (full re-index or incremental).
+├── docker/                         # (For containerization - To be developed, not present in export)
+│   ├── Dockerfile                  # Defines Docker image build instructions.
+│   └── docker-compose.yml          # For local multi-container Docker applications.
+└── k8s/                            # (For Kubernetes deployment - To be developed, not present in export)
+    └── deployment.yaml             # Kubernetes manifest for deploying the application.

@@ -15,7 +15,7 @@ from whoosh.qparser import QueryParser
 import traceback
 
 # Now import using the 'src' package prefix
-from src.config import ONTOLOGY_DUMP_PATH, WHOOSH_INDEX_DIR
+from src.config import ONTOLOGY_DUMP_JSON, WHOOSH_INDEX_DIR
 
 # ... (rest of the build_lexical_index.py code, ensuring imports like `from src.config` are used)
 def build_index(json_path: str, index_dir: str):
@@ -91,8 +91,8 @@ def build_index(json_path: str, index_dir: str):
         writer.cancel()
 
 if __name__ == "__main__":
-    if not os.path.exists(ONTOLOGY_DUMP_PATH):
-        print(f"Error: Ontology dump file {ONTOLOGY_DUMP_PATH} not found.")
+    if not os.path.exists(ONTOLOGY_DUMP_JSON):
+        print(f"Error: Ontology dump file {ONTOLOGY_DUMP_JSON} not found.")
         print("Please run src/ingestion/parse_ontology.py first.")
     else:
-        build_index(ONTOLOGY_DUMP_PATH, WHOOSH_INDEX_DIR)
+        build_index(ONTOLOGY_DUMP_JSON, WHOOSH_INDEX_DIR)

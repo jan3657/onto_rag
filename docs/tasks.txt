@@ -58,18 +58,16 @@
     [ ] If the initial pass yields many candidates, use the FoodON hierarchy.
     [ ] Prompt an LLM (or use a rule-based approach) to ask: "Does the entity likely belong to 'Dairy Product' or 'Plant-Based Substitute'?" (based on the candidates' ancestors).
     [ ] Filter the candidate list based on the response before proceeding.
-[ ] Merge & Rank: Combine results from lexical and vector passes (and pruning, if used) via Reciprocal Rank Fusion (RRF) or another suitable method.
+[-] Merge & Rank: Combine results from lexical and vector passes (and pruning, if used) via Reciprocal Rank Fusion (RRF) or another suitable method.
+    # NOTE: Decision made to handle merging in the RAGPipeline (Task 6) to directly feed the LLMReranker. Retriever returns separate lists.
 [-] Subgraph Retrieval (Optional): For top N candidates, retrieve their direct parents and key relations from your structural data store or the ontology directly.
 [ ] Linearize Context: Convert the retrieved candidates and their structural context/subgraphs into a readable text format.
 
 # ----------------------------------------------------------------------
 # Task 5: Integrate LLM Re-ranker with Rich Context
 # ----------------------------------------------------------------------
-[ ] Define Prompt: Create a prompt for your LLM (e.g., Gemini). (File: `prompts/reranker.tpl`)
-    [ ] Input: The original user entity and its context (if available).
-    [ ] Input: The top N linearized candidate entries, now including their hierarchical and relational context.
-    [ ] Task: "Rank these candidates in order of relevance for the entity '[User Entity]' in the context '[User Context]'. Explain your #1 choice briefly."
-[ ] Pipeline Integration: Add this re-ranking step after the hybrid retrieval and linearization. (File: `src/reranker/llm_reranker.py`)
+[✓] Module Implemented: The `LLMReranker` class in `src/reranker/llm_reranker.py` is complete and uses a CrossEncoder model.
+[>] Pipeline Integration: The reranker will be integrated as a step in the `RAGPipeline` (Task 6).
 
 # ----------------------------------------------------------------------
 # Task 6: LangChain Pipeline Assembly
