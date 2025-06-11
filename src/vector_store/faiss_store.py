@@ -266,103 +266,18 @@ class FAISSVectorStore:
 
 # Example usage / test function
 if __name__ == '__main__':
-    from src.config import DATA_DIR, FAISS_INDEX_PATH, FAISS_METADATA_PATH, EMBEDDINGS_FILE
+    from src.vector_store.faiss_store import FAISSVectorStore
+    from src.config import FAISS_INDEX_PATH, FAISS_METADATA_PATH
 
-    print("Running FAISSVectorStore example...")
+    # remove old files so the class knows it has to build
+    import os, pathlib, json
+    for p in (FAISS_INDEX_PATH, FAISS_METADATA_PATH):
+        pathlib.Path(p).unlink(missing_ok=True)
 
-    # --- Test Case 1: Building the index if it doesn't exist ---
-    # For this test, we'll create a dummy embeddings.json if it doesn't exist
-    # Ensure EMBEDDINGS_FILE path is correct in config
-    
-    # Clean up old test files if they exist, to ensure a clean build test
-    if os.path.exists(FAISS_INDEX_PATH):
-        os.remove(FAISS_INDEX_PATH)
-        print(f"Removed existing test index: {FAISS_INDEX_PATH}")
-    if os.path.exists(FAISS_METADATA_PATH):
-        os.remove(FAISS_METADATA_PATH)
-        print(f"Removed existing test metadata: {FAISS_METADATA_PATH}")
-
-    # Create a dummy embeddings.json if it does not exist or is invalid
-    dummy_embeddings_data = [
-        {"id": "FOODON:001", "label": "Test Apple", "embedding": [0.1, 0.2, 0.3, 0.4]},
-        {"id": "FOODON:002", "label": "Test Banana", "embedding": [0.5, 0.6, 0.7, 0.8]},
-        {"id": "FOODON:003", "label": "Test Orange", "embedding": [0.2, 0.3, 0.4, 0.5]},
-        {"id": "FOODON:004", "label": "Test Grape", "embedding": [0.6, 0.7, 0.8, 0.9]},
-        {"id": "FOODON:005", "label": "Another Apple", "embedding": [0.11, 0.21, 0.31, 0.41]}, # Similar to Test Apple
-    ]
-    vector_dim = len(dummy_embeddings_data[0]["embedding"])
-
-    if not os.path.exists(EMBEDDINGS_FILE):
-        print(f"Creating dummy embeddings file: {EMBEDDINGS_FILE}")
-        with open(EMBEDDINGS_FILE, 'w', encoding='utf-8') as f:
-            json.dump(dummy_embeddings_data, f, indent=4)
-    else:
-        print(f"Using existing embeddings file: {EMBEDDINGS_FILE}")
-        # Optionally, load and check its dimension here or rely on FAISSVectorStore to do it.
-
-    # Initialize FAISSVectorStore - this should build and save if files are missing
-    print("\n--- Initializing FAISS store (should build if not present) ---")
-    try:
-        faiss_store = FAISSVectorStore(
-            index_path=FAISS_INDEX_PATH,
-            metadata_path=FAISS_METADATA_PATH,
-            embeddings_file_path=EMBEDDINGS_FILE, # Explicitly pass for build
-            dimension=vector_dim # Provide dimension if known, or let it infer
-        )
-
-        if faiss_store.index and faiss_store.metadata:
-            print("FAISS store initialized/built successfully.")
-            print(f"Index has {faiss_store.index.ntotal} items.")
-
-            # --- Test Case 2: Searching the index ---
-            print("\n--- Testing Search ---")
-            # Query for something similar to "Test Apple"
-            query_vec = np.array([0.1, 0.2, 0.3, 0.4]).astype('float32')
-            distances, indices, metadata_items = faiss_store.search(query_vec, k=3)
-
-            print(f"Query vector: {query_vec}")
-            print(f"Distances: {distances}")
-            print(f"FAISS Indices: {indices}") # These are row numbers in the original embeddings list
-            print("Metadata of results:")
-            for item in metadata_items:
-                print(f"  ID: {item['id']}, Label: {item['label']}")
-            
-            assert len(metadata_items) > 0, "Search returned no results"
-            assert metadata_items[0]['id'] == "FOODON:001", "Top search result mismatch"
-
-            # --- Test Case 3: Loading the existing index ---
-            print("\n--- Testing Loading Existing Store ---")
-            faiss_store_loaded = FAISSVectorStore(
-                index_path=FAISS_INDEX_PATH,
-                metadata_path=FAISS_METADATA_PATH
-                # Not providing embeddings_file_path, so it must load
-            )
-            if faiss_store_loaded.index and faiss_store_loaded.metadata:
-                print("FAISS store loaded successfully from disk.")
-                print(f"Loaded index has {faiss_store_loaded.index.ntotal} items.")
-                
-                # Re-run search to confirm
-                distances_loaded, _, metadata_items_loaded = faiss_store_loaded.search(query_vec, k=1)
-                print("Search result from loaded store:")
-                for item in metadata_items_loaded:
-                    print(f"  ID: {item['id']}, Label: {item['label']}")
-                assert metadata_items_loaded[0]['id'] == "FOODON:001", "Loaded store search result mismatch"
-            else:
-                print("Failed to load FAISS store from disk.")
-        else:
-            print("FAISS store could not be initialized or built.")
-
-    except Exception as e:
-        print(f"An error occurred during FAISSVectorStore example: {e}")
-        import traceback
-        traceback.print_exc()
-    finally:
-        # Clean up dummy files if you want to keep the data dir clean after tests
-        # For this example, we'll leave them so you can inspect
-        # if os.path.exists(EMBEDDINGS_FILE) and EMBEDDINGS_FILE.endswith("dummy_embeddings.json"):
-        #     os.remove(EMBEDDINGS_FILE)
-        # if os.path.exists(FAISS_INDEX_PATH) and FAISS_INDEX_PATH.endswith("dummy_faiss.bin"):
-        #     os.remove(FAISS_INDEX_PATH)
-        # if os.path.exists(FAISS_METADATA_PATH) and FAISS_METADATA_PATH.endswith("dummy_faiss_meta.json"):
-        #     os.remove(FAISS_METADATA_PATH)
-        pass
+    store = FAISSVectorStore(
+        index_path     = FAISS_INDEX_PATH,
+        metadata_path  = FAISS_METADATA_PATH,
+        # embeddings_file_path=None  → default picks data/embeddings.json
+        # dimension=None            → it will infer 384 automatically
+    )
+    print(f"Built FAISS index with {store.index.ntotal} vectors of dim {store.index.d}")

@@ -64,7 +64,7 @@ class HybridRetriever:
         print("Whoosh index loaded.")
 
         print(f"Loading embedding model: {embedding_model_name}")
-        self.embedding_model = SentenceTransformer(embedding_model_name)
+        self.embedding_model = SentenceTransformer(embedding_model_name, trust_remote_code=True)
         print("Embedding model loaded.")
 
         print(f"Initializing FAISS vector store (index: {faiss_index_path}, metadata: {faiss_metadata_path})...")
@@ -196,7 +196,7 @@ if __name__ == '__main__':
     try:
         retriever = HybridRetriever()
         
-        queries = ["CREAM CHEESE", "BEEF", "OLIVES", "ONION", "WORCESTERSHIRE SAUCE", "CHEESE"]
+        queries = ["GARLIC", "SALT", "GARBANZO", "TAHINI", "LEMON JUICE", "HONEY" ,"WATER", "OLIVE OIL", "ROSMARY", "HUMMUS"]
         
         for query in queries:
             print(f"\nSearching for: '{query}'")

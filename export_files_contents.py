@@ -11,6 +11,8 @@ EXCLUDE_ITEMS_EXACT = {
     "ontologies",         # <<< Exclude the entire ontologies directory
     "api_key.json",       # Sensitive file
     ".env",               # Sensitive file (though .env.example is fine)
+    "models",
+    ".DS_Store",
     # Add other specific files or directories if needed
     # e.g. "some_large_binary_asset.dat"
 }

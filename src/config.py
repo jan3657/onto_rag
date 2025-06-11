@@ -1,10 +1,14 @@
 # src/config.py
 import os
+from dotenv import load_dotenv
 from rdflib import Namespace # This is fine, though rdflib.Namespace is not directly used for string constants below.
 
 # Project Root Directory
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "."))
 # print(f"Project root directory: {PROJECT_ROOT}") # Keep for debugging if you like
+
+# Load environment variables from .env file
+load_dotenv(os.path.join(PROJECT_ROOT, ".env"))
 
 # Data Directory (for ontology dump, indexes, etc.)
 DATA_DIR = os.path.join(PROJECT_ROOT, "data")
@@ -34,14 +38,17 @@ FAISS_INDEX_PATH = os.path.join(DATA_DIR, "faiss_index.bin")
 FAISS_METADATA_PATH = os.path.join(DATA_DIR, "faiss_metadata.json")
 
 # Embedding Model Configuration
-EMBEDDING_MODEL_NAME = "all-MiniLM-L6-v2"
-# EMBEDDING_MODEL_TYPE = "sentence-transformers" # Good for clarity if you support multiple types
+# EMBEDDING_MODEL_NAME = "all-MiniLM-L6-v2"
+EMBEDDING_MODEL_NAME = "Lajavaness/bilingual-embedding-large" 
+# RERANKER_MODEL_NAME = "intfloat/e5-mistral-7b-instruct"
+RERANKER_MODEL_NAME = "cross-encoder/ms-marco-MiniLM-L-6-v2"
 EMBEDDING_BATCH_SIZE = 32 # For batch embedding script
 EMBEDDING_DEVICE = 'cpu'  # or 'cuda' if available, for embedding script
 
 # Default K values for retrieval
-DEFAULT_K_LEXICAL = 10
-DEFAULT_K_VECTOR = 10
+DEFAULT_K_LEXICAL = 20
+DEFAULT_K_VECTOR = 20
+DEFAULT_RERANK_K = DEFAULT_K_LEXICAL + DEFAULT_K_VECTOR
 
 # Namespaces (using string constants for broader compatibility if rdflib not always imported)
 RDFS_NS_STR = "http://www.w3.org/2000/01/rdf-schema#"
@@ -119,13 +126,22 @@ CURIE_PREFIX_MAP = {
     "http://www.w3.org/2002/07/owl#": "owl",
     "http://www.w3.org/2004/02/skos/core#": "skos",
     "http://www.geneontology.org/formats/oboInOwl#": "oboInOwl",
+    "http://purl.obolibrary.org/obo/HANCESTRO_": "HANCESTRO",  
+    "http://purl.obolibrary.org/obo/GAZ_": "GAZ",
+    "http://purl.obolibrary.org/obo/CHEBI_": "CHEBI",
+    "http://purl.obolibrary.org/obo/NCBITaxon_": "NCBITaxon",
+    "http://purl.obolibrary.org/obo/UBERON_": "UBERON",
+    "http://purl.obolibrary.org/obo/ENVO_": "ENVO",
+    "http://purl.obolibrary.org/obo/HP_": "HP",
+    "http://purl.obolibrary.org/obo/GO_": "GO",
     # General OBO prefix - should be last or handled carefully to avoid overly broad matches
     # if specific OBO sub-ontologies are listed above.
     "http://purl.obolibrary.org/obo/": "obo",
 }
 
 # LLM API Key (placeholders)
-# GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+LLM_SELECTOR_MODEL_NAME = "gemini-1.5-flash-latest"
 # OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 # Logging configuration
