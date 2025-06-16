@@ -170,8 +170,15 @@ class HybridRetriever:
     def get_term_details(self, term_id):
         """
         Retrieves full details for a given term ID (CURIE) from the loaded ontology data.
+        Returns a dictionary with all term details including the ID, or None if not found.
         """
-        return self.ontology_data.get(term_id)
+        term_data = self.ontology_data.get(term_id)
+        if term_data is not None:
+            # Make a copy to avoid modifying the original data
+            term_data = dict(term_data)
+            # Add the ID to the returned data
+            term_data['id'] = term_id
+        return term_data
 
     def close(self):
         """

@@ -1,0 +1,23 @@
+llama:
+2025-06-11 16:06:24,274 - INFO - --- Evaluation Complete ---
+2025-06-11 16:06:24,274 - INFO - Total entities evaluated: 948
+2025-06-11 16:06:24,274 - INFO - Retrieval Failures (no candidates): 0
+2025-06-11 16:06:24,274 - INFO - Selection Failures (LLM error): 0
+2025-06-11 16:06:24,274 - INFO - ---------------------------
+2025-06-11 16:06:24,274 - INFO - Valid attempts for selector: 948
+2025-06-11 16:06:24,274 - INFO - Correct selections (Hits): 386
+2025-06-11 16:06:24,275 - INFO - Accuracy: 0.4072 (386/948)
+2025-06-11 16:06:24,275 - INFO - Saving 562 incorrect selections to /Users/jandrole/projects/onto_rag/evaluation_results.json
+2025-06-11 16:06:24,301 - INFO - Evaluation finished.
+
+gemini:
+2025-06-16 10:43:04,962 - INFO - --- Evaluation Complete ---
+2025-06-16 10:43:04,962 - INFO - Total entities evaluated: 948
+2025-06-16 10:43:04,962 - INFO - Retrieval Failures (no candidates): 0
+2025-06-16 10:43:04,962 - INFO - Selection Failures (LLM error): 0
+2025-06-16 10:43:04,962 - INFO - ---------------------------
+2025-06-16 10:43:04,962 - INFO - Valid attempts for selector: 948
+2025-06-16 10:43:04,962 - INFO - Correct selections (Hits): 600
+2025-06-16 10:43:04,962 - INFO - Accuracy: 0.6329 (600/948)
+2025-06-16 10:43:04,962 - INFO - Saving 348 incorrect selections to /Users/jandrole/projects/onto_rag/evaluation_results.json
+2025-06-16 10:43:04,975 - INFO - Evaluation finished.

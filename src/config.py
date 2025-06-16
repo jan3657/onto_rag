@@ -142,6 +142,7 @@ CURIE_PREFIX_MAP = {
 # LLM API Key (placeholders)
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 LLM_SELECTOR_MODEL_NAME = "gemini-1.5-flash-latest"
+OLLAMA_SELECTOR_MODEL_NAME = 'llama3.1:8b'
 # OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 # Logging configuration
