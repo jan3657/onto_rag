@@ -13,6 +13,8 @@ EXCLUDE_ITEMS_EXACT = {
     ".env",               # Sensitive file (though .env.example is fine)
     "models",
     ".DS_Store",
+    "evaluation_results_llama.json",
+    "evaluation_results_gemini.json",
     # Add other specific files or directories if needed
     # e.g. "some_large_binary_asset.dat"
 }
