@@ -9,7 +9,7 @@ PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
-from src.pipeline.pipeline import RAGPipeline
+from src.pipeline.ollama_pipeline import RAGPipeline
 from src.config import DEFAULT_K_LEXICAL, DEFAULT_K_VECTOR
 
 def main():

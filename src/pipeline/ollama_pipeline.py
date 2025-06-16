@@ -11,7 +11,7 @@ if PROJECT_ROOT not in sys.path:
 
 from src.retriever.hybrid_retriever import HybridRetriever
 from src.reranker.llm_reranker import LLMReranker
-from src.rag_selectors.gemini_selector import GeminiSelector # <--- UPDATED IMPORT
+from src.rag_selectors.ollama_selector import OllamaSelector
 from src import config
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(name)s - %(message)s')
@@ -27,7 +27,7 @@ class RAGPipeline:
                 enriched_docs_path=config.ENRICHED_DOCUMENTS_FILE,
                 device=config.EMBEDDING_DEVICE
             )
-            self.selector = GeminiSelector(retriever=self.retriever) # <--- UPDATED INSTANTIATION
+            self.selector = OllamaSelector(retriever=self.retriever) # <--- UPDATED INSTANTIATION
             logger.info("RAG Pipeline initialized successfully.")
         except (FileNotFoundError, ValueError) as e:
             logger.error(f"Failed to initialize pipeline: {e}")
