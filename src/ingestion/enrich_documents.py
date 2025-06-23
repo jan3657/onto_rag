@@ -1,3 +1,4 @@
+# src/ingestion/enrich_documents.py
 import json
 import os
 import logging
@@ -14,9 +15,8 @@ if _PROJECT_ROOT not in sys.path:
     sys.path.insert(0, _PROJECT_ROOT) # Insert at the beginning
 
 try:
-    from src import config
-    # from src.utils.ontology_utils import curie_to_uri # This specific utility is not used in this script,
-                                                      # but this is how you'd import it if needed.
+    # Changed: Import specific configs needed
+    from src.config import ONTOLOGIES_CONFIG, RELATION_CONFIG
 except ModuleNotFoundError as e:
     print(f"CRITICAL ERROR: Could not import project modules. Exception: {e}")
     print(f"This script expects to be run in a way that the 'src' package is discoverable.")
@@ -24,7 +24,6 @@ except ModuleNotFoundError as e:
     print(f"Current sys.path: {sys.path}")
     print("Please ensure you are running this script from the project's root directory ('onto_rag/'), for example:")
     print("  python src/ingestion/enrich_documents.py")
-    print("Also ensure that 'src/__init__.py' and 'src/utils/__init__.py' (if using utils) exist.")
     sys.exit(1)
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -52,15 +51,15 @@ def get_relation_name(relation_curie: str) -> str:
     Gets a human-readable name for a relation CURIE using RELATION_CONFIG.
     """
     # Exact match
-    if relation_curie in config.RELATION_CONFIG:
-        return config.RELATION_CONFIG[relation_curie]["label"]
+    if relation_curie in RELATION_CONFIG:
+        return RELATION_CONFIG[relation_curie]["label"]
     
     # Check for generic FoodON prefix if specific one not found
     generic_foodon_prefix = "obo:FOODON_"
-    if relation_curie.startswith(generic_foodon_prefix) and generic_foodon_prefix in config.RELATION_CONFIG:
+    if relation_curie.startswith(generic_foodon_prefix) and generic_foodon_prefix in RELATION_CONFIG:
          # Attempt to make it slightly more readable if it's like "obo:FOODON_0000XXXX"
         relation_suffix = relation_curie.split('_')[-1]
-        return f"FoodON relation {relation_suffix}" # or config.RELATION_CONFIG[generic_foodon_prefix]["label"]
+        return f"FoodON relation {relation_suffix}"
 
     # Fallback for other OBO relations
     if relation_curie.startswith("obo:"):
@@ -99,8 +98,7 @@ def create_enriched_documents(ontology_data_path: str, output_path: str) -> List
         # 1. Label
         label = term_data.get("label")
         if not label:
-            logging.warning(f"Term {term_curie} has no label. Skipping for enriched document (or using CURIE as label).")
-            # Consider if we want to enrich docs for terms without labels. For now, let's use CURIE if no label.
+            logging.warning(f"Term {term_curie} has no label. Using CURIE as label for document generation.")
             label = term_curie 
         
         doc_parts.append(f"{label}.")
@@ -119,19 +117,21 @@ def create_enriched_documents(ontology_data_path: str, output_path: str) -> List
         # 4. Parents (direct subclasses)
         parent_curies = term_data.get("parents", [])
         if parent_curies:
+            # Since this function processes one self-contained ontology dump,
+            # all parent lookups are valid within the same ontology_data.
             parent_labels = [get_label_for_curie(p_curie, ontology_data) for p_curie in parent_curies]
-            parent_labels_filtered = [l for l in parent_labels if l] # Filter out None if get_label_for_curie returns None
+            parent_labels_filtered = [l for l in parent_labels if l]
             if parent_labels_filtered:
                 if len(parent_labels_filtered) == 1:
                     doc_parts.append(f"Is a type of: {parent_labels_filtered[0]}.")
                 else:
                     doc_parts.append(f"Is a type of: {'; '.join(parent_labels_filtered)}.")
         
-        # 5. Relations (including facets expressed as object properties)
+        # 5. Relations
         relations = term_data.get("relations", {})
         relation_texts = []
-        for rel_curie, target_curies_list in relations.items():
-            rel_name = get_relation_name(rel_curie)
+        for rel_name, target_curies_list in relations.items():
+            # In the new structure, rel_name is the human-readable name from parse_ontology
             target_labels = [get_label_for_curie(t_curie, ontology_data) for t_curie in target_curies_list]
             target_labels_filtered = [l for l in target_labels if l]
             if target_labels_filtered:
@@ -141,11 +141,11 @@ def create_enriched_documents(ontology_data_path: str, output_path: str) -> List
             doc_parts.append("Key characteristics include: " + "; ".join(relation_texts) + ".")
 
         # Combine all parts into a single text
-        enriched_text = " ".join(doc_parts).replace("..", ".").strip() # Clean up potential double periods
+        enriched_text = " ".join(doc_parts).replace("..", ".").strip()
 
         enriched_docs.append({
             "id": term_curie,
-            "label": label if label != term_curie else term_data.get("label", term_curie), # Store original label if available
+            "label": term_data.get("label", term_curie), # Store original label if available, else CURIE
             "text": enriched_text
         })
 
@@ -162,23 +162,31 @@ def create_enriched_documents(ontology_data_path: str, output_path: str) -> List
     return enriched_docs
 
 def main():
-    """Main function to create enriched documents."""
-    # Ensure data directory exists (though config.py should handle it)
-    os.makedirs(config.DATA_DIR, exist_ok=True)
+    """Main function to create enriched documents for each configured ontology."""
+    for name, config_data in ONTOLOGIES_CONFIG.items():
+        logging.info(f"\n--- Enriching documents for '{name}' ---")
+        
+        ontology_dump_path = config_data.get('dump_json_path')
+        enriched_docs_output_path = config_data.get('enriched_docs_path')
 
-    enriched_documents = create_enriched_documents(
-        ontology_data_path=config.ONTOLOGY_DUMP_JSON,
-        output_path=config.ENRICHED_DOCUMENTS_FILE
-    )
+        if not ontology_dump_path or not enriched_docs_output_path:
+            logging.warning(f"Configuration for '{name}' is missing 'dump_json_path' or 'enriched_docs_path'. Skipping.")
+            continue
+            
+        if not os.path.exists(ontology_dump_path):
+            logging.error(f"Dump file not found: {ontology_dump_path}. Skipping '{name}'.")
+            continue
 
-    if enriched_documents:
-        logging.info(f"Processed {len(enriched_documents)} documents.")
-        # Optionally print a sample
-        if len(enriched_documents) > 0:
-            logging.info("Sample enriched document:")
-            logging.info(json.dumps(enriched_documents[0], indent=2))
-    else:
-        logging.warning("No enriched documents were created.")
+        # Ensure output directory exists
+        os.makedirs(os.path.dirname(enriched_docs_output_path), exist_ok=True)
+            
+        create_enriched_documents(
+            ontology_data_path=ontology_dump_path,
+            output_path=enriched_docs_output_path
+        )
+        
+    logging.info("\n--- All enriched document file creation complete. ---")
+
 
 if __name__ == "__main__":
     main()

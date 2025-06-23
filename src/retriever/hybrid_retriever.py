@@ -1,14 +1,13 @@
 # src/retriever/hybrid_retriever.py
 import json
 import os
-# import numpy as np # numpy is used by sentence_transformers and faiss internally
 from whoosh.index import open_dir as open_whoosh_index
 from whoosh.qparser import MultifieldParser, OrGroup
 from sentence_transformers import SentenceTransformer
+import logging
+from typing import List, Optional # Added List and Optional
 
 # --- Add project root to sys.path if running script directly ---
-# This block is useful if you ever run this script directly (e.g., for debugging)
-# and not as a module (python -m src.retriever.hybrid_retriever)
 if __name__ == '__main__':
     import sys
     PROJECT_ROOT_FOR_DIRECT_RUN = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
@@ -16,150 +15,165 @@ if __name__ == '__main__':
         sys.path.insert(0, PROJECT_ROOT_FOR_DIRECT_RUN)
 # --- End sys.path modification ---
 
-
 from src.vector_store.faiss_store import FAISSVectorStore
 from src.config import (
-    ONTOLOGY_DUMP_JSON,
-    WHOOSH_INDEX_DIR,
-    FAISS_INDEX_PATH,
-    FAISS_METADATA_PATH,
+    ONTOLOGIES_CONFIG,
     EMBEDDING_MODEL_NAME,
     DEFAULT_K_LEXICAL,
     DEFAULT_K_VECTOR,
 )
-# from src.utils.logger import get_logger # Placeholder for future logging
-# logger = get_logger(__name__) # Placeholder
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 class HybridRetriever:
-    def __init__(self,
-                 ontology_data_path=ONTOLOGY_DUMP_JSON,
-                 whoosh_index_dir=WHOOSH_INDEX_DIR,
-                 faiss_index_path=FAISS_INDEX_PATH,
-                 faiss_metadata_path=FAISS_METADATA_PATH,
-                 embedding_model_name=EMBEDDING_MODEL_NAME):
+    def __init__(self):
         """
-        Initializes the HybridRetriever.
+        Initializes the HybridRetriever to work with multiple, separate ontologies
+        defined in ONTOLOGIES_CONFIG.
         """
-        print(f"Initializing HybridRetriever...")
-        # logger.info("Initializing HybridRetriever...")
-
-        print(f"Loading ontology data from: {ontology_data_path}")
-        if not os.path.exists(ontology_data_path):
-            raise FileNotFoundError(f"Ontology data file not found: {ontology_data_path}")
-        with open(ontology_data_path, 'r', encoding='utf-8') as f:
-            self.ontology_data = json.load(f)
-        print(f"Loaded {len(self.ontology_data)} ontology entries.")
-
-        print(f"Loading Whoosh index from: {whoosh_index_dir}")
-        if not os.path.exists(whoosh_index_dir) or not os.listdir(whoosh_index_dir):
-            raise FileNotFoundError(f"Whoosh index directory not found or empty: {whoosh_index_dir}. Run ingestion scripts.")
-        self.whoosh_ix = open_whoosh_index(whoosh_index_dir)
-        self.whoosh_searcher = self.whoosh_ix.searcher()
+        logger.info("Initializing HybridRetriever for multiple ontologies...")
         
-        # Fields to search in Whoosh, must match the schema in build_lexical_index.py
-        # 'relations_text' is indexed (stored=False) so it can be searched.
-        # 'curie' is an ID field, typically not directly searched with MultifieldParser unless intended.
-        self.whoosh_fields_to_search = ["label", "synonyms", "definition", "relations_text"]
-        self.whoosh_parser = MultifieldParser(self.whoosh_fields_to_search, schema=self.whoosh_ix.schema, group=OrGroup)
-        print("Whoosh index loaded.")
+        self.ontology_data_stores = {}
+        self.whoosh_searchers = {}
+        self.whoosh_parsers = {}
+        self.faiss_stores = {}
+        self.ontology_names = list(ONTOLOGIES_CONFIG.keys())
+        self.prefix_to_name_map = {v['prefix']: k for k, v in ONTOLOGIES_CONFIG.items()}
 
-        print(f"Loading embedding model: {embedding_model_name}")
-        self.embedding_model = SentenceTransformer(embedding_model_name, trust_remote_code=True)
-        print("Embedding model loaded.")
-
-        print(f"Initializing FAISS vector store (index: {faiss_index_path}, metadata: {faiss_metadata_path})...")
-        self.faiss_store = FAISSVectorStore(
-            index_path=faiss_index_path,
-            metadata_path=faiss_metadata_path,
-            embeddings_file_path=None 
-        )
-        if not self.faiss_store.index or not self.faiss_store.metadata:
-            raise FileNotFoundError(f"FAISS index file '{faiss_index_path}' or metadata file '{faiss_metadata_path}' not found or empty. Please build it first.")
-        print("FAISS vector store initialized.")
+        logger.info(f"Loading embedding model: {EMBEDDING_MODEL_NAME}")
+        self.embedding_model = SentenceTransformer(EMBEDDING_MODEL_NAME, trust_remote_code=True)
         
-        print("HybridRetriever initialized successfully.")
-
-    def _lexical_search(self, query_string, limit=DEFAULT_K_LEXICAL):
-        """
-        Performs lexical search using Whoosh.
-        Returns a list of dicts: {'id': str, 'label': str, 'score': float, 'source': 'lexical', 'details': dict}
-        """
-        results = []
-        if not query_string:
-            return results
-
-        try:
-            query = self.whoosh_parser.parse(query_string)
-            search_results = self.whoosh_searcher.search(query, limit=limit)
+        for name, config_data in ONTOLOGIES_CONFIG.items():
+            logger.info(f"--- Initializing resources for ontology: '{name}' ---")
             
-            for hit in search_results:
-                hit_fields = hit.fields()  # Get all stored fields as a dictionary
-                term_curie = hit_fields.get('curie') # *** CHANGED: 'id' to 'curie' ***
+            # ... (rest of the __init__ method is unchanged) ...
+            dump_path = config_data['dump_json_path']
+            logger.info(f"Loading ontology data from: {dump_path}")
+            if not os.path.exists(dump_path):
+                raise FileNotFoundError(f"Ontology dump for '{name}' not found: {dump_path}")
+            with open(dump_path, 'r', encoding='utf-8') as f:
+                self.ontology_data_stores[name] = json.load(f)
+            logger.info(f"Loaded {len(self.ontology_data_stores[name])} entries for '{name}'.")
 
-                if term_curie is None:
-                    print(f"Warning: Lexical search hit found without a 'curie'. Hit details: {hit}")
-                    # logger.warning(f"Lexical search hit found without a 'curie'. Hit details: {hit}")
-                    continue
+            whoosh_dir = config_data['whoosh_index_dir']
+            logger.info(f"Loading Whoosh index from: {whoosh_dir}")
+            if not os.path.exists(whoosh_dir) or not os.listdir(whoosh_dir):
+                raise FileNotFoundError(f"Whoosh index for '{name}' not found or empty: {whoosh_dir}")
+            
+            whoosh_ix = open_whoosh_index(whoosh_dir)
+            self.whoosh_searchers[name] = whoosh_ix.searcher()
+            whoosh_fields = ["label", "synonyms", "definition", "relations_text"]
+            self.whoosh_parsers[name] = MultifieldParser(whoosh_fields, schema=whoosh_ix.schema, group=OrGroup)
+            logger.info(f"Whoosh index for '{name}' loaded.")
 
-                # 'relations_text' is not stored, so it won't be in hit_fields.
-                # We retrieve label, synonyms, definition if they were stored.
-                retrieved_label = hit_fields.get('label')
-                retrieved_synonyms_str = hit_fields.get('synonyms') # This will be a space-separated string
-                retrieved_definition = hit_fields.get('definition')
+            faiss_index_path = config_data['faiss_index_path']
+            faiss_metadata_path = config_data['faiss_metadata_path']
+            logger.info(f"Initializing FAISS store for '{name}' (index: {faiss_index_path}, metadata: {faiss_metadata_path})...")
+            
+            faiss_store = FAISSVectorStore(
+                index_path=faiss_index_path,
+                metadata_path=faiss_metadata_path,
+                embeddings_file_path=None
+            )
+            if not faiss_store.index or not faiss_store.metadata:
+                 raise FileNotFoundError(f"FAISS index or metadata for '{name}' not found. Please build it first.")
+            self.faiss_stores[name] = faiss_store
+            logger.info(f"FAISS store for '{name}' initialized.")
 
-                results.append({
-                    "id": term_curie, # Keep 'id' as the key in the result for consistency with vector search
-                    "label": retrieved_label if retrieved_label is not None else self.ontology_data.get(term_curie, {}).get('label', 'N/A'),
-                    "score": hit.score, 
-                    "source": "lexical",
-                    "details": {
-                        # Convert synonyms string back to list if needed, or keep as string
-                        "retrieved_synonyms": retrieved_synonyms_str.split() if retrieved_synonyms_str else [], 
-                        "retrieved_definition": retrieved_definition
-                    }
-                })
-        except Exception as e:
-            print(f"Error during lexical search for '{query_string}': {e}")
-            # logger.error(f"Error during lexical search for '{query_string}': {e}", exc_info=True)
-            import traceback
-            traceback.print_exc() # Print full traceback for debugging
-        return results
+        logger.info("HybridRetriever initialized successfully for all configured ontologies.")
 
-    def _vector_search(self, query_string, k=DEFAULT_K_VECTOR):
-        """
-        Performs vector search using FAISS.
-        Returns a list of dicts: {'id': str, 'label': str, 'score': float, 'source': 'vector', 'details': dict}
-        """
-        results = []
+    def _get_stores_to_query(self, store_dict, target_ontologies):
+        """Helper to select which stores (Whoosh/FAISS) to query."""
+        if target_ontologies is None:
+            # If no specific targets, use all available stores
+            return store_dict.items()
+        
+        # Filter to only the targeted stores that actually exist
+        stores_to_query = []
+        for name in target_ontologies:
+            if name in store_dict:
+                stores_to_query.append((name, store_dict[name]))
+            else:
+                logger.warning(f"Requested ontology '{name}' not found in available stores. It will be skipped.")
+        return stores_to_query
+
+    def _lexical_search(self, query_string, limit=DEFAULT_K_LEXICAL, target_ontologies: Optional[List[str]] = None):
+        """Performs lexical search on all or a subset of Whoosh indexes."""
+        all_results = []
         if not query_string:
-            return results
+            return all_results
+
+        # ### CHANGED: Select which searchers to use ###
+        searchers_to_query = self._get_stores_to_query(self.whoosh_searchers, target_ontologies)
+        if not searchers_to_query:
+            logger.warning("Lexical search: No valid target ontologies specified or found.")
+            return []
+
+        for name, searcher in searchers_to_query:
+            try:
+                parser = self.whoosh_parsers[name]
+                query = parser.parse(query_string)
+                search_results = searcher.search(query, limit=limit)
+                
+                for hit in search_results:
+                    hit_fields = hit.fields()
+                    term_curie = hit_fields.get('curie')
+                    if not term_curie: continue
+                    
+                    all_results.append({
+                        "id": term_curie, "label": hit_fields.get('label', 'N/A'),
+                        "score": hit.score, "source": "lexical", "source_ontology": name,
+                    })
+            except Exception as e:
+                logger.error(f"Error during lexical search in '{name}' for '{query_string}': {e}", exc_info=True)
+        
+        all_results.sort(key=lambda x: x['score'], reverse=True)
+        return all_results[:limit]
+
+    def _vector_search(self, query_string, k=DEFAULT_K_VECTOR, target_ontologies: Optional[List[str]] = None):
+        """Performs vector search on all or a subset of FAISS indexes."""
+        all_results = []
+        if not query_string:
+            return all_results
+
+        # ### CHANGED: Select which stores to use ###
+        stores_to_query = self._get_stores_to_query(self.faiss_stores, target_ontologies)
+        if not stores_to_query:
+            logger.warning("Vector search: No valid target ontologies specified or found.")
+            return []
 
         try:
             query_vector = self.embedding_model.encode([query_string], convert_to_numpy=True)
-            distances, _, metadata_items = self.faiss_store.search(query_vector, k=k)
             
-            for i in range(len(metadata_items)):
-                term_id = metadata_items[i]['id'] # FAISS metadata stores 'id'
-                results.append({
-                    "id": term_id,
-                    "label": metadata_items[i]['label'],
-                    "score": float(distances[i]), 
-                    "source": "vector",
-                    "details": {}
-                })
+            for name, store in stores_to_query:
+                distances, _, metadata_items = store.search(query_vector, k=k)
+                for i, item in enumerate(metadata_items):
+                    all_results.append({
+                        "id": item['id'], "label": item['label'], "score": float(distances[i]),
+                        "source": "vector", "source_ontology": name,
+                    })
         except Exception as e:
-            print(f"Error during vector search for '{query_string}': {e}")
-            # logger.error(f"Error during vector search for '{query_string}': {e}", exc_info=True)
-            import traceback
-            traceback.print_exc() # Print full traceback for debugging
-        return results
+            logger.error(f"Error during vector search for '{query_string}': {e}", exc_info=True)
 
-    def search(self, query_string, lexical_limit=DEFAULT_K_LEXICAL, vector_k=DEFAULT_K_VECTOR):
+        all_results.sort(key=lambda x: x['score'])
+        return all_results[:k]
+
+    # ### CHANGED: Added 'target_ontologies' parameter ###
+    def search(self, query_string, lexical_limit=DEFAULT_K_LEXICAL, vector_k=DEFAULT_K_VECTOR, target_ontologies: Optional[List[str]] = None):
         """
-        Performs hybrid search.
+        Performs hybrid search on all or a targeted subset of ontologies.
+
+        Args:
+            query_string (str): The search query.
+            lexical_limit (int): Max number of results from lexical search.
+            vector_k (int): Max number of results from vector search.
+            target_ontologies (List[str], optional): A list of ontology names to search
+                                                     (e.g., ["foodon", "chebi"]).
+                                                     If None, searches all ontologies.
         """
-        lexical_results = self._lexical_search(query_string, limit=lexical_limit)
-        vector_results = self._vector_search(query_string, k=vector_k)
+        lexical_results = self._lexical_search(query_string, limit=lexical_limit, target_ontologies=target_ontologies)
+        vector_results = self._vector_search(query_string, k=vector_k, target_ontologies=target_ontologies)
         
         return {
             "query": query_string,
@@ -167,72 +181,70 @@ class HybridRetriever:
             "vector_results": vector_results,
         }
 
-    def get_term_details(self, term_id):
-        """
-        Retrieves full details for a given term ID (CURIE) from the loaded ontology data.
-        Returns a dictionary with all term details including the ID, or None if not found.
-        """
-        term_data = self.ontology_data.get(term_id)
-        if term_data is not None:
-            # Make a copy to avoid modifying the original data
+    def get_term_details(self, term_id: str):
+        # ... (This method is unchanged and works perfectly) ...
+        matched_prefix = None
+        for prefix in self.prefix_to_name_map.keys():
+            if term_id.startswith(prefix):
+                if matched_prefix is None or len(prefix) > len(matched_prefix):
+                    matched_prefix = prefix
+        
+        if not matched_prefix:
+            logger.warning(f"Could not determine ontology for term_id '{term_id}'.")
+            return None
+            
+        ontology_name = self.prefix_to_name_map[matched_prefix]
+        term_data = self.ontology_data_stores.get(ontology_name, {}).get(term_id)
+        
+        if term_data:
             term_data = dict(term_data)
-            # Add the ID to the returned data
             term_data['id'] = term_id
         return term_data
 
     def close(self):
-        """
-        Closes any open resources, like the Whoosh searcher.
-        """
-        if self.whoosh_searcher:
-            self.whoosh_searcher.close()
-        print("HybridRetriever resources closed.")
+        # ... (Unchanged) ...
+        for name, searcher in self.whoosh_searchers.items():
+            if searcher:
+                searcher.close()
+                logger.info(f"Whoosh searcher for '{name}' closed.")
 
-# Example Usage (for testing purposes)
+# ### CHANGED: Updated example usage to demonstrate new functionality ###
 if __name__ == '__main__':
-    # This sys.path modification is now at the top of the file for when __name__ == '__main__'
-    
-    from src.config import PROJECT_ROOT # Import after sys.path is potentially modified
-    print(f"Configured project root: {PROJECT_ROOT}")
-    if not os.getcwd().startswith(PROJECT_ROOT) and os.getcwd() != PROJECT_ROOT:
-         print(f"Warning: Current working directory ({os.getcwd()}) might not be the project root.")
-         print("Consider running with 'python -m src.retriever.hybrid_retriever' from the project root directory.")
-
-    print("Running HybridRetriever example...")
+    logger.info("Running HybridRetriever example...")
     retriever = None
     try:
         retriever = HybridRetriever()
         
-        queries = ["GARLIC", "SALT", "GARBANZO", "TAHINI", "LEMON JUICE", "HONEY" ,"WATER", "OLIVE OIL", "ROSMARY", "HUMMUS"]
-        
-        for query in queries:
-            print(f"\nSearching for: '{query}'")
-            results = retriever.search(query, lexical_limit=3, vector_k=3)
-            
-            print("\n--- Lexical Results ---")
-            if results["lexical_results"]:
-                for res in results["lexical_results"]:
-                    print(f"  ID: {res['id']}, Label: {res['label']}, Score (Whoosh): {res['score']:.4f}")
-                    # print(f"    Details: {res['details']}") # Uncomment to see retrieved synonyms/def
-            else:
-                print("  No lexical results.")
+        print("\n\n" + "="*80)
+        print("✅ 1. Searching for 'cheese' across ALL ontologies (default behavior)")
+        print("="*80)
+        results = retriever.search("cheese", lexical_limit=2, vector_k=2)
+        print(json.dumps(results, indent=2))
 
-            print("\n--- Vector Results ---")
-            if results["vector_results"]:
-                for res in results["vector_results"]:
-                    print(f"  ID: {res['id']}, Label: {res['label']}, Score (L2 Distance): {res['score']:.4f}")
-            else:
-                print("  No vector results.")
-            print("-" * 40)
-            
+        print("\n\n" + "="*80)
+        # Assuming you have an ontology named 'foodon' in your config
+        print("✅ 2. Searching for 'cheese' ONLY in the 'foodon' ontology")
+        print("="*80)
+        results_foodon = retriever.search("cheese", lexical_limit=2, vector_k=2, target_ontologies=["foodon"])
+        print(json.dumps(results_foodon, indent=2))
+        
+        print("\n\n" + "="*80)
+        # Assuming you have an ontology named 'chebi' in your config
+        print("✅ 3. Searching for 'chemical entity' ONLY in the 'chebi' ontology")
+        print("="*80)
+        results_chebi = retriever.search("chemical entity", lexical_limit=2, vector_k=2, target_ontologies=["chebi"])
+        print(json.dumps(results_chebi, indent=2))
+
+        print("\n\n" + "="*80)
+        print("❌ 4. Searching with an invalid ontology name (should be skipped gracefully)")
+        print("="*80)
+        results_invalid = retriever.search("cheese", lexical_limit=2, vector_k=2, target_ontologies=["non_existent_ontology"])
+        print(json.dumps(results_invalid, indent=2)) # Should return empty lists
+
     except FileNotFoundError as e:
-        print(f"\nERROR: A required file was not found: {e}")
-        print("Please ensure all data files (ontology_dump.json) and indices (Whoosh, FAISS) are correctly built and paths are set in src/config.py.")
-        print("You might need to run the ingestion and embedding scripts first.")
+        logger.error(f"\nERROR: A required file was not found: {e}", exc_info=True)
     except Exception as e:
-        print(f"\nAn unexpected error occurred during example run: {e}")
-        import traceback
-        traceback.print_exc()
+        logger.error(f"\nAn unexpected error occurred during example run: {e}", exc_info=True)
     finally:
         if retriever:
             retriever.close()
