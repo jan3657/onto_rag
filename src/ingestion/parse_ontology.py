@@ -2,6 +2,11 @@
 import sys
 import os
 import logging # Import logging
+import rdflib
+from rdflib import Graph, Namespace, URIRef, RDFS, OWL, RDF
+from typing import Dict, List, Any
+import json
+import traceback
 
 # --- Add project root to sys.path ---
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
@@ -9,44 +14,26 @@ if project_root not in sys.path:
     sys.path.insert(0, project_root)
 # --- End sys.path modification ---
 
-import rdflib
-from rdflib import Graph, Namespace, URIRef, RDFS, OWL, RDF
-from typing import Dict, List, Any
-import json
-import traceback
-
 # Now import using the 'src' package prefix
 from src.config import (
-    FOODON_PATH,                # Adjusted: Was ONTOLOGY_FILE
-    ONTOLOGY_DUMP_JSON,         # Adjusted: Was ONTOLOGY_DUMP_PATH
-    CURIE_PREFIX_MAP,           # Adjusted: Was NAMESPACE_MAP
-    RELATION_CONFIG,            # New: For relation names
-    TARGET_RELATIONS_CURIES,    # New: For relation URIs
-    IAO_NS_STR,                 # Using string constants for Namespace definitions
+    ONTOLOGIES_CONFIG,          # Changed: Using a central config dict
+    CURIE_PREFIX_MAP,
+    RELATION_CONFIG,
+    TARGET_RELATIONS_CURIES,
+    IAO_NS_STR,
     OBOINOWL_NS_STR,
-    # Add other NS_STR if needed for local Namespace objects
 )
-# Assuming src.utils.ontology_utils is already correct and uses CURIE_PREFIX_MAP
 from src.utils.ontology_utils import uri_to_curie, curie_to_uri
 
 # --- Logging Setup ---
-# Using basicConfig as src.utils.logging.get_logger is "to be developed"
-# You can customize this further if needed.
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(module)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 
 # Define commonly used namespaces (can still use these locally for convenience)
-# It's safer to use the full URI string from config if available, or construct it.
 IAO = Namespace(IAO_NS_STR)
 OBOINOWL = Namespace(OBOINOWL_NS_STR)
-# FOODON_BASE_URI = None # Find FOODON base URI from CURIE_PREFIX_MAP
-# for base, prefix in CURIE_PREFIX_MAP.items():
-#     if prefix == "FOODON":
-#         FOODON_BASE_URI = base
-#         break
-# FOODON = Namespace(FOODON_BASE_URI) if FOODON_BASE_URI else None
-# If FOODON Namespace object is not strictly needed for queries, direct URI construction is fine.
+
 
 def load_ontology(path: str) -> rdflib.Graph:
     g = Graph()
@@ -106,11 +93,6 @@ def extract_labels_and_synonyms(g: Graph, prefix_map: Dict[str, str]) -> Dict[st
             
             # Pass the prefix_map explicitly
             curie = uri_to_curie(s_uri, prefix_map)
-            # Optional: Filter for specific prefixes if desired, e.g., only FOODON, IAO, OBO terms.
-            # This was present in your original script; keeping it commented for now for broader extraction.
-            # if not any(curie.startswith(p) for p in ["FOODON:", "IAO:", "RO:", "BFO:", "obo:", "CHEBI:"]): # Example
-            #     # logger.debug(f"Skipping non-ontology CURIE for labels/syns: {curie} from {s_uri}")
-            #     continue
             if not curie or curie == str(s_uri): # Skip if not converted to a CURIE effectively
                 continue
 
@@ -130,8 +112,7 @@ def extract_labels_and_synonyms(g: Graph, prefix_map: Dict[str, str]) -> Dict[st
                     if isinstance(syn_obj, rdflib.Literal):
                         current_synonyms.append(str(syn_obj))
             
-            # Ensure synonyms list exists and extend uniquely
-            if "synonyms" not in data[curie] or data[curie]["synonyms"] is None: # Handle if somehow becomes None
+            if "synonyms" not in data[curie] or data[curie]["synonyms"] is None:
                 data[curie]["synonyms"] = []
             for s in current_synonyms:
                 if s not in data[curie]["synonyms"]:
@@ -151,12 +132,7 @@ def extract_definitions(g: Graph, prefix_map: Dict[str, str]) -> Dict[str, str]:
         if not isinstance(s_uri, URIRef):
             continue
         
-        # Pass the prefix_map explicitly
         curie = uri_to_curie(s_uri, prefix_map)
-        # Optional: Filter for specific prefixes
-        # if not any(curie.startswith(p) for p in ["FOODON:", "IAO:", "RO:", "BFO:", "obo:", "CHEBI:"]):
-        #     # logger.debug(f"Skipping non-ontology CURIE for definitions: {curie} from {s_uri}")
-        #     continue
         if not curie or curie == str(s_uri):
             continue
         
@@ -178,19 +154,13 @@ def extract_hierarchy(g: Graph, prefix_map: Dict[str, str]) -> Dict[str, Dict[st
         if term_uri == OWL.Thing:
             continue
 
-        # Pass the prefix_map explicitly
         curie = uri_to_curie(term_uri, prefix_map)
-        # Optional: Filter
-        # if not any(curie.startswith(p) for p in ["FOODON:", "IAO:", "RO:", "BFO:", "obo:", "CHEBI:"]):
-        #     # logger.debug(f"Skipping non-ontology CURIE for hierarchy: {curie} from {term_uri}")
-        #     continue
         if not curie or curie == str(term_uri):
             continue
 
         direct_parent_curies = []
         for parent_uri in g.objects(subject=term_uri, predicate=RDFS.subClassOf):
             if isinstance(parent_uri, URIRef) and parent_uri != OWL.Thing:
-                # Pass the prefix_map explicitly
                 parent_curie = uri_to_curie(parent_uri, prefix_map)
                 if parent_curie and parent_curie != str(parent_uri):
                     direct_parent_curies.append(parent_curie)
@@ -207,7 +177,6 @@ def extract_hierarchy(g: Graph, prefix_map: Dict[str, str]) -> Dict[str, Dict[st
     return hierarchy_data
 
 
-# Adjusted to match outline: props_to_extract: Dict[str, str] (readable_name -> URI_string)
 def extract_relations(g: Graph, props_to_extract: Dict[str, str], prefix_map: Dict[str, str]) -> Dict[str, Dict[str, List[str]]]:
     relations_data = {}
     
@@ -215,22 +184,16 @@ def extract_relations(g: Graph, props_to_extract: Dict[str, str], prefix_map: Di
         if not isinstance(term_uri, URIRef):
             continue
 
-        # Pass the prefix_map explicitly
         curie = uri_to_curie(term_uri, prefix_map)
-        # Optional: Filter
-        # if not any(curie.startswith(p) for p in ["FOODON:", "IAO:", "RO:", "BFO:", "obo:", "CHEBI:"]):
-        #     # logger.debug(f"Skipping non-ontology CURIE for relations: {curie} from {term_uri}")
-        #     continue
         if not curie or curie == str(term_uri):
             continue
 
         term_specific_relations = {}
-        for rel_readable_name, rel_uri_str in props_to_extract.items(): # rel_name is readable_name
+        for rel_readable_name, rel_uri_str in props_to_extract.items():
             rel_uri = URIRef(rel_uri_str)
             target_curies = []
             for target_obj in g.objects(subject=term_uri, predicate=rel_uri):
                 if isinstance(target_obj, URIRef):
-                    # Pass the prefix_map explicitly
                     target_curie = uri_to_curie(target_obj, prefix_map)
                     if target_curie and target_curie != str(target_obj):
                         target_curies.append(target_curie)
@@ -246,84 +209,79 @@ def extract_relations(g: Graph, props_to_extract: Dict[str, str], prefix_map: Di
 
 
 def main():
-    logger.info("Starting ontology parsing...")
-    # Adjusted: Use ONTOLOGY_DUMP_JSON for output path
-    data_dir = os.path.dirname(ONTOLOGY_DUMP_JSON)
-    os.makedirs(data_dir, exist_ok=True)
+    logger.info("--- Starting Ontology Parsing for Each Configured Ontology ---")
 
-    try:
-        # Adjusted: Use FOODON_PATH as input ontology file
-        g = load_ontology(FOODON_PATH)
-
-        # Prepare relation properties for extract_relations
-        # extract_relations expects: Dict[readable_name, full_uri_string]
-        # RELATION_CONFIG has: {curie_str: {"label": readable_name, "prefix": prefix_str}}
-        # TARGET_RELATIONS_CURIES is List[curie_str]
-        
-        relation_properties_for_extraction = {}
-        for rel_curie_str in TARGET_RELATIONS_CURIES:
-            if rel_curie_str in RELATION_CONFIG:
-                config_entry = RELATION_CONFIG[rel_curie_str]
-                readable_name = config_entry.get("label", rel_curie_str) # Fallback to CURIE if no label
-                
-                # Convert relation CURIE to full URI using curie_to_uri and CURIE_PREFIX_MAP
-                full_rel_uri = curie_to_uri(rel_curie_str, CURIE_PREFIX_MAP)
-                if full_rel_uri:
-                    relation_properties_for_extraction[readable_name] = str(full_rel_uri)
-                else:
-                    logger.warning(f"Could not convert relation CURIE {rel_curie_str} to URI. Skipping this relation.")
+    # Prepare relation properties once
+    relation_properties_for_extraction = {}
+    for rel_curie_str in TARGET_RELATIONS_CURIES:
+        if rel_curie_str in RELATION_CONFIG:
+            readable_name = RELATION_CONFIG[rel_curie_str].get("label", rel_curie_str)
+            full_rel_uri = curie_to_uri(rel_curie_str, CURIE_PREFIX_MAP)
+            if full_rel_uri:
+                relation_properties_for_extraction[readable_name] = str(full_rel_uri)
             else:
-                logger.warning(f"Relation CURIE {rel_curie_str} from TARGET_RELATIONS_CURIES not found in RELATION_CONFIG.")
+                logger.warning(f"Could not convert relation CURIE {rel_curie_str} to URI. Skipping this relation.")
+        else:
+            logger.warning(f"Relation CURIE {rel_curie_str} from TARGET_RELATIONS_CURIES not found in RELATION_CONFIG.")
+
+    # Loop through each ontology configured in config.py
+    for name, config_data in ONTOLOGIES_CONFIG.items():
+        ontology_path = config_data['path']
+        dump_path = config_data['dump_json_path']
         
-        logger.info(f"Prepared {len(relation_properties_for_extraction)} relation properties for extraction.")
-
-
-        logger.info("\nExtracting data...")
-        # Pass CURIE_PREFIX_MAP to all extraction functions
-        labels_synonyms = extract_labels_and_synonyms(g, CURIE_PREFIX_MAP)
-        definitions = extract_definitions(g, CURIE_PREFIX_MAP)
-        hierarchy = extract_hierarchy(g, CURIE_PREFIX_MAP)
-        relations = extract_relations(g, relation_properties_for_extraction, CURIE_PREFIX_MAP)
-
-        logger.info("\nMerging extracted data...")
-        merged_data = {}
-        all_curies = set(labels_synonyms.keys()) | \
-                     set(definitions.keys()) | \
-                     set(hierarchy.keys()) | \
-                     set(relations.keys())
-
-        for curie_key in all_curies:
-            # No need to filter again here if extraction functions already did or if we want all extracted CURIEs
-            merged_data[curie_key] = {
-                "label": labels_synonyms.get(curie_key, {}).get("label"),
-                "synonyms": labels_synonyms.get(curie_key, {}).get("synonyms", []),
-                "definition": definitions.get(curie_key),
-                "parents": hierarchy.get(curie_key, {}).get("parents", []),
-                "ancestors": hierarchy.get(curie_key, {}).get("ancestors", []),
-                "relations": relations.get(curie_key, {})
-            }
+        # Ensure the output directory exists
+        os.makedirs(os.path.dirname(dump_path), exist_ok=True)
         
-        final_merged_data = {}
-        for curie_key, data_dict in merged_data.items():
-            if any(data_dict.values()): # Check if any value in the dict is non-empty/non-None
-                final_merged_data[curie_key] = data_dict
+        logger.info(f"\n--- Processing Ontology: '{name}' ---")
+        logger.info(f"Source: {ontology_path}")
+        logger.info(f"Destination: {dump_path}")
 
-        logger.info(f"\nTotal merged entities with some data: {len(final_merged_data)}")
+        if not os.path.exists(ontology_path):
+            logger.error(f"Ontology file not found. Skipping '{name}'.")
+            continue
 
-        # Adjusted: Use ONTOLOGY_DUMP_JSON for output
-        logger.info(f"Writing merged data to {ONTOLOGY_DUMP_JSON}")
-        with open(ONTOLOGY_DUMP_JSON, 'w', encoding='utf-8') as f:
-            json.dump(final_merged_data, f, indent=4, ensure_ascii=False)
+        try:
+            # 1. Load the single ontology graph
+            g = load_ontology(ontology_path)
 
-        logger.info("Ontology parsing and data dump complete.")
+            # 2. Extract data FROM THIS GRAPH ONLY
+            logger.info(f"Extracting data for '{name}'...")
+            labels_synonyms = extract_labels_and_synonyms(g, CURIE_PREFIX_MAP)
+            definitions = extract_definitions(g, CURIE_PREFIX_MAP)
+            hierarchy = extract_hierarchy(g, CURIE_PREFIX_MAP)
+            relations = extract_relations(g, relation_properties_for_extraction, CURIE_PREFIX_MAP)
 
-    except FileNotFoundError:
-        # Adjusted: Use FOODON_PATH in error message
-        logger.error(f"Parsing aborted: Ontology file not found at {FOODON_PATH}")
-        # traceback.print_exc() # Already handled by load_ontology
-    except Exception as e:
-        logger.error(f"An error occurred during parsing: {e}")
-        traceback.print_exc()
+            # 3. Merge extracted data for this ontology
+            logger.info("Merging extracted data...")
+            ontology_specific_data = {}
+            all_curies = set(labels_synonyms.keys()) | set(definitions.keys()) | set(hierarchy.keys()) | set(relations.keys())
+
+            for curie_key in all_curies:
+                ontology_specific_data[curie_key] = {
+                    "label": labels_synonyms.get(curie_key, {}).get("label"),
+                    "synonyms": labels_synonyms.get(curie_key, {}).get("synonyms", []),
+                    "definition": definitions.get(curie_key),
+                    "parents": hierarchy.get(curie_key, {}).get("parents", []),
+                    "ancestors": hierarchy.get(curie_key, {}).get("ancestors", []),
+                    "relations": relations.get(curie_key, {})
+                }
+            
+            final_data = {k: v for k, v in ontology_specific_data.items() if any(v.values())}
+            
+            # 4. Save the dedicated dump file
+            logger.info(f"Found {len(final_data)} entities with data in '{name}'.")
+            logger.info(f"Writing data to {dump_path}")
+            with open(dump_path, 'w', encoding='utf-8') as f:
+                json.dump(final_data, f, indent=4, ensure_ascii=False)
+
+            logger.info(f"Successfully processed '{name}'.")
+
+        except Exception as e:
+            logger.error(f"An error occurred while processing '{name}': {e}")
+            traceback.print_exc()
+
+    logger.info("\n--- All Ontology Parsing Complete ---")
+
 
 if __name__ == "__main__":
     main()

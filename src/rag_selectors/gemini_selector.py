@@ -96,9 +96,11 @@ class GeminiSelector:
             # --- CORRECTED PART 2: The API Call ---
             # Call generate_content on the client.models service.
             # Pass the prompt string to the 'contents' parameter.
+            generation_config = {'temperature': 0}
             response = self.client.models.generate_content(
                 model=self.model_name,
-                contents=prompt
+                contents=prompt,
+                config=generation_config
             )
 
             # The rest of your logic is good.

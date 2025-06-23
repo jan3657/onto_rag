@@ -16,12 +16,41 @@ os.makedirs(DATA_DIR, exist_ok=True)
 
 # Ontologies Directory
 ONTOLOGIES_DIR = os.path.join(PROJECT_ROOT, "ontologies")
-FOODON_PATH = os.path.join(ONTOLOGIES_DIR, "foodon.owl")
+FOODON_PATH = os.path.join(ONTOLOGIES_DIR, "foodon-with-syns.owl")
+CHEBI_PATH = os.path.join(ONTOLOGIES_DIR, "chebi.owl")
 TEST_FOODON_SNIPPET_PATH = os.path.join(ONTOLOGIES_DIR, "test_foodon_snippet.owl")
+
+# --- NEW: Central Ontologies Configuration ---
+# The keys ('foodon', 'chebi') are used as identifiers throughout the pipeline.
+ONTOLOGIES_CONFIG = {
+    'foodon': {
+        'path': os.path.join(ONTOLOGIES_DIR, "foodon.owl"),
+        'prefix': 'FOODON:',
+        'dump_json_path': os.path.join(DATA_DIR, "ontology_dump_foodon.json"),
+        'enriched_docs_path': os.path.join(DATA_DIR, f"enriched_documents_foodon.json"),
+        'embeddings_path': os.path.join(DATA_DIR, f"embeddings_foodon.json"),
+        'whoosh_index_dir': os.path.join(DATA_DIR, f"whoosh_index_foodon"),
+        'faiss_index_path': os.path.join(DATA_DIR, f"faiss_index_foodon.bin"),
+        'faiss_metadata_path': os.path.join(DATA_DIR, f"faiss_metadata_foodon.json"),
+    },
+    'chebi': {
+        'path': os.path.join(ONTOLOGIES_DIR, "chebi.owl"),
+        'prefix': 'CHEBI:',
+        'dump_json_path': os.path.join(DATA_DIR, "ontology_dump_chebi.json"),
+        'enriched_docs_path': os.path.join(DATA_DIR, f"enriched_documents_chebi.json"),
+        'embeddings_path': os.path.join(DATA_DIR, f"embeddings_chebi.json"),
+        'whoosh_index_dir': os.path.join(DATA_DIR, f"whoosh_index_chebi"),
+        'faiss_index_path': os.path.join(DATA_DIR, f"faiss_index_chebi.bin"),
+        'faiss_metadata_path': os.path.join(DATA_DIR, f"faiss_metadata_chebi.json"),
+    }
+}
+# Ensure Whoosh directories exist
+for name, config_data in ONTOLOGIES_CONFIG.items():
+    os.makedirs(config_data['whoosh_index_dir'], exist_ok=True)
 
 
 # Output file from parse_ontology.py
-ONTOLOGY_DUMP_JSON = os.path.join(DATA_DIR, "ontology_dump.json")
+ONTOLOGY_DUMP_JSON = os.path.join(DATA_DIR, "ontology_syns_dump.json")
 
 # Output file for enriched documents
 ENRICHED_DOCUMENTS_FILE = os.path.join(DATA_DIR, "enriched_documents.json")
@@ -38,8 +67,8 @@ FAISS_INDEX_PATH = os.path.join(DATA_DIR, "faiss_index.bin")
 FAISS_METADATA_PATH = os.path.join(DATA_DIR, "faiss_metadata.json")
 
 # Embedding Model Configuration
-# EMBEDDING_MODEL_NAME = "all-MiniLM-L6-v2"
-EMBEDDING_MODEL_NAME = "Lajavaness/bilingual-embedding-large" 
+EMBEDDING_MODEL_NAME = "all-MiniLM-L6-v2"
+#EMBEDDING_MODEL_NAME = "Lajavaness/bilingual-embedding-large" 
 # RERANKER_MODEL_NAME = "intfloat/e5-mistral-7b-instruct"
 RERANKER_MODEL_NAME = "cross-encoder/ms-marco-MiniLM-L-6-v2"
 EMBEDDING_BATCH_SIZE = 32 # For batch embedding script
@@ -48,7 +77,7 @@ EMBEDDING_DEVICE = 'cpu'  # or 'cuda' if available, for embedding script
 # Default K values for retrieval
 DEFAULT_K_LEXICAL = 20
 DEFAULT_K_VECTOR = 20
-DEFAULT_RERANK_K = DEFAULT_K_LEXICAL + DEFAULT_K_VECTOR
+DEFAULT_RERANK_K = DEFAULT_K_LEXICAL + DEFAULT_K_VECTOR 
 
 # Namespaces (using string constants for broader compatibility if rdflib not always imported)
 RDFS_NS_STR = "http://www.w3.org/2000/01/rdf-schema#"
