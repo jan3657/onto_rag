@@ -1,25 +1,25 @@
 # scripts/reduce_evaluation_set.py
-
 import xml.etree.ElementTree as ET
-import os
 import sys
 from collections import defaultdict
+from pathlib import Path
 
 # Add project root to Python path to allow direct imports if needed in the future
-PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-sys.path.append(PROJECT_ROOT)
+project_root = Path(__file__).resolve().parent.parent
+if project_root not in sys.path:
+    sys.path.insert(0, str(project_root))
 
 # --- Configuration ---
 # Assumes the data folder is at the project root
-INPUT_XML_PATH = os.path.join(PROJECT_ROOT, "data", "CafeteriaFCD_foodon.xml")
-OUTPUT_XML_PATH = os.path.join(PROJECT_ROOT, "data", "CafeteriaFCD_foodon_unique.xml")
+INPUT_XML_PATH = project_root / "data" / "CafeteriaFCD_foodon.xml"
+OUTPUT_XML_PATH = project_root / "data" / "CafeteriaFCD_foodon_unique.xml"
 
-def create_unique_dataset(input_file: str, output_file: str):
+def create_unique_dataset(input_file: Path, output_file: Path) -> None:
     """
     Parses an XML annotation file and creates a new, smaller XML file
     containing only one instance of each unique (text, semantic_tags) pair.
     """
-    if not os.path.exists(input_file):
+    if not input_file.exists():
         print(f"Error: Input file not found at {input_file}")
         return
 
