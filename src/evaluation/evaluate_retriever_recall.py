@@ -26,7 +26,7 @@ from src.utils.ontology_utils import uri_to_curie
 
 # --- Configuration for this specific evaluation script ---
 # Path to your evaluation XML file
-EVALUATION_XML_FILE = os.path.join(PROJECT_ROOT, "data", "CafeteriaFCD_foodon.xml")
+EVALUATION_XML_FILE = os.path.join(PROJECT_ROOT, "data", "CafeteriaFCD_foodon_unique.xml")
 # Top K results from the combined retriever output to consider for a match
 RECALL_AT_K = DEFAULT_RERANK_K # How many retrieved items to check for a match
 
@@ -147,7 +147,8 @@ def evaluate_retriever(retriever: HybridRetriever, gold_standard_data: list, rec
             retriever_output_dict = retriever.search(
                 query_string=query_text,
                 lexical_limit=lexical_k,
-                vector_k=vector_k
+                vector_k=vector_k,
+                target_ontologies=["foodon", "chebi"], # Adjusted: Use target_ontologies to limit search
             )
             
             lexical_results = retriever_output_dict.get("lexical_results", [])
@@ -223,13 +224,7 @@ def main():
             logger.error(f"FAISS metadata not found: {FAISS_METADATA_PATH}. Run ingestion pipeline.")
             return
 
-        retriever = HybridRetriever(
-            ontology_data_path=ONTOLOGY_DUMP_JSON, # Adjusted
-            whoosh_index_dir=WHOOSH_INDEX_DIR,
-            faiss_index_path=FAISS_INDEX_PATH,
-            faiss_metadata_path=FAISS_METADATA_PATH,
-            embedding_model_name=EMBEDDING_MODEL_NAME
-        )
+        retriever = HybridRetriever()
         logger.info("HybridRetriever initialized successfully.")
     except Exception as e:
         logger.error(f"Failed to initialize HybridRetriever: {e}", exc_info=True)

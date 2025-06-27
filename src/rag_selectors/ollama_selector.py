@@ -33,21 +33,21 @@ class OllamaSelector:
         # You might want to add a check here to ensure the Ollama service is running.
         try:
             ollama.ps()
-            logger.info(f"Ollama service is running. Selector initialized for model: {self.model_name}")
-        except Exception:
+            logger.info("Ollama service is running. Selector initialized for model: %s", self.model_name)
+        except Exception as exc:
             logger.error("Ollama service not detected. Please ensure Ollama is running.")
-            raise ConnectionError("Ollama service not available.")
+            raise ConnectionError("Ollama service not available.") from exc
 
 
     def _load_prompt_template(self) -> str:
         """Loads the prompt template from the file."""
         # This method is unchanged
-        template_path = os.path.join(config.PROJECT_ROOT, "prompts", "final_selection.tpl")
+        template_path = os.path.join(config.PROJECT_ROOT, "prompts", "strict_final_selection.tpl")
         try:
             with open(template_path, 'r', encoding='utf-8') as f:
                 return f.read()
         except FileNotFoundError:
-            logger.error(f"Prompt template not found at {template_path}")
+            logger.error("Prompt template not found at %s", template_path)
             raise
 
     def _format_candidates_for_prompt(self, candidates: List[Dict[str, Any]]) -> str:
@@ -75,7 +75,7 @@ class OllamaSelector:
             )
         return "\n\n".join(formatted_list)
 
-    def select_best_term(self, query: str, candidates: List[Dict[str, Any]]) -> Optional[Dict[str, str]]:
+    def select_best_term(self, query: str, candidates: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
         """
         Prompts Ollama to select the best term and parses the JSON response.
 
@@ -93,7 +93,7 @@ class OllamaSelector:
         # The full prompt is created just like before.
         full_prompt = self.prompt_template.replace("[USER_ENTITY]", query).replace("[CANDIDATE_LIST]", candidate_str)
         
-        logger.info(f"Sending request to Ollama for query: '{query}' with model '{self.model_name}'")
+        logger.info("Sending request to Ollama for query: '%s' with model '%s'", query, self.model_name)
         try:
             # --- CORRECTED OLLAMA CALL ---
             # The entire prompt goes into a single 'user' message.
@@ -115,19 +115,58 @@ class OllamaSelector:
             # Parse the JSON response
             result = json.loads(response_content)
             
-            if "chosen_id" in result and "explanation" in result:
-                return result
-            else:
-                logger.error(f"LLM response is valid JSON but missing required keys: {result}")
+            # --- MODIFIED VALIDATION LOGIC ---
+            
+            # 1. The 'chosen_id' key is mandatory. Fail if it's missing or null.
+            if "chosen_id" not in result or result.get("chosen_id") is None:
+                logger.error(
+                    "LLM response is invalid: Missing the mandatory 'chosen_id' key. Response: %s",
+                    result
+                )
                 return None
+            
+            # 2. Start building the result with the mandatory key.
+            validated_result = {
+                'chosen_id': result['chosen_id']
+            }
+
+            # 3. Handle optional 'explanation' with a specific warning if missing.
+            if 'explanation' in result:
+                validated_result['explanation'] = result['explanation']
+            else:
+                logger.warning("LLM response missing 'explanation' key. Using default value.")
+                validated_result['explanation'] = 'No explanation provided.'
+
+            # 4. Handle optional 'confidence' with distinct warnings.
+            if 'confidence_score' in result:
+                try:
+                    # Key exists, so try to convert it
+                    validated_result['confidence_score'] = float(result['confidence_score'])
+                except (ValueError, TypeError):
+                    # Key exists, but the value is not a valid float
+                    logger.warning(
+                        "Invalid confidence_score value in response: '%s'. Defaulting to 0.0.",
+                        result.get('confidence_score')
+                    )
+                    validated_result['confidence_score'] = 0.0
+            else:
+                # The 'confidence_score' key itself is missing
+                logger.warning("LLM response missing 'confidence_score' key. Defaulting to 0.0.")
+                validated_result['confidence_score'] = 0.0
+
+            return validated_result
+            # --- END OF MODIFIED VALIDATION LOGIC ---
                 
         except json.JSONDecodeError:
             # This is less likely with format='json' but is good practice to keep.
-            logger.error(f"Failed to decode JSON from Ollama response: {response_content}")
+            logger.error("Failed to decode JSON from Ollama response: %s", response_content)
             return None
         except ollama.ResponseError as e:
-            logger.error(f"An error occurred with the Ollama API call: {e.status_code} - {e.error}")
+            logger.error("An error occurred with the Ollama API call: %s - %s", e.status_code, e.error)
             return None
-        except Exception as e:
-            logger.error(f"An unexpected error occurred during the Ollama call: {e}", exc_info=True)
+        except (ConnectionError, TimeoutError) as e:
+            logger.error("Network error during the Ollama call: %s", e, exc_info=True)
+            return None
+        except RuntimeError as e:
+            logger.error("Runtime error during the Ollama call: %s", e, exc_info=True)
             return None

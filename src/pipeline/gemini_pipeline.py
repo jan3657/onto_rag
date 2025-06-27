@@ -1,4 +1,4 @@
-# src/pipeline/pipeline.py
+# src/pipeline/gemini_pipeline.py
 import os
 import sys
 import logging
@@ -22,34 +22,52 @@ class RAGPipeline:
         logger.info("Initializing RAG Pipeline...")
         try:
             self.retriever = HybridRetriever()
+
+            # --- CORRECTED PART ---
+            # Gather all enriched document paths from the config
+            all_enriched_docs_paths = [
+                data['enriched_docs_path'] 
+                for data in config.ONTOLOGIES_CONFIG.values()
+                if os.path.exists(data['enriched_docs_path']) # Safety check
+            ]
+
+            if not all_enriched_docs_paths:
+                raise FileNotFoundError("No enriched document files found for any configured ontology. Please run the ingestion pipeline.")
+
+            logger.info(f"Initializing LLMReranker with {len(all_enriched_docs_paths)} enriched document file(s).")
+            
             self.reranker = LLMReranker(
                 model_name=config.RERANKER_MODEL_NAME,
-                enriched_docs_path=config.ENRICHED_DOCUMENTS_FILE,
+                enriched_docs_paths=all_enriched_docs_paths,  # Pass the list of paths
                 device=config.EMBEDDING_DEVICE
             )
-            self.selector = GeminiSelector(retriever=self.retriever) # <--- UPDATED INSTANTIATION
+            # --- END OF CORRECTION ---
+
+            self.selector = GeminiSelector(retriever=self.retriever)
             logger.info("RAG Pipeline initialized successfully.")
+            
         except (FileNotFoundError, ValueError) as e:
             logger.error(f"Failed to initialize pipeline: {e}")
-            logger.error("Please run 'scripts/rebuild_base.bash' and ensure GEMINI_API_KEY is set in your .env file.")
+            logger.error("Please run 'scripts/rebuild_base.bash' and ensure necessary API keys are set in your .env file.")
             raise
         except Exception as e:
             logger.error(f"An unexpected error occurred during pipeline initialization: {e}", exc_info=True)
             raise
 
+    # --- MODIFIED 'run' METHOD ---
     def run(self, 
             query: str, 
             lexical_k: int = config.DEFAULT_K_LEXICAL, 
             vector_k: int = config.DEFAULT_K_VECTOR, 
             rerank_top_n: int = 10
-            ) -> Optional[Dict[str, Any]]:
+            ) -> Optional[tuple[Dict[str, Any], List[Dict[str, Any]]]]:
         """
         Executes the full pipeline for a given query.
-
         Returns:
-            A dictionary of the selected term with its details and the LLM's explanation, or None.
+            A tuple containing (final_result_dict, candidates_list), or None.
+            The final_result_dict includes the confidence score and reasoning.
         """
-        logger.info(f"Running pipeline for query: '{query}'")
+        logger.info("Running pipeline for query: '%s'", query)
 
         # 1. Retrieve
         retriever_output = self.retriever.search(query, lexical_limit=lexical_k, vector_k=vector_k)
@@ -85,19 +103,39 @@ class RAGPipeline:
             logger.error("LLM selection failed. Returning the top reranked result as a fallback.")
             top_fallback = reranked_candidates[0]
             chosen_term_details = self.retriever.get_term_details(top_fallback['id'])
-            chosen_term_details['explanation'] = "FALLBACK: LLM selection failed. This is the top result from the reranker."
-            return chosen_term_details
+            # Ensure chosen_term_details is not None before modifying
+            if chosen_term_details:
+                chosen_term_details['confidence_score'] = 0.0 # Default confidence for fallback
+                chosen_term_details['explanation'] = "FALLBACK: LLM selection failed. This is the top result from the reranker."
+            return chosen_term_details, reranked_candidates
 
         # 5. Get final details and return
         chosen_id = selection['chosen_id']
-        chosen_term_details = self.retriever.get_term_details(chosen_id)
-        logger.debug(f"Chosen term details: {chosen_term_details}")
-        if not chosen_term_details:
-            logger.error(f"LLM chose ID '{chosen_id}', but its details could not be retrieved.")
-            return None
+        if chosen_id == '0' or chosen_id == '-1':
+            logger.info("LLM selected no suitable match. Returning No match.")
+            no_match_result = {
+                'id': chosen_id,  # Preserve the -1 or 0 ID as the signal
+                'label': 'No Match Found',
+                'definition': 'The Language Model determined that no candidate was a suitable match for the query.',
+                'synonyms': [],
+                'parents': [],
+                'ancestors': [],
+                'relations': {},
+                'confidence_score': selection.get('confidence_score', 0.0),
+                'explanation': selection.get('explanation', 'No explanation provided.')
+            }
+            return no_match_result, reranked_candidates
         
-        chosen_term_details['explanation'] = selection['explanation']
-        return chosen_term_details
+        chosen_term_details = self.retriever.get_term_details(chosen_id)
+        if not chosen_term_details:
+            logger.error("LLM chose ID '%s', but its details could not be retrieved.", chosen_id)
+            return None
+
+        # Add the confidence and explanation from the selector to the final result
+        chosen_term_details['confidence_score'] = selection.get('confidence_score', 0.0) # Use 'confidence' as per selector's output
+        chosen_term_details['explanation'] = selection.get('explanation', 'No explanation provided.')
+        return chosen_term_details, reranked_candidates
+    # --- END OF MODIFIED 'run' METHOD ---
 
     def close(self):
         if hasattr(self.retriever, 'close'):

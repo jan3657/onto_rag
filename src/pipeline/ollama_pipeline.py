@@ -22,9 +22,21 @@ class RAGPipeline:
         logger.info("Initializing RAG Pipeline...")
         try:
             self.retriever = HybridRetriever()
+
+            all_enriched_docs_paths = [
+                data['enriched_docs_path'] 
+                for data in config.ONTOLOGIES_CONFIG.values()
+                if os.path.exists(data['enriched_docs_path']) 
+            ]
+
+            if not all_enriched_docs_paths:
+                raise FileNotFoundError("No enriched document files found for any configured ontology. Please run the ingestion pipeline.")
+
+            logger.info(f"Initializing LLMReranker with {len(all_enriched_docs_paths)} enriched document file(s).")
+            
             self.reranker = LLMReranker(
                 model_name=config.RERANKER_MODEL_NAME,
-                enriched_docs_path=config.ENRICHED_DOCUMENTS_FILE,
+                enriched_docs_paths=all_enriched_docs_paths,  # Pass the list of paths
                 device=config.EMBEDDING_DEVICE
             )
             self.selector = OllamaSelector(retriever=self.retriever) # <--- UPDATED INSTANTIATION
@@ -42,14 +54,14 @@ class RAGPipeline:
             lexical_k: int = config.DEFAULT_K_LEXICAL, 
             vector_k: int = config.DEFAULT_K_VECTOR, 
             rerank_top_n: int = 10
-            ) -> Optional[Dict[str, Any]]:
+            ) -> Optional[tuple[Dict[str, Any], List[Dict[str, Any]]]]:
         """
         Executes the full pipeline for a given query.
-
         Returns:
-            A dictionary of the selected term with its details and the LLM's explanation, or None.
+            A tuple containing (final_result_dict, candidates_list), or None.
+            The final_result_dict includes the confidence score and reasoning.
         """
-        logger.info(f"Running pipeline for query: '{query}'")
+        logger.info("Running pipeline for query: '%s'", query)
 
         # 1. Retrieve
         retriever_output = self.retriever.search(query, lexical_limit=lexical_k, vector_k=vector_k)
@@ -86,17 +98,33 @@ class RAGPipeline:
             top_fallback = reranked_candidates[0]
             chosen_term_details = self.retriever.get_term_details(top_fallback['id'])
             chosen_term_details['explanation'] = "FALLBACK: LLM selection failed. This is the top result from the reranker."
-            return chosen_term_details
+            return chosen_term_details, reranked_candidates
 
         # 5. Get final details and return
         chosen_id = selection['chosen_id']
+        if chosen_id == '0' or chosen_id == '-1':
+            logger.info("LLM selected no suitable match. Returning No match.")
+            no_match_result = {
+                'id': chosen_id,  # Preserve the -1 or 0 ID as the signal
+                'label': 'No Match Found',
+                'definition': 'The Language Model determined that no candidate was a suitable match for the query.',
+                'synonyms': [],
+                'parents': [],
+                'ancestors': [],
+                'relations': {},
+                'confidence_score': selection.get('confidence_score', 0.0),
+                'explanation': selection.get('explanation', 'No explanation provided.')
+            }
+            return no_match_result, reranked_candidates
         chosen_term_details = self.retriever.get_term_details(chosen_id)
-        if not chosen_term_details:
-            logger.error(f"LLM chose ID '{chosen_id}', but its details could not be retrieved.")
-            return None
         
+        if not chosen_term_details:
+            logger.error("LLM chose ID '%s', but its details could not be retrieved.", chosen_id)
+            return None
+
+        chosen_term_details['confidence_score'] = selection.get('confidence_score')
         chosen_term_details['explanation'] = selection['explanation']
-        return chosen_term_details
+        return chosen_term_details, reranked_candidates
 
     def close(self):
         if hasattr(self.retriever, 'close'):
