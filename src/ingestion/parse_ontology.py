@@ -1,22 +1,22 @@
 # src/ingestion/parse_ontology.py
 import sys
-import os
 import logging # Import logging
 import rdflib
 from rdflib import Graph, Namespace, URIRef, RDFS, OWL, RDF
 from typing import Dict, List, Any
 import json
 import traceback
+from pathlib import Path
 
 # --- Add project root to sys.path ---
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+project_root = Path(__file__).resolve().parent.parent
 if project_root not in sys.path:
-    sys.path.insert(0, project_root)
+    sys.path.insert(0, str(project_root))
 # --- End sys.path modification ---
 
 # Now import using the 'src' package prefix
 from src.config import (
-    ONTOLOGIES_CONFIG,          # Changed: Using a central config dict
+    ONTOLOGIES_CONFIG,       
     CURIE_PREFIX_MAP,
     RELATION_CONFIG,
     TARGET_RELATIONS_CURIES,
@@ -230,13 +230,13 @@ def main():
         dump_path = config_data['dump_json_path']
         
         # Ensure the output directory exists
-        os.makedirs(os.path.dirname(dump_path), exist_ok=True)
+        dump_path.parent.mkdir(parents=True, exist_ok=True)
         
         logger.info(f"\n--- Processing Ontology: '{name}' ---")
         logger.info(f"Source: {ontology_path}")
         logger.info(f"Destination: {dump_path}")
 
-        if not os.path.exists(ontology_path):
+        if not ontology_path.exists():
             logger.error(f"Ontology file not found. Skipping '{name}'.")
             continue
 
