@@ -6,6 +6,8 @@ __pycache__/
 # Environment & secrets
 .env
 api_key.json
+project_contents_for_llm.yaml
+project_contents_for_llm.txt
 
 # VSCode, macOS
 .vscode/

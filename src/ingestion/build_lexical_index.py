@@ -1,21 +1,20 @@
 # src/ingestion/build_lexical_index.py
 import sys
-import os
 import json
+import whoosh.index
 from whoosh.index import create_in
 from whoosh.fields import Schema, ID, TEXT
 import traceback
+from pathlib import Path 
 
 # --- Add project root to sys.path ---
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+project_root = Path(__file__).resolve().parent.parent
 if project_root not in sys.path:
-    sys.path.insert(0, project_root)
-# --- End sys.path modification ---
+    sys.path.insert(0, str(project_root))
 
-# Now import using the 'src' package prefix
-from src.config import ONTOLOGIES_CONFIG # Changed: Use the main config dict
+from src.config import ONTOLOGIES_CONFIG
 
-def build_single_index(json_path: str, index_dir: str):
+def build_single_index(json_path: Path, index_dir: Path):
     """Builds a single Whoosh index from a given JSON dump file."""
     print(f"Building lexical index from {json_path} into {index_dir}")
 
@@ -28,20 +27,19 @@ def build_single_index(json_path: str, index_dir: str):
     )
 
     # Ensure the target directory exists
-    os.makedirs(index_dir, exist_ok=True)
-    
+    index_dir.mkdir(parents=True, exist_ok=True)
     try:
-        # create_in will overwrite if the index already exists.
-        ix = create_in(index_dir, schema)
+        ix = create_in(str(index_dir), schema)
         print(f"Whoosh index schema created in {index_dir}")
-    except Exception as e:
+    except (whoosh.index.LockError, whoosh.index.EmptyIndexError) as e:
          print(f"Error creating Whoosh index directory or schema: {e}")
          traceback.print_exc()
+         return
          return
 
     writer = ix.writer()
     try:
-        with open(json_path, 'r', encoding='utf-8') as f:
+        with json_path.open('r', encoding='utf-8') as f:
             ontology_data = json.load(f)
 
         print(f"Indexing {len(ontology_data)} entities...")
@@ -79,7 +77,7 @@ def build_single_index(json_path: str, index_dir: str):
         print(f"Error: Ontology dump file not found at {json_path}")
         traceback.print_exc()
         writer.cancel() 
-    except Exception as e:
+    except (json.JSONDecodeError, whoosh.writing.IndexingError, IOError) as e:
         print(f"An error occurred during index building: {e}")
         traceback.print_exc()
         writer.cancel()
@@ -96,7 +94,7 @@ def main():
             print(f"Warning: Configuration for '{name}' is missing 'dump_json_path' or 'whoosh_index_dir'. Skipping.")
             continue
             
-        if not os.path.exists(dump_path):
+        if not dump_path.exists():
             print(f"Error: Ontology dump file not found at {dump_path}. Skipping '{name}'.")
             print("Please run 'src/ingestion/parse_ontology.py' and 'src/ingestion/enrich_documents.py' first.")
             continue

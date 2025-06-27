@@ -155,7 +155,8 @@
       \ OBO prefix - should be last or handled carefully to avoid overly broad matches\n\
       \    # if specific OBO sub-ontologies are listed above.\n    \"http://purl.obolibrary.org/obo/\"\
       : \"obo\",\n}\n\n# LLM API Key (placeholders)\nGEMINI_API_KEY = os.getenv(\"\
-      GEMINI_API_KEY\")\nLLM_SELECTOR_MODEL_NAME = \"gemini-1.5-flash-latest\"\nOLLAMA_SELECTOR_MODEL_NAME\
+      GEMINI_API_KEY\")\n#LLM_SELECTOR_MODEL_NAME = \"gemini-1.5-flash-latest\"\n\
+      LLM_SELECTOR_MODEL_NAME = \"gemini-2.5-flash-lite-preview-06-17\"\nOLLAMA_SELECTOR_MODEL_NAME\
       \ = 'llama3.1:8b'\n# OPENAI_API_KEY = os.getenv(\"OPENAI_API_KEY\")\n\n# Logging\
       \ configuration\nLOG_LEVEL = \"INFO\"\nLOG_FILE = os.path.join(PROJECT_ROOT,\
       \ \"app.log\") # Example log file in project root"
@@ -188,8 +189,9 @@
       \            print(f\"Query: '{args.query}'\")\n            print(\"---------------------------\"\
       )\n            print(f\"Chosen Term ID: {final_result.get('id', 'N/A')}\")\n\
       \            print(f\"Label:          {final_result.get('label', 'N/A')}\")\n\
-      \            print(f\"Definition:     {final_result.get('definition', 'N/A')}\"\
-      )\n            print(f\"Synonyms:       {'; '.join(final_result.get('synonyms',\
+      \            print(f\"Confidence:     {final_result.get('confidence_score',\
+      \ 0.0):.1%}\")\n            print(f\"Definition:     {final_result.get('definition',\
+      \ 'N/A')}\")\n            print(f\"Synonyms:       {'; '.join(final_result.get('synonyms',\
       \ [])) or 'None'}\")\n            print(\"\\nLLM Explanation:\")\n         \
       \   print(f\"  > {final_result.get('explanation', 'No explanation provided.')}\"\
       )\n        print(\"---------------------------\\n\")\n\n        # --- NEW: Print\
@@ -266,6 +268,7 @@
             ├── enriched_documents.json (excluded)
             ├── enriched_documents_chebi.json (excluded)
             ├── enriched_documents_foodon.json (excluded)
+            ├── example_for_scoreing.txt (excluded)
             ├── faiss_index.bin (excluded)
             ├── faiss_index_chebi.bin (excluded)
             ├── faiss_index_foodon.bin (excluded)
@@ -341,7 +344,8 @@
             ├── final_selection_ingredients.tpl
             ├── parse_ontology.tpl
             ├── reranker.tpl
-            └── selection_with_confidence.tpl
+            ├── selection_with_confidence.tpl
+            └── strict_final_selection.tpl
         ├── scripts/
             ├── find_namespaces.py
             ├── format_evaluation_results.py
@@ -732,15 +736,83 @@
       Provide your response in a valid JSON format only. Do not add any text, comments, or markdown fences before or after the JSON block.
       The JSON object must contain three keys:
       "chosen_id": The CURIE (ID) of the single best matching term (e.g., "FOODON:00001290").
-      "confidence_score": A float between 0.0 and 1.0 indicating your confidence in the selection. 1.0 for an exact, unambiguous match. 0.5 for a plausible but uncertain match.
-      "reasoning": A brief, clear explanation for your choice, justifying why it is the best fit. If confidence is low, explain the ambiguity.
+      "confidence_score": A float between 0.0 and 1.0 indicating your confidence in the correct term being in the candidate list. If the candidate includes a similar and not exact chemical give low score.
+      "explanation": A brief, clear explanation for your choice, justifying why it is the best fit. If confidence is low, explain the ambiguity.
       **EXAMPLE RESPONSE FORMAT**:
 
       Generated json
       {
         "chosen_id": "FOODON:00001290",
         "confidence_score": 1.0,
-        "reasoning": "The user entity 'garlic' is an exact match for the label of candidate FOODON:00001290. This is the most direct and specific match available."
+        "explanation": "The user entity 'garlic' is an exact match for the label of candidate FOODON:00001290. This is the most direct and specific match available."
+      }
+    "strict_final_selection.tpl": |-
+      You are a rigorous and precise ontologist specializing in food, ingredient, and chemical substance classification. Your task is to analyze a user-provided entity and find the single most appropriate term from a list of candidate ontology terms. You must operate based on a strict, evidence-based rubric and avoid making speculative or purely semantic connections.
+
+      You will be given a user entity and a numbered list of candidate terms. Each candidate in the list includes an ID, Label, Definition, and a list of Synonyms.
+
+      **User Entity**:
+      [USER_ENTITY]
+
+      **Candidate Ontology Terms**:
+      [CANDIDATE_LIST]
+
+      **INSTRUCTIONS**:
+
+      1.  **Analyze and Match:** Carefully compare the user entity against each candidate's Label and Synonyms list. Your goal is to find a match based on verifiable evidence.
+      2.  **Apply the Rubric:** Use the following **Matching and Confidence Score Rubric** to determine the single best match and its corresponding confidence score. You must follow this hierarchy. Start at the top (1.0) and work your way down.
+      3.  **Handle No Match:** If no candidate meets at least the criteria for a 0.4 confidence score, or if all potential matches have clear contradictory information, you must select "no match".
+      4.  **Format Output:** Provide your response in a valid JSON format only. Do not add any text, comments, or markdown fences before or after the JSON block.
+
+      ---
+      ### **Matching and Confidence Score Rubric**
+
+      *   **1.0 (Certain Match):**
+          *   **Criteria:** The user entity is an exact, case-insensitive match for the candidate's `Label` or one of its `Synonyms`.
+          *   **Example:** User entity `garlic` matches `Label: 'Garlic'`.
+
+      *   **0.9 (High-Confidence Match):**
+          *   **Criteria:** The user entity is a well-known alternative name, abbreviation, or a normalized form of the candidate's `Label` or `Synonyms` (e.g., handles plurals, spacing, or common initialisms like "MSG" for "monosodium glutamate").
+          *   **Example:** User entity `powdered sugar` matches `Label: 'Icing Sugar'`.
+
+      *   **0.6 (Plausible Match):**
+          *   **Criteria:** The user entity is a substring of a label/synonym, or describes a very specific instance of the candidate, but is not a direct synonym. The connection is strong and highly likely, but not formally verified in the synonyms list.
+          *   **Example:** User entity `organic apple` could plausibly match `Label: 'Apple'`. The explanation must note that the 'organic' quality is not captured in the ontology term.
+
+      *   **0.4 (Speculative Match):**
+          *   **Criteria:** The entities are only related by broad category or context, but there is no direct lexical overlap. **This should be used rarely.** The user entity and the candidate belong to the same specific class, but are clearly not the same thing.
+          *   **Example:** User entity `lemonade` and a candidate `Label: 'Citrus Drink'`. The explanation must clearly state the speculative nature and the lack of a direct match.
+
+      *   **NO MATCH (Confidence 0.0):**
+          *   **Criteria:** No candidate meets the 0.4 criteria. Crucially, use this if the best potential match is a different, distinct entity within the same category.
+          *   **Crucial Rule:** For chemicals, food colorings, or regulated substances, any difference in naming or numbering (e.g., "Blue 1" vs. "Blue 2") means they are **distinct entities and not a match**. Your example `blue 2 lake` vs. `copper(II) phthalocyanine` (Pigment Blue 15) is a classic case for **NO MATCH**.
+
+      ---
+      **JSON OUTPUT FORMAT**:
+
+      The JSON object must contain three keys:
+      *   `"chosen_id"`: The CURIE (ID) of the single best matching term. If no suitable match is found according to the rubric, this value **must be '-1'**.
+      *   `"confidence_score"`: A float between 0.0 and 1.0, determined strictly by the rubric above. If `chosen_id` is `-1`, this **must be `0.0`**.
+      *   `"explanation"`: A brief, clear explanation for the choice and score, referencing the rubric. If confidence is low or it's a "no match," explain the ambiguity or the reason for rejection.
+
+      **EXAMPLE 1 (Perfect Match)**:
+      *User Entity*: 'garlic'
+      *Generated JSON*:
+
+      {
+        "chosen_id": "FOODON:00001290",
+        "confidence_score": 1.0,
+        "explanation": "The user entity 'garlic' is an exact match for the label of candidate FOODON:00001290, meeting the criteria for a 1.0 confidence score."
+      }
+
+      EXAMPLE 2 (No Match):
+      User Entity: 'blue 2 lake'
+      Candidate List containing CHEBI:155903 (copper(II) phthalocyanine)
+      Generated JSON:
+      {
+        "chosen_id": "-1",
+        "confidence_score": 0.0,
+        "explanation": "No suitable match found. The user entity 'blue 2 lake' refers to FD&C Blue No. 2, a specific food dye. The closest candidate, CHEBI:155903 (copper(II) phthalocyanine), is a different chemical substance (Pigment Blue 15). Although both are blue pigments, they are distinct entities."
       }
   "scripts":
     "find_namespaces.py": |-
@@ -1095,7 +1167,8 @@
       \ OBO prefix - should be last or handled carefully to avoid overly broad matches\n\
       \    # if specific OBO sub-ontologies are listed above.\n    \"http://purl.obolibrary.org/obo/\"\
       : \"obo\",\n}\n\n# LLM API Key (placeholders)\nGEMINI_API_KEY = os.getenv(\"\
-      GEMINI_API_KEY\")\nLLM_SELECTOR_MODEL_NAME = \"gemini-1.5-flash-latest\"\nOLLAMA_SELECTOR_MODEL_NAME\
+      GEMINI_API_KEY\")\n#LLM_SELECTOR_MODEL_NAME = \"gemini-1.5-flash-latest\"\n\
+      LLM_SELECTOR_MODEL_NAME = \"gemini-2.5-flash-lite-preview-06-17\"\nOLLAMA_SELECTOR_MODEL_NAME\
       \ = 'llama3.1:8b'\n# OPENAI_API_KEY = os.getenv(\"OPENAI_API_KEY\")\n\n# Logging\
       \ configuration\nLOG_LEVEL = \"INFO\"\nLOG_FILE = os.path.join(PROJECT_ROOT,\
       \ \"app.log\") # Example log file in project root"
@@ -1128,8 +1201,9 @@
       \            print(f\"Query: '{args.query}'\")\n            print(\"---------------------------\"\
       )\n            print(f\"Chosen Term ID: {final_result.get('id', 'N/A')}\")\n\
       \            print(f\"Label:          {final_result.get('label', 'N/A')}\")\n\
-      \            print(f\"Definition:     {final_result.get('definition', 'N/A')}\"\
-      )\n            print(f\"Synonyms:       {'; '.join(final_result.get('synonyms',\
+      \            print(f\"Confidence:     {final_result.get('confidence_score',\
+      \ 0.0):.1%}\")\n            print(f\"Definition:     {final_result.get('definition',\
+      \ 'N/A')}\")\n            print(f\"Synonyms:       {'; '.join(final_result.get('synonyms',\
       \ [])) or 'None'}\")\n            print(\"\\nLLM Explanation:\")\n         \
       \   print(f\"  > {final_result.get('explanation', 'No explanation provided.')}\"\
       )\n        print(\"---------------------------\\n\")\n\n        # --- NEW: Print\
@@ -1967,83 +2041,16 @@
         Please run 'scripts/rebuild_base.bash' and ensure necessary API keys are set\
         \ in your .env file.\")\n            raise\n        except Exception as e:\n\
         \            logger.error(f\"An unexpected error occurred during pipeline\
-        \ initialization: {e}\", exc_info=True)\n            raise\n\n    # The run()\
-        \ and close() methods do not need any changes.\n    # The logic for merging\
-        \ and processing candidates works perfectly\n    # with the flat list returned\
-        \ by the refactored retriever.\n    def run(self, \n            query: str,\
-        \ \n            lexical_k: int = config.DEFAULT_K_LEXICAL, \n            vector_k:\
-        \ int = config.DEFAULT_K_VECTOR, \n            rerank_top_n: int = 10\n  \
-        \          ) -> Optional[Dict[str, Any]]:\n        \"\"\"\n        Executes\
-        \ the full pipeline for a given query.\n        \"\"\"\n        # ... (This\
-        \ method is unchanged)\n        logger.info(f\"Running pipeline for query:\
-        \ '{query}'\")\n\n        # 1. Retrieve\n        retriever_output = self.retriever.search(query,\
-        \ lexical_limit=lexical_k, vector_k=vector_k)\n        lexical_results = retriever_output.get(\"\
-        lexical_results\", [])\n        vector_results = retriever_output.get(\"vector_results\"\
-        , [])\n        \n        # 2. Merge\n        combined_candidates = []\n  \
-        \      seen_ids = set()\n        for doc in lexical_results + vector_results:\n\
-        \            doc_id = doc.get('id')\n            if doc_id and doc_id not\
-        \ in seen_ids:\n                combined_candidates.append(doc)\n        \
-        \        seen_ids.add(doc_id)\n        \n        if not combined_candidates:\n\
-        \            logger.warning(\"No candidates found.\")\n            return\
-        \ None\n\n        # 3. Rerank\n        reranked_candidates = self.reranker.rerank(query,\
-        \ combined_candidates, top_n=rerank_top_n)\n\n        if not reranked_candidates:\n\
-        \            logger.warning(\"No candidates left after reranking.\")\n   \
-        \         return None\n        \n        logger.info(f\"Top {len(reranked_candidates)}\
-        \ candidates after reranking passed to LLM selector.\")\n\n        # 4. Select\
-        \ with LLM\n        selection = self.selector.select_best_term(query, reranked_candidates)\n\
-        \n        if not selection or 'chosen_id' not in selection:\n            logger.warning(\"\
-        LLM selection failed or returned invalid format. Using top reranked result\
-        \ as fallback.\")\n            if not reranked_candidates: return None # Should\
-        \ not happen if we got here, but safe\n            top_fallback = reranked_candidates[0]\n\
-        \            chosen_term_details = self.retriever.get_term_details(top_fallback['id'])\n\
-        \            if chosen_term_details:\n                 chosen_term_details['explanation']\
-        \ = \"FALLBACK: LLM selection failed. This is the top result from the reranker.\"\
-        \n            return chosen_term_details\n\n        # 5. Get final details\
-        \ and return\n        chosen_id = selection['chosen_id']\n        chosen_term_details\
-        \ = self.retriever.get_term_details(chosen_id)\n        \n        if not chosen_term_details:\n\
-        \            logger.error(f\"LLM chose ID '{chosen_id}', but its details could\
-        \ not be retrieved.\")\n            return None\n        \n        chosen_term_details['explanation']\
-        \ = selection.get('explanation', 'No explanation provided.')\n        return\
-        \ chosen_term_details\n\n    def close(self):\n        if hasattr(self.retriever,\
-        \ 'close'):\n            self.retriever.close()\n        logger.info(\"Pipeline\
-        \ resources closed.\")"
-      "ollama_pipeline.py": "# src/pipeline/pipeline.py\nimport os\nimport sys\nimport\
-        \ logging\nfrom typing import List, Dict, Any, Optional\n\n# --- Add project\
-        \ root to sys.path ---\nPROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__),\
-        \ '..', '..'))\nif PROJECT_ROOT not in sys.path:\n    sys.path.insert(0, PROJECT_ROOT)\n\
-        \nfrom src.retriever.hybrid_retriever import HybridRetriever\nfrom src.reranker.llm_reranker\
-        \ import LLMReranker\nfrom src.rag_selectors.ollama_selector import OllamaSelector\n\
-        from src import config\n\nlogging.basicConfig(level=logging.INFO, format='%(asctime)s\
-        \ - %(levelname)s - %(name)s - %(message)s')\nlogger = logging.getLogger(__name__)\n\
-        \nclass RAGPipeline:\n    def __init__(self):\n        logger.info(\"Initializing\
-        \ RAG Pipeline...\")\n        try:\n            self.retriever = HybridRetriever()\n\
-        \n            # --- CORRECTED PART ---\n            # Gather all enriched\
-        \ document paths from the config\n            all_enriched_docs_paths = [\n\
-        \                data['enriched_docs_path'] \n                for data in\
-        \ config.ONTOLOGIES_CONFIG.values()\n                if os.path.exists(data['enriched_docs_path'])\
-        \ # Safety check\n            ]\n\n            if not all_enriched_docs_paths:\n\
-        \                raise FileNotFoundError(\"No enriched document files found\
-        \ for any configured ontology. Please run the ingestion pipeline.\")\n\n \
-        \           logger.info(f\"Initializing LLMReranker with {len(all_enriched_docs_paths)}\
-        \ enriched document file(s).\")\n            \n            self.reranker =\
-        \ LLMReranker(\n                model_name=config.RERANKER_MODEL_NAME,\n \
-        \               enriched_docs_paths=all_enriched_docs_paths,  # Pass the list\
-        \ of paths\n                device=config.EMBEDDING_DEVICE\n            )\n\
-        \            self.selector = OllamaSelector(retriever=self.retriever) # <---\
-        \ UPDATED INSTANTIATION\n            logger.info(\"RAG Pipeline initialized\
-        \ successfully.\")\n        except (FileNotFoundError, ValueError) as e:\n\
-        \            logger.error(f\"Failed to initialize pipeline: {e}\")\n     \
-        \       logger.error(\"Please run 'scripts/rebuild_base.bash' and ensure GEMINI_API_KEY\
-        \ is set in your .env file.\")\n            raise\n        except Exception\
-        \ as e:\n            logger.error(f\"An unexpected error occurred during pipeline\
-        \ initialization: {e}\", exc_info=True)\n            raise\n\n    def run(self,\
-        \ \n            query: str, \n            lexical_k: int = config.DEFAULT_K_LEXICAL,\
-        \ \n            vector_k: int = config.DEFAULT_K_VECTOR, \n            rerank_top_n:\
-        \ int = 10\n            ) -> Optional[Dict[str, Any]]:\n        \"\"\"\n \
-        \       Executes the full pipeline for a given query.\n\n        Returns:\n\
-        \            A dictionary of the selected term with its details and the LLM's\
-        \ explanation, or None.\n        \"\"\"\n        logger.info(f\"Running pipeline\
-        \ for query: '{query}'\")\n\n        # 1. Retrieve\n        retriever_output\
+        \ initialization: {e}\", exc_info=True)\n            raise\n\n    # --- MODIFIED\
+        \ 'run' METHOD ---\n    def run(self, \n            query: str, \n       \
+        \     lexical_k: int = config.DEFAULT_K_LEXICAL, \n            vector_k: int\
+        \ = config.DEFAULT_K_VECTOR, \n            rerank_top_n: int = 10\n      \
+        \      ) -> Optional[tuple[Dict[str, Any], List[Dict[str, Any]]]]:\n     \
+        \   \"\"\"\n        Executes the full pipeline for a given query.\n      \
+        \  Returns:\n            A tuple containing (final_result_dict, candidates_list),\
+        \ or None.\n            The final_result_dict includes the confidence score\
+        \ and reasoning.\n        \"\"\"\n        logger.info(\"Running pipeline for\
+        \ query: '%s'\", query)\n\n        # 1. Retrieve\n        retriever_output\
         \ = self.retriever.search(query, lexical_limit=lexical_k, vector_k=vector_k)\n\
         \        lexical_results = retriever_output.get(\"lexical_results\", [])\n\
         \        vector_results = retriever_output.get(\"vector_results\", [])\n \
@@ -2062,13 +2069,106 @@
         \n        if not selection:\n            logger.error(\"LLM selection failed.\
         \ Returning the top reranked result as a fallback.\")\n            top_fallback\
         \ = reranked_candidates[0]\n            chosen_term_details = self.retriever.get_term_details(top_fallback['id'])\n\
+        \            # Ensure chosen_term_details is not None before modifying\n \
+        \           if chosen_term_details:\n                chosen_term_details['confidence_score']\
+        \ = 0.0 # Default confidence for fallback\n                chosen_term_details['explanation']\
+        \ = \"FALLBACK: LLM selection failed. This is the top result from the reranker.\"\
+        \n            return chosen_term_details, reranked_candidates\n\n        #\
+        \ 5. Get final details and return\n        chosen_id = selection['chosen_id']\n\
+        \        if chosen_id == '0' or chosen_id == '-1':\n            logger.info(\"\
+        LLM selected no suitable match. Returning No match.\")\n            no_match_result\
+        \ = {\n                'id': chosen_id,  # Preserve the -1 or 0 ID as the\
+        \ signal\n                'label': 'No Match Found',\n                'definition':\
+        \ 'The Language Model determined that no candidate was a suitable match for\
+        \ the query.',\n                'synonyms': [],\n                'parents':\
+        \ [],\n                'ancestors': [],\n                'relations': {},\n\
+        \                'confidence_score': selection.get('confidence_score', 0.0),\n\
+        \                'explanation': selection.get('explanation', 'No explanation\
+        \ provided.')\n            }\n            return no_match_result, reranked_candidates\n\
+        \        \n        chosen_term_details = self.retriever.get_term_details(chosen_id)\n\
+        \        if not chosen_term_details:\n            logger.error(\"LLM chose\
+        \ ID '%s', but its details could not be retrieved.\", chosen_id)\n       \
+        \     return None\n\n        # Add the confidence and explanation from the\
+        \ selector to the final result\n        chosen_term_details['confidence_score']\
+        \ = selection.get('confidence_score', 0.0) # Use 'confidence' as per selector's\
+        \ output\n        chosen_term_details['explanation'] = selection.get('explanation',\
+        \ 'No explanation provided.')\n        return chosen_term_details, reranked_candidates\n\
+        \    # --- END OF MODIFIED 'run' METHOD ---\n\n    def close(self):\n    \
+        \    if hasattr(self.retriever, 'close'):\n            self.retriever.close()\n\
+        \        logger.info(\"Pipeline resources closed.\")"
+      "ollama_pipeline.py": "# src/pipeline/pipeline.py\nimport os\nimport sys\nimport\
+        \ logging\nfrom typing import List, Dict, Any, Optional\n\n# --- Add project\
+        \ root to sys.path ---\nPROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__),\
+        \ '..', '..'))\nif PROJECT_ROOT not in sys.path:\n    sys.path.insert(0, PROJECT_ROOT)\n\
+        \nfrom src.retriever.hybrid_retriever import HybridRetriever\nfrom src.reranker.llm_reranker\
+        \ import LLMReranker\nfrom src.rag_selectors.ollama_selector import OllamaSelector\n\
+        from src import config\n\nlogging.basicConfig(level=logging.INFO, format='%(asctime)s\
+        \ - %(levelname)s - %(name)s - %(message)s')\nlogger = logging.getLogger(__name__)\n\
+        \nclass RAGPipeline:\n    def __init__(self):\n        logger.info(\"Initializing\
+        \ RAG Pipeline...\")\n        try:\n            self.retriever = HybridRetriever()\n\
+        \n            all_enriched_docs_paths = [\n                data['enriched_docs_path']\
+        \ \n                for data in config.ONTOLOGIES_CONFIG.values()\n      \
+        \          if os.path.exists(data['enriched_docs_path']) \n            ]\n\
+        \n            if not all_enriched_docs_paths:\n                raise FileNotFoundError(\"\
+        No enriched document files found for any configured ontology. Please run the\
+        \ ingestion pipeline.\")\n\n            logger.info(f\"Initializing LLMReranker\
+        \ with {len(all_enriched_docs_paths)} enriched document file(s).\")\n    \
+        \        \n            self.reranker = LLMReranker(\n                model_name=config.RERANKER_MODEL_NAME,\n\
+        \                enriched_docs_paths=all_enriched_docs_paths,  # Pass the\
+        \ list of paths\n                device=config.EMBEDDING_DEVICE\n        \
+        \    )\n            self.selector = OllamaSelector(retriever=self.retriever)\
+        \ # <--- UPDATED INSTANTIATION\n            logger.info(\"RAG Pipeline initialized\
+        \ successfully.\")\n        except (FileNotFoundError, ValueError) as e:\n\
+        \            logger.error(f\"Failed to initialize pipeline: {e}\")\n     \
+        \       logger.error(\"Please run 'scripts/rebuild_base.bash' and ensure GEMINI_API_KEY\
+        \ is set in your .env file.\")\n            raise\n        except Exception\
+        \ as e:\n            logger.error(f\"An unexpected error occurred during pipeline\
+        \ initialization: {e}\", exc_info=True)\n            raise\n\n    def run(self,\
+        \ \n            query: str, \n            lexical_k: int = config.DEFAULT_K_LEXICAL,\
+        \ \n            vector_k: int = config.DEFAULT_K_VECTOR, \n            rerank_top_n:\
+        \ int = 10\n            ) -> Optional[tuple[Dict[str, Any], List[Dict[str,\
+        \ Any]]]]:\n        \"\"\"\n        Executes the full pipeline for a given\
+        \ query.\n        Returns:\n            A tuple containing (final_result_dict,\
+        \ candidates_list), or None.\n            The final_result_dict includes the\
+        \ confidence score and reasoning.\n        \"\"\"\n        logger.info(\"\
+        Running pipeline for query: '%s'\", query)\n\n        # 1. Retrieve\n    \
+        \    retriever_output = self.retriever.search(query, lexical_limit=lexical_k,\
+        \ vector_k=vector_k)\n        lexical_results = retriever_output.get(\"lexical_results\"\
+        , [])\n        vector_results = retriever_output.get(\"vector_results\", [])\n\
+        \        \n        # 2. Merge\n        combined_candidates = []\n        seen_ids\
+        \ = set()\n        for doc in lexical_results + vector_results:\n        \
+        \    doc_id = doc.get('id')\n            if doc_id and doc_id not in seen_ids:\n\
+        \                combined_candidates.append(doc)\n                seen_ids.add(doc_id)\n\
+        \        \n        if not combined_candidates:\n            logger.warning(\"\
+        No candidates found.\")\n            return None\n\n        # 3. Rerank\n\
+        \        reranked_candidates = self.reranker.rerank(query, combined_candidates,\
+        \ top_n=rerank_top_n)\n\n        if not reranked_candidates:\n           \
+        \ logger.warning(\"No candidates left after reranking.\")\n            return\
+        \ None\n        \n        logger.info(f\"Top {len(reranked_candidates)} candidates\
+        \ after reranking passed to LLM selector.\")\n\n        # 4. Select with LLM\n\
+        \        selection = self.selector.select_best_term(query, reranked_candidates)\n\
+        \n        if not selection:\n            logger.error(\"LLM selection failed.\
+        \ Returning the top reranked result as a fallback.\")\n            top_fallback\
+        \ = reranked_candidates[0]\n            chosen_term_details = self.retriever.get_term_details(top_fallback['id'])\n\
         \            chosen_term_details['explanation'] = \"FALLBACK: LLM selection\
         \ failed. This is the top result from the reranker.\"\n            return\
         \ chosen_term_details, reranked_candidates\n\n        # 5. Get final details\
-        \ and return\n        chosen_id = selection['chosen_id']\n        chosen_term_details\
-        \ = self.retriever.get_term_details(chosen_id)\n        if not chosen_term_details:\n\
-        \            logger.error(f\"LLM chose ID '{chosen_id}', but its details could\
-        \ not be retrieved.\")\n            return None\n        \n        chosen_term_details['explanation']\
+        \ and return\n        chosen_id = selection['chosen_id']\n        if chosen_id\
+        \ == '0' or chosen_id == '-1':\n            logger.info(\"LLM selected no\
+        \ suitable match. Returning No match.\")\n            no_match_result = {\n\
+        \                'id': chosen_id,  # Preserve the -1 or 0 ID as the signal\n\
+        \                'label': 'No Match Found',\n                'definition':\
+        \ 'The Language Model determined that no candidate was a suitable match for\
+        \ the query.',\n                'synonyms': [],\n                'parents':\
+        \ [],\n                'ancestors': [],\n                'relations': {},\n\
+        \                'confidence_score': selection.get('confidence_score', 0.0),\n\
+        \                'explanation': selection.get('explanation', 'No explanation\
+        \ provided.')\n            }\n            return no_match_result, reranked_candidates\n\
+        \        chosen_term_details = self.retriever.get_term_details(chosen_id)\n\
+        \        \n        if not chosen_term_details:\n            logger.error(\"\
+        LLM chose ID '%s', but its details could not be retrieved.\", chosen_id)\n\
+        \            return None\n\n        chosen_term_details['confidence_score']\
+        \ = selection.get('confidence_score')\n        chosen_term_details['explanation']\
         \ = selection['explanation']\n        return chosen_term_details, reranked_candidates\n\
         \n    def close(self):\n        if hasattr(self.retriever, 'close'):\n   \
         \         self.retriever.close()\n        logger.info(\"Pipeline resources\
@@ -2096,7 +2196,7 @@
         \ initialized for model: {self.model_name}\")\n\n    def _load_prompt_template(self)\
         \ -> str:\n        \"\"\"Loads the prompt template from the file.\"\"\"\n\
         \        template_path = os.path.join(config.PROJECT_ROOT, \"prompts\", \"\
-        final_selection.tpl\")\n        try:\n            with open(template_path,\
+        strict_final_selection.tpl\")\n        try:\n            with open(template_path,\
         \ 'r', encoding='utf-8') as f:\n                return f.read()\n        except\
         \ FileNotFoundError:\n            logger.error(f\"Prompt template not found\
         \ at {template_path}\")\n            raise\n\n    def _format_candidates_for_prompt(self,\
@@ -2114,14 +2214,15 @@
         \ {term_id}\\n\"\n                f\"   Label: {label}\\n\"\n            \
         \    f\"   Definition: {definition}\\n\"\n                f\"   Synonyms:\
         \ {synonyms}\"\n            )\n        return \"\\n\\n\".join(formatted_list)\n\
-        \n    def select_best_term(self, query: str, candidates: List[Dict[str, Any]])\
-        \ -> Optional[Dict[str, str]]:\n        \"\"\"\n        Prompts Gemini to\
-        \ select the best term and parses the JSON response.\n\n        Args:\n  \
-        \          query (str): The original user query.\n            candidates (List[Dict[str,\
-        \ Any]]): The list of candidate documents.\n\n        Returns:\n         \
-        \   A dictionary with {\"chosen_id\": str, \"explanation\": str}, or None\
-        \ on failure.\n        \"\"\"\n        if not candidates:\n            return\
-        \ None\n\n        candidate_str = self._format_candidates_for_prompt(candidates)\n\
+        \n    # --- Type hint updated to allow for float in confidence_score score\
+        \ ---\n    def select_best_term(self, query: str, candidates: List[Dict[str,\
+        \ Any]]) -> Optional[Dict[str, Any]]:\n        \"\"\"\n        Prompts Gemini\
+        \ to select the best term and parses the JSON response.\n\n        Args:\n\
+        \            query (str): The original user query.\n            candidates\
+        \ (List[Dict[str, Any]]): The list of candidate documents.\n\n        Returns:\n\
+        \            A dictionary with {\"chosen_id\": str, \"explanation\": str},\
+        \ or None on failure.\n        \"\"\"\n        if not candidates:\n      \
+        \      return None\n\n        candidate_str = self._format_candidates_for_prompt(candidates)\n\
         \        prompt = self.prompt_template.replace(\"[USER_ENTITY]\", query).replace(\"\
         [CANDIDATE_LIST]\", candidate_str)\n        \n        logger.info(f\"Sending\
         \ request to Gemini for query: '{query}'\")\n        try:\n            # ---\
@@ -2139,11 +2240,33 @@
         \      return None\n\n            # Clean up the response text to extract\
         \ the JSON part\n            cleaned_response = response.text.strip().lstrip(\"\
         ```json\").rstrip(\"```\").strip()\n            \n            # Parse the\
-        \ JSON response\n            result = json.loads(cleaned_response)\n     \
-        \       if \"chosen_id\" in result and \"explanation\" in result:\n      \
-        \          return result\n            else:\n                logger.error(f\"\
-        LLM response is valid JSON but missing required keys: {result}\")\n      \
-        \          return None\n                \n        except json.JSONDecodeError:\n\
+        \ JSON response\n            result = json.loads(cleaned_response)\n\n   \
+        \         # --- MODIFIED VALIDATION LOGIC ---\n            \n            #\
+        \ 1. The 'chosen_id' key is mandatory. Fail if it's missing or null.\n   \
+        \         if \"chosen_id\" not in result or result.get(\"chosen_id\") is None:\n\
+        \                logger.error(\n                    \"LLM response is invalid:\
+        \ Missing the mandatory 'chosen_id' key. Response: %s\",\n               \
+        \     result\n                )\n                return None\n           \
+        \ \n            # 2. Start building the result with the mandatory key.\n \
+        \           validated_result = {\n                'chosen_id': result['chosen_id']\n\
+        \            }\n\n            # 3. Handle optional 'explanation' with a specific\
+        \ warning if missing.\n            if 'explanation' in result:\n         \
+        \       validated_result['explanation'] = result['explanation']\n        \
+        \    else:\n                logger.warning(\"LLM response missing 'explanation'\
+        \ key. Using default value.\")\n                validated_result['explanation']\
+        \ = 'No explanation provided.'\n\n            # 4. Handle optional 'confidence_score'\
+        \ with distinct warnings.\n            if 'confidence_score' in result:\n\
+        \                try:\n                    # Key exists, so try to convert\
+        \ it\n                    validated_result['confidence_score'] = float(result['confidence_score'])\n\
+        \                except (ValueError, TypeError):\n                    # Key\
+        \ exists, but the value is not a valid float\n                    logger.warning(\n\
+        \                        f\"Invalid confidence_score value in response: '{result.get('confidence_score')}'.\
+        \ Defaulting to 0.0.\"\n                    )\n                    validated_result['confidence_score']\
+        \ = 0.0\n            else:\n                # The 'confidence_score' key itself\
+        \ is missing\n                logger.warning(\"LLM response missing 'confidence_score'\
+        \ key. Defaulting to 0.0.\")\n                validated_result['confidence_score']\
+        \ = 0.0\n\n            return validated_result\n            # --- END OF MODIFIED\
+        \ VALIDATION LOGIC ---\n                \n        except json.JSONDecodeError:\n\
         \            logger.error(f\"Failed to decode JSON from LLM response: {response.text}\"\
         )\n            return None\n        except exceptions.GoogleAPIError as e:\
         \  # <-- Specific API error handling\n            logger.error(f\"A Google\
@@ -2166,43 +2289,43 @@
         \ for Ollama.\n        self.model_name = config.OLLAMA_SELECTOR_MODEL_NAME\
         \ # Assumes you have this in your config\n        \n        # You might want\
         \ to add a check here to ensure the Ollama service is running.\n        try:\n\
-        \            ollama.ps()\n            logger.info(f\"Ollama service is running.\
-        \ Selector initialized for model: {self.model_name}\")\n        except Exception:\n\
-        \            logger.error(\"Ollama service not detected. Please ensure Ollama\
-        \ is running.\")\n            raise ConnectionError(\"Ollama service not available.\"\
-        )\n\n\n    def _load_prompt_template(self) -> str:\n        \"\"\"Loads the\
-        \ prompt template from the file.\"\"\"\n        # This method is unchanged\n\
-        \        template_path = os.path.join(config.PROJECT_ROOT, \"prompts\", \"\
-        final_selection.tpl\")\n        try:\n            with open(template_path,\
-        \ 'r', encoding='utf-8') as f:\n                return f.read()\n        except\
-        \ FileNotFoundError:\n            logger.error(f\"Prompt template not found\
-        \ at {template_path}\")\n            raise\n\n    def _format_candidates_for_prompt(self,\
-        \ candidates: List[Dict[str, Any]]) -> str:\n        \"\"\"Formats the list\
-        \ of candidate documents into a string for the prompt.\"\"\"\n        # This\
-        \ method is unchanged\n        formatted_list = []\n        for i, candidate\
-        \ in enumerate(candidates):\n            term_id = candidate.get(\"id\")\n\
-        \            if not term_id:\n                continue\n            \n   \
-        \         details = self.retriever.get_term_details(term_id)\n           \
-        \ if not details:\n                continue\n\n            label = details.get(\"\
-        label\", \"N/A\")\n            definition = details.get(\"definition\", \"\
-        No definition available.\")\n            synonyms = \"; \".join(details.get(\"\
-        synonyms\", [])) or \"None\"\n\n            formatted_list.append(\n     \
-        \           f\"{i+1}. ID: {term_id}\\n\"\n                f\"   Label: {label}\\\
-        n\"\n                f\"   Definition: {definition}\\n\"\n               \
-        \ f\"   Synonyms: {synonyms}\"\n            )\n        return \"\\n\\n\".join(formatted_list)\n\
-        \n    def select_best_term(self, query: str, candidates: List[Dict[str, Any]])\
-        \ -> Optional[Dict[str, str]]:\n        \"\"\"\n        Prompts Ollama to\
-        \ select the best term and parses the JSON response.\n\n        Args:\n  \
-        \          query (str): The original user query.\n            candidates (List[Dict[str,\
-        \ Any]]): The list of candidate documents.\n\n        Returns:\n         \
-        \   A dictionary with {\"chosen_id\": str, \"explanation\": str}, or None\
-        \ on failure.\n        \"\"\"\n        if not candidates:\n            return\
-        \ None\n\n        candidate_str = self._format_candidates_for_prompt(candidates)\n\
+        \            ollama.ps()\n            logger.info(\"Ollama service is running.\
+        \ Selector initialized for model: %s\", self.model_name)\n        except Exception\
+        \ as exc:\n            logger.error(\"Ollama service not detected. Please\
+        \ ensure Ollama is running.\")\n            raise ConnectionError(\"Ollama\
+        \ service not available.\") from exc\n\n\n    def _load_prompt_template(self)\
+        \ -> str:\n        \"\"\"Loads the prompt template from the file.\"\"\"\n\
+        \        # This method is unchanged\n        template_path = os.path.join(config.PROJECT_ROOT,\
+        \ \"prompts\", \"strict_final_selection.tpl\")\n        try:\n           \
+        \ with open(template_path, 'r', encoding='utf-8') as f:\n                return\
+        \ f.read()\n        except FileNotFoundError:\n            logger.error(\"\
+        Prompt template not found at %s\", template_path)\n            raise\n\n \
+        \   def _format_candidates_for_prompt(self, candidates: List[Dict[str, Any]])\
+        \ -> str:\n        \"\"\"Formats the list of candidate documents into a string\
+        \ for the prompt.\"\"\"\n        # This method is unchanged\n        formatted_list\
+        \ = []\n        for i, candidate in enumerate(candidates):\n            term_id\
+        \ = candidate.get(\"id\")\n            if not term_id:\n                continue\n\
+        \            \n            details = self.retriever.get_term_details(term_id)\n\
+        \            if not details:\n                continue\n\n            label\
+        \ = details.get(\"label\", \"N/A\")\n            definition = details.get(\"\
+        definition\", \"No definition available.\")\n            synonyms = \"; \"\
+        .join(details.get(\"synonyms\", [])) or \"None\"\n\n            formatted_list.append(\n\
+        \                f\"{i+1}. ID: {term_id}\\n\"\n                f\"   Label:\
+        \ {label}\\n\"\n                f\"   Definition: {definition}\\n\"\n    \
+        \            f\"   Synonyms: {synonyms}\"\n            )\n        return \"\
+        \\n\\n\".join(formatted_list)\n\n    def select_best_term(self, query: str,\
+        \ candidates: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:\n       \
+        \ \"\"\"\n        Prompts Ollama to select the best term and parses the JSON\
+        \ response.\n\n        Args:\n            query (str): The original user query.\n\
+        \            candidates (List[Dict[str, Any]]): The list of candidate documents.\n\
+        \n        Returns:\n            A dictionary with {\"chosen_id\": str, \"\
+        explanation\": str}, or None on failure.\n        \"\"\"\n        if not candidates:\n\
+        \            return None\n\n        candidate_str = self._format_candidates_for_prompt(candidates)\n\
         \        # The full prompt is created just like before.\n        full_prompt\
         \ = self.prompt_template.replace(\"[USER_ENTITY]\", query).replace(\"[CANDIDATE_LIST]\"\
-        , candidate_str)\n        \n        logger.info(f\"Sending request to Ollama\
-        \ for query: '{query}' with model '{self.model_name}'\")\n        try:\n \
-        \           # --- CORRECTED OLLAMA CALL ---\n            # The entire prompt\
+        , candidate_str)\n        \n        logger.info(\"Sending request to Ollama\
+        \ for query: '%s' with model '%s'\", query, self.model_name)\n        try:\n\
+        \            # --- CORRECTED OLLAMA CALL ---\n            # The entire prompt\
         \ goes into a single 'user' message.\n            # We use format='json' to\
         \ ensure the output is valid JSON.\n            response = ollama.chat(\n\
         \                model=self.model_name,\n                messages=[\n    \
@@ -2212,18 +2335,44 @@
         \ output!\n            )\n\n            # The response content should be a\
         \ JSON string.\n            response_content = response['message']['content']\n\
         \            \n            # Parse the JSON response\n            result =\
-        \ json.loads(response_content)\n            \n            if \"chosen_id\"\
-        \ in result and \"explanation\" in result:\n                return result\n\
-        \            else:\n                logger.error(f\"LLM response is valid\
-        \ JSON but missing required keys: {result}\")\n                return None\n\
-        \                \n        except json.JSONDecodeError:\n            # This\
-        \ is less likely with format='json' but is good practice to keep.\n      \
-        \      logger.error(f\"Failed to decode JSON from Ollama response: {response_content}\"\
-        )\n            return None\n        except ollama.ResponseError as e:\n  \
-        \          logger.error(f\"An error occurred with the Ollama API call: {e.status_code}\
-        \ - {e.error}\")\n            return None\n        except Exception as e:\n\
-        \            logger.error(f\"An unexpected error occurred during the Ollama\
-        \ call: {e}\", exc_info=True)\n            return None"
+        \ json.loads(response_content)\n            \n            # --- MODIFIED VALIDATION\
+        \ LOGIC ---\n            \n            # 1. The 'chosen_id' key is mandatory.\
+        \ Fail if it's missing or null.\n            if \"chosen_id\" not in result\
+        \ or result.get(\"chosen_id\") is None:\n                logger.error(\n \
+        \                   \"LLM response is invalid: Missing the mandatory 'chosen_id'\
+        \ key. Response: %s\",\n                    result\n                )\n  \
+        \              return None\n            \n            # 2. Start building\
+        \ the result with the mandatory key.\n            validated_result = {\n \
+        \               'chosen_id': result['chosen_id']\n            }\n\n      \
+        \      # 3. Handle optional 'explanation' with a specific warning if missing.\n\
+        \            if 'explanation' in result:\n                validated_result['explanation']\
+        \ = result['explanation']\n            else:\n                logger.warning(\"\
+        LLM response missing 'explanation' key. Using default value.\")\n        \
+        \        validated_result['explanation'] = 'No explanation provided.'\n\n\
+        \            # 4. Handle optional 'confidence' with distinct warnings.\n \
+        \           if 'confidence_score' in result:\n                try:\n     \
+        \               # Key exists, so try to convert it\n                    validated_result['confidence_score']\
+        \ = float(result['confidence_score'])\n                except (ValueError,\
+        \ TypeError):\n                    # Key exists, but the value is not a valid\
+        \ float\n                    logger.warning(\n                        \"Invalid\
+        \ confidence_score value in response: '%s'. Defaulting to 0.0.\",\n      \
+        \                  result.get('confidence_score')\n                    )\n\
+        \                    validated_result['confidence_score'] = 0.0\n        \
+        \    else:\n                # The 'confidence_score' key itself is missing\n\
+        \                logger.warning(\"LLM response missing 'confidence_score'\
+        \ key. Defaulting to 0.0.\")\n                validated_result['confidence_score']\
+        \ = 0.0\n\n            return validated_result\n            # --- END OF MODIFIED\
+        \ VALIDATION LOGIC ---\n                \n        except json.JSONDecodeError:\n\
+        \            # This is less likely with format='json' but is good practice\
+        \ to keep.\n            logger.error(\"Failed to decode JSON from Ollama response:\
+        \ %s\", response_content)\n            return None\n        except ollama.ResponseError\
+        \ as e:\n            logger.error(\"An error occurred with the Ollama API\
+        \ call: %s - %s\", e.status_code, e.error)\n            return None\n    \
+        \    except (ConnectionError, TimeoutError) as e:\n            logger.error(\"\
+        Network error during the Ollama call: %s\", e, exc_info=True)\n          \
+        \  return None\n        except RuntimeError as e:\n            logger.error(\"\
+        Runtime error during the Ollama call: %s\", e, exc_info=True)\n          \
+        \  return None"
     "reranker":
       "__init__.py": |-
         # src/reranker/__init__.py

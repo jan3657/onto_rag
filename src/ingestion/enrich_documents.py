@@ -1,18 +1,15 @@
 # src/ingestion/enrich_documents.py
 import json
-import os
 import logging
 from typing import Dict, Any, List, Optional
-
-# --- Start of corrected import block ---
 import sys
-# Calculate the project root directory based on the script's location
-# For .../onto_rag/src/ingestion/enrich_documents.py, _PROJECT_ROOT becomes .../onto_rag
-_PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+
+from pathlib import Path
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 # Add the project root to sys.path if it's not already there
 if _PROJECT_ROOT not in sys.path:
-    sys.path.insert(0, _PROJECT_ROOT) # Insert at the beginning
+    sys.path.insert(0, str(_PROJECT_ROOT))  # Insert at the beginning
 
 try:
     # Changed: Import specific configs needed
@@ -68,7 +65,7 @@ def get_relation_name(relation_curie: str) -> str:
 
     return relation_curie # Fallback to the CURIE itself
 
-def create_enriched_documents(ontology_data_path: str, output_path: str) -> List[Dict[str, Any]]:
+def create_enriched_documents(ontology_data_path: Path, output_path: Path) -> List[Dict[str, Any]]:
     """
     Creates enriched text documents for each ontology entry.
     Args:
@@ -173,12 +170,12 @@ def main():
             logging.warning(f"Configuration for '{name}' is missing 'dump_json_path' or 'enriched_docs_path'. Skipping.")
             continue
             
-        if not os.path.exists(ontology_dump_path):
+        if not ontology_dump_path.exists():
             logging.error(f"Dump file not found: {ontology_dump_path}. Skipping '{name}'.")
             continue
 
         # Ensure output directory exists
-        os.makedirs(os.path.dirname(enriched_docs_output_path), exist_ok=True)
+        enriched_docs_output_path.parent.mkdir(parents=True, exist_ok=True)
             
         create_enriched_documents(
             ontology_data_path=ontology_dump_path,
