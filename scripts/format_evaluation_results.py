@@ -6,11 +6,9 @@ import argparse
 from pathlib import Path
 from typing import Dict, Any, List, Optional
 
-# --- Add project root to sys.path to allow imports from src ---
-# This assumes the script is in project_root/scripts/
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-sys.path.append(str(PROJECT_ROOT))
-# ---
+project_root = Path(__file__).resolve().parent.parent
+if project_root not in sys.path:
+    sys.path.insert(0, str(project_root))
 
 try:
     from src import config
@@ -19,7 +17,7 @@ except ImportError:
           " or the project structure is correct.")
     # Provide fallback paths if config fails to import
     class config:
-        ONTOLOGY_DUMP_JSON = PROJECT_ROOT / "data" / "ontology_dump.json"
+        ONTOLOGY_DUMP_JSON = project_root / "data" / "ontology_dump.json"
 
 def load_json_data(file_path: Path) -> Any:
     """Loads data from a JSON file."""
@@ -102,13 +100,13 @@ def main():
     parser.add_argument(
         "--input-file",
         type=Path,
-        default=PROJECT_ROOT / "evaluation_results_gemini_1.5-flash.json",
+        default=project_root / "evaluation_results_gemini_1.5-flash.json",
         help="Path to the raw evaluation results JSON file."
     )
     parser.add_argument(
         "--output-file",
         type=Path,
-        default=PROJECT_ROOT / "data" / "readable_evaluation_results.json",
+        default=project_root / "data" / "readable_evaluation_results.json",
         help="Path to save the enriched, human-readable JSON file."
     )
     parser.add_argument(
