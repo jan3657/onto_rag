@@ -40,7 +40,7 @@ class GeminiSelector:
 
     def _load_prompt_template(self) -> str:
         """Loads the prompt template from the file."""
-        template_path = os.path.join(config.PROJECT_ROOT, "prompts", "final_selection.tpl")
+        template_path = os.path.join(config.PROJECT_ROOT, "prompts", "strict_final_selection.tpl")
         try:
             with open(template_path, 'r', encoding='utf-8') as f:
                 return f.read()
@@ -74,7 +74,8 @@ class GeminiSelector:
             )
         return "\n\n".join(formatted_list)
 
-    def select_best_term(self, query: str, candidates: List[Dict[str, Any]]) -> Optional[Dict[str, str]]:
+    # --- Type hint updated to allow for float in confidence_score score ---
+    def select_best_term(self, query: str, candidates: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
         """
         Prompts Gemini to select the best term and parses the JSON response.
 
@@ -115,11 +116,47 @@ class GeminiSelector:
             
             # Parse the JSON response
             result = json.loads(cleaned_response)
-            if "chosen_id" in result and "explanation" in result:
-                return result
-            else:
-                logger.error(f"LLM response is valid JSON but missing required keys: {result}")
+
+            # --- MODIFIED VALIDATION LOGIC ---
+            
+            # 1. The 'chosen_id' key is mandatory. Fail if it's missing or null.
+            if "chosen_id" not in result or result.get("chosen_id") is None:
+                logger.error(
+                    "LLM response is invalid: Missing the mandatory 'chosen_id' key. Response: %s",
+                    result
+                )
                 return None
+            
+            # 2. Start building the result with the mandatory key.
+            validated_result = {
+                'chosen_id': result['chosen_id']
+            }
+
+            # 3. Handle optional 'explanation' with a specific warning if missing.
+            if 'explanation' in result:
+                validated_result['explanation'] = result['explanation']
+            else:
+                logger.warning("LLM response missing 'explanation' key. Using default value.")
+                validated_result['explanation'] = 'No explanation provided.'
+
+            # 4. Handle optional 'confidence_score' with distinct warnings.
+            if 'confidence_score' in result:
+                try:
+                    # Key exists, so try to convert it
+                    validated_result['confidence_score'] = float(result['confidence_score'])
+                except (ValueError, TypeError):
+                    # Key exists, but the value is not a valid float
+                    logger.warning(
+                        f"Invalid confidence_score value in response: '{result.get('confidence_score')}'. Defaulting to 0.0."
+                    )
+                    validated_result['confidence_score'] = 0.0
+            else:
+                # The 'confidence_score' key itself is missing
+                logger.warning("LLM response missing 'confidence_score' key. Defaulting to 0.0.")
+                validated_result['confidence_score'] = 0.0
+
+            return validated_result
+            # --- END OF MODIFIED VALIDATION LOGIC ---
                 
         except json.JSONDecodeError:
             logger.error(f"Failed to decode JSON from LLM response: {response.text}")

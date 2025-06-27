@@ -182,7 +182,6 @@ class HybridRetriever:
         }
 
     def get_term_details(self, term_id: str):
-        # ... (This method is unchanged and works perfectly) ...
         matched_prefix = None
         for prefix in self.prefix_to_name_map.keys():
             if term_id.startswith(prefix):
