@@ -45,7 +45,11 @@ class OllamaSelector(BaseSelector):
                         'content': prompt,
                     },
                 ],
-                format='json'
+                format='json',
+                # Add the options dictionary to control model parameters
+                options={
+                    'temperature': 0.0
+                }
             )
             return response['message']['content']
                 
