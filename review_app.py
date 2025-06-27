@@ -1,157 +1,240 @@
 import streamlit as st
+import pandas as pd
 import json
 from pathlib import Path
+from typing import Union, List, Dict, Any
+from st_aggrid import AgGrid, GridOptionsBuilder, JsCode
 
 # --- Configuration ---
-# Set the path to the human-readable evaluation results file.
-# This script assumes the file is in the 'data' subdirectory.
-EVALUATION_FILE_PATH = Path("data") / "readable_evaluation_results.json"
+MAPPED_DATA_PATH = Path(__file__).resolve().parent / "data" / "outputs" / "mapped_ingredients_output.json"
 
-# --- Helper Functions ---
-
+# --- Data Loading (Cached) ---
 @st.cache_data
-def load_data(file_path: Path) -> list:
-    """
-    Loads the evaluation data from the specified JSON file.
-    The @st.cache_data decorator ensures the data is loaded only once.
-    """
+def load_data(file_path: Path) -> Union[Dict, None]:
+    """Loads the mapped ingredients data from the specified JSON file."""
     if not file_path.exists():
-        st.error(f"Error: Evaluation file not found at '{file_path}'.")
-        st.info("Please run the `scripts/format_evaluation_results.py` script first to generate this file.")
+        st.error(f"❌ **File Not Found:** The mapping file at '{file_path}' does not exist.")
+        st.info("Please ensure you have run the appropriate scripts to generate the data.")
         return None
-    with open(file_path, 'r', encoding='utf-8') as f:
-        return json.load(f)
+    try:
+        with file_path.open('r', encoding='utf-8') as f:
+            return json.load(f)
+    except (json.JSONDecodeError, IOError) as e:
+        st.error(f"❌ **Error Loading Data:** Could not read or parse '{file_path}'. Reason: {e}")
+        return None
 
-def display_term_details(term_data: dict):
-    """Renders the details of a single ontology term without a main title."""
-    if not term_data or not term_data.get("curie"):
-        st.warning("No data available for this term.")
+# --- UI Helper Functions ---
+def display_details_drawer(selected_row_data: Dict[str, Any]):
+    """Renders the details panel for a selected ingredient mapping."""
+    st.divider()
+    st.header(f"Details for: `{selected_row_data['original_ingredient']}`")
+
+    mapping = selected_row_data.get('mapping_result', {})
+    if not isinstance(mapping, dict):
+        st.warning("No valid mapping data found for this entry.")
         return
 
-    # Display the label and CURIE
-    label = term_data.get('label', 'N/A')
-    curie = term_data.get('curie', 'N/A')
-    st.markdown(f"**{label}** (`{curie}`)")
+    st.subheader(f"✅ Chosen Term: {mapping.get('label', 'N/A')}")
+    st.markdown(f"**CURIE:** `{mapping.get('id', 'N/A')}` 📑")
+    
+    if mapping.get('definition'):
+        st.markdown(f"**ℹ️ Definition:** {mapping.get('definition')}")
+    
+    if mapping.get('synonyms'):
+        st.markdown(f"**Synonyms:** *{', '.join(mapping.get('synonyms'))}*")
+    
+    st.divider()
 
-    # Display the definition in an info box
-    definition = term_data.get('definition')
-    if definition:
-        st.info(f"**Definition:** {definition}")
+    st.subheader("Model Explanation")
+    st.info(mapping.get('explanation', 'No explanation provided.'))
+
+    st.subheader("Candidates Considered")
+    candidates = selected_row_data.get('candidates', [])
+    if candidates:
+        sort_key = 'rerank_score' if any('rerank_score' in c for c in candidates) else 'score'
+        
+        cand_df = pd.DataFrame(candidates)
+        cand_df['Is Chosen'] = cand_df['id'].apply(lambda x: '⭐' if x == mapping.get('id') else '')
+        
+        display_cols = {'Is Chosen': 'Chosen', 'label': 'Label', 'id': 'CURIE', sort_key: 'Score', 'source_ontology': 'Source'}
+        existing_cols = [col for col in display_cols.keys() if col in cand_df.columns]
+        cand_df_display = cand_df[existing_cols].rename(columns=display_cols)
+
+        st.dataframe(cand_df_display, use_container_width=True, hide_index=True, column_config={"Score": st.column_config.NumberColumn(format="%.3f")})
     else:
-        st.info("No definition provided.")
+        st.info("No other candidates were provided for this mapping.")
 
-    # Display synonyms if they exist
-    synonyms = term_data.get('synonyms', [])
-    if synonyms:
-        st.markdown(f"**Synonyms:** *{', '.join(synonyms)}*")
+    with st.expander("Show Raw JSON Data"):
+        st.json(selected_row_data)
 
-def display_term(term_data: dict, title: str):
-    """Renders a single ontology term's details in a structured format."""
-    st.subheader(title)
-    display_term_details(term_data)
+# JsCode for cell styling in AgGrid
+cellsytle_jscode = JsCode("""
+function(params) {
+    function interpolateColor(color1, color2, factor) {
+        let result = color1.slice();
+        for (let i = 0; i < 3; i++) {
+            result[i] = Math.round(result[i] + factor * (color2[i] - color1[i]));
+        }
+        return result;
+    }
 
-# --- Main Application Logic ---
+    let confidence = params.data.Confidence;
+    if (confidence === null || confidence === undefined) {
+        return { backgroundColor: '#f0f0f0' };
+    }
+    
+    const red_pastel = [255, 224, 224];
+    const green_pastel = [224, 255, 224];
+    
+    let color = interpolateColor(red_pastel, green_pastel, confidence);
+    
+    return {
+        'backgroundColor': `rgb(${color[0]}, ${color[1]}, ${color[2]})`
+    };
+};
+""")
 
-# Set the page configuration (title, icon, layout)
-st.set_page_config(
-    page_title="Ontology Linking Review",
-    page_icon="🧪",
-    layout="wide"
-)
+# --- DataFrame Preparation ---
+# *** CHANGE: Made this function robust against non-dict mapping_result values ***
+def prepare_dataframe(mapped_ingredients: List[Dict]) -> pd.DataFrame:
+    """Transforms the list of mapping results into a DataFrame for AgGrid."""
+    records = []
+    for i, item in enumerate(mapped_ingredients):
+        item['_id'] = i
+        mapping = item.get('mapping_result')
 
-st.title("🧪 Ontology Linking Evaluation Review")
-st.markdown("An interface for experts to review the performance of the entity linking model.")
+        # Check if the mapping is a valid dictionary with an ID.
+        # This prevents errors if mapping_result is a string (e.g., "UNMAPPED") or None.
+        if isinstance(mapping, dict) and mapping.get('id'):
+            term = mapping.get('label', '⚠️ UNMAPPED')
+            ont_id = mapping.get('id', 'N/A')
+            confidence = mapping.get('confidence_score', 0.0)
+            explanation = mapping.get('explanation', 'No explanation provided.')
+        else:
+            # If not a valid mapping, set all values to their "unmapped" defaults.
+            term = '⚠️ UNMAPPED'
+            ont_id = 'N/A'
+            confidence = 0.0
+            explanation = 'No valid mapping result found for this ingredient.'
 
-# Load the data using the cached function
-data = load_data(EVALUATION_FILE_PATH)
+        record = {
+            "Token": item['original_ingredient'],
+            "Ontology Term": term,
+            "Ontology ID": ont_id,
+            "Confidence": confidence,
+            "Explanation": explanation,
+            "_id": i
+        }
+        records.append(record)
+    
+    return pd.DataFrame(records)
+
+# --- Main Application ---
+st.set_page_config(page_title="Mapping Reviewer", page_icon="🔎", layout="wide")
+
+st.title("🔎 Ontology Mapping Review")
+st.markdown("An interactive interface to review, validate, and correct model-generated ontology mappings.")
+
+data = load_data(MAPPED_DATA_PATH)
 
 if data:
-    # --- Session State for Navigation ---
-    # Initialize the session state to keep track of the current item index
-    if 'current_index' not in st.session_state:
+    if 'product_keys' not in st.session_state:
+        st.session_state.product_keys = list(data.keys())
         st.session_state.current_index = 0
+        
+    with st.sidebar:
+        st.header("Product Navigation")
+        selected_product_key = st.selectbox(
+            "Select Product to Review:",
+            options=st.session_state.product_keys,
+            index=st.session_state.current_index,
+            key="product_selector"
+        )
+        new_index = st.session_state.product_keys.index(selected_product_key)
+        if new_index != st.session_state.current_index:
+            st.session_state.current_index = new_index
+            st.rerun()
 
-    # --- Navigation Controls ---
-    st.sidebar.header("Navigation")
-    # Allow selection by query text for easy lookup
-    query_list = [f"{i+1}. {item['query']}" for i, item in enumerate(data)]
-    selected_query = st.sidebar.selectbox("Select a Query to Review:", query_list, index=st.session_state.current_index)
-
-    # Update index based on selection
-    st.session_state.current_index = query_list.index(selected_query)
-
-    col1, col2 = st.sidebar.columns(2)
-    # "Previous" button
-    if col1.button("⬅️ Previous", use_container_width=True):
-        if st.session_state.current_index > 0:
+        col1, col2 = st.columns(2)
+        if col1.button("⬅️ Previous", use_container_width=True, disabled=(st.session_state.current_index == 0)):
             st.session_state.current_index -= 1
             st.rerun()
-    # "Next" button
-    if col2.button("Next ➡️", use_container_width=True):
-        if st.session_state.current_index < len(data) - 1:
+        if col2.button("Next ➡️", use_container_width=True, disabled=(st.session_state.current_index >= len(st.session_state.product_keys) - 1)):
             st.session_state.current_index += 1
             st.rerun()
-
-    # --- Display the selected item ---
-    item = data[st.session_state.current_index]
-    query = item.get("query")
-
-    st.header(f"Reviewing Query: \"{query}\"", divider="rainbow")
-
-    # --- CHANGE 1: Removed the Correct/Incorrect status message ---
-    # The block checking item.get("is_correct") was removed from here.
-
-    # Use columns for a side-by-side comparison
-    left_col, right_col = st.columns(2)
-
-    with left_col:
-        # Display the model's chosen term
-        display_term(item.get("chosen_term"), "🤖 Model's Choice")
-        # Display the model's reasoning in an expandable section
-        with st.expander("Show Model's Explanation"):
-            st.info(item.get("explanation", "No explanation provided."))
-
-    with right_col:
-        # --- CHANGE 2: Display ALL ground truth terms with full details ---
-        st.subheader("🎯 Ground Truth(s)")
-        ground_truth_terms = item.get("ground_truth_terms", [])
         
-        if not ground_truth_terms:
-             st.warning("No ground truth terms provided for this query.")
-        else:
-            for i, term in enumerate(ground_truth_terms):
-                # Add a separator between terms for clarity, but not before the first one
-                if i > 0:
-                    st.markdown("---")
-                display_term_details(term)
+        st.divider()
+        st.caption(f"Progress: Product {st.session_state.current_index + 1} of {len(st.session_state.product_keys)}")
+        st.progress((st.session_state.current_index + 1) / len(st.session_state.product_keys))
 
+    product_id = st.session_state.product_keys[st.session_state.current_index]
+    product_data = data[product_id]
+    mapped_ingredients_list = product_data.get('mapped_ingredients', [])
 
-    # --- Display the list of all candidates provided to the model ---
+    st.header(f"Reviewing Product: `{product_id}`", divider="rainbow")
+    
+    if mapped_ingredients_list:
+        df_for_metrics = prepare_dataframe(mapped_ingredients_list)
+        total_ingredients = len(df_for_metrics)
+        mapped_count = len(df_for_metrics[df_for_metrics['Confidence'] > 0])
+        avg_confidence = df_for_metrics['Confidence'][df_for_metrics['Confidence'] > 0].mean()
+        low_confidence_count = len(df_for_metrics[df_for_metrics['Confidence'].between(0.01, 0.5, inclusive="right")])
+
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("Total Tokens", f"{total_ingredients}")
+        c2.metric("Mapped", f"{mapped_count}/{total_ingredients}")
+        c3.metric("Avg. Confidence", f"{avg_confidence:.2f}" if pd.notna(avg_confidence) else "N/A")
+        c4.metric("Low Confidence (<0.5)", f"{low_confidence_count}")
+        
+    full_ingredients = product_data.get("original_ingredients", "N/A")
+    
+    st.markdown("**Original Ingredients String:**")
+    st.code(full_ingredients, language=None)
     st.markdown("---")
-    with st.expander("🕵️‍♀️ View All Candidate Terms Provided to Model"):
-        st.markdown("This is the full list of options the model had to choose from.")
+    
+    st.subheader("Ingredient Mappings")
+    st.info("🎨 Row color indicates confidence.  Hover over 'Ontology Term' or 'ID' for the model's explanation. Click a row to see full details below.")
+    
+    if not mapped_ingredients_list:
+        st.warning("No mapped ingredients found for this product.")
+    else:
+        df_for_display = prepare_dataframe(mapped_ingredients_list)
 
-        candidates = item.get("candidate_terms_provided", [])
-        chosen_curie = item.get("chosen_term", {}).get("curie")
-        ground_truth_curies = [gt.get("curie") for gt in item.get("ground_truth_terms", [])]
+        gb = GridOptionsBuilder.from_dataframe(df_for_display)
+        
+        gb.configure_column("Ontology Term", tooltipField="Explanation")
+        gb.configure_column("Ontology ID", tooltipField="Explanation")
+        gb.configure_default_column(cellStyle=cellsytle_jscode)
+        
+        gb.configure_selection(selection_mode="single", use_checkbox=False)
+        gb.configure_grid_options(domLayout='normal')
+        
+        gb.configure_column("_id", hide=True)
+        gb.configure_column("Confidence", hide=True)
+        gb.configure_column("Explanation", hide=True)
+        
+        grid_options = gb.build()
 
-        if not candidates:
-            st.info("No candidate terms were provided to the model for this query.")
-        else:
-            for candidate in candidates:
-                label = candidate.get('label', 'N/A')
-                curie = candidate.get('curie', 'N/A')
+        grid_response = AgGrid(
+            df_for_display,
+            gridOptions=grid_options,
+            height=400,
+            width='100%',
+            fit_columns_on_grid_load=True,
+            allow_unsafe_jscode=True,
+            key=f"aggrid_{product_id}"
+        )
 
-                # Highlight chosen and ground truth terms
-                marker = ""
-                if curie == chosen_curie:
-                    marker += "🤖"
-                if curie in ground_truth_curies:
-                    marker += "🎯"
+        selected_row_data = None
+        
+        if grid_response['selected_rows'] is not None and not grid_response['selected_rows'].empty:
+            selected_id = grid_response['selected_rows'].iloc[0]['_id']
+            selected_row_data = next((item for item in mapped_ingredients_list if item.get('_id') == selected_id), None)
+        elif mapped_ingredients_list:
+            selected_row_data = mapped_ingredients_list[0]
 
-                st.markdown(f"**{marker} {label}** (`{curie}`)")
-                definition = candidate.get('definition')
-                if definition:
-                    st.text(f"  - {definition[:200]}...") # Truncate long definitions
-                else:
-                    st.text("  - No definition.")
+        if selected_row_data:
+            display_details_drawer(selected_row_data)
+
+else:
+    st.warning("Could not load data. Please check the file path and format.")
