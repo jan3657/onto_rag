@@ -145,6 +145,14 @@ LLM_SELECTOR_MODEL_NAME = "gemini-2.5-flash-lite-preview-06-17"
 OLLAMA_SELECTOR_MODEL_NAME = 'llama3.1:8b'
 # OPENAI_API_KEY = getenv.OPENAI_API_KEY
 
+# Path to the prompt template for the selector
+SELECTOR_PROMPT_TEMPLATE_PATH = PROJECT_ROOT / "prompts" / "strict_selection_minimal.tpl"
+
+from src.pipeline.gemini_pipeline import GeminiRAGPipeline
+from src.pipeline.ollama_pipeline import OllamaRAGPipeline
+
+PIPELINE = GeminiRAGPipeline#OllamaRAGPipeline
+
 # Logging configuration
 LOG_LEVEL = "INFO"
 LOG_FILE = PROJECT_ROOT / "app.log"

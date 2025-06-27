@@ -34,7 +34,7 @@ class BaseSelector(ABC):
 
     def _load_prompt_template(self) -> str:
         """Loads the prompt template from the file."""
-        template_path = config.PROJECT_ROOT / "prompts" / "strict_final_selection.tpl"
+        template_path = config.SELECTOR_PROMPT_TEMPLATE_PATH
         try:
             with template_path.open('r', encoding='utf-8') as f:
                 return f.read()

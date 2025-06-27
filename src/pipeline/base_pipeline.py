@@ -98,7 +98,7 @@ class BaseRAGPipeline:
             return None
 
         # 3. Rerank
-        reranked_candidates = self.reranker.rerank(query, combined_candidates, top_n=rerank_top_n)
+        reranked_candidates = combined_candidates#self.reranker.rerank(query, combined_candidates, top_n=rerank_top_n)
 
         if not reranked_candidates:
             logger.warning("No candidates left after reranking for query: '%s'", query)
