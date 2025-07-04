@@ -10,6 +10,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.rag_selectors.base_selector import BaseSelector
+from src.confidence_scorers.base_confidence_scorer import BaseConfidenceScorer
 from src.retriever.hybrid_retriever import HybridRetriever
 from src.reranker.llm_reranker import LLMReranker
 from src import config
@@ -24,15 +25,16 @@ class BaseRAGPipeline:
     
     Subclasses should specify the selector to use.
     """
-    def __init__(self, selector_class: Type[BaseSelector]):
+    # MODIFIED __init__ to accept a confidence scorer
+    def __init__(self, selector_class: Type[BaseSelector], confidence_scorer_class: Type[BaseConfidenceScorer]):
         """
         Initializes the RAG Pipeline.
 
         Args:
-            selector_class (Type[BaseSelector]): The class of the selector to use
-                                                 (e.g., GeminiSelector, OllamaSelector).
+            selector_class (Type[BaseSelector]): The class of the selector to use.
+            confidence_scorer_class (Type[BaseConfidenceScorer]): The class of the confidence scorer to use.
         """
-        logger.info(f"Initializing RAG Pipeline with {selector_class.__name__}...")
+        logger.info(f"Initializing RAG Pipeline with {selector_class.__name__} and {confidence_scorer_class.__name__}...")
         try:
             self.retriever = HybridRetriever()
 
@@ -54,6 +56,7 @@ class BaseRAGPipeline:
             )
             
             self.selector = selector_class(retriever=self.retriever)
+            self.confidence_scorer = confidence_scorer_class() # ADDED
             logger.info("RAG Pipeline initialized successfully.")
             
         except (FileNotFoundError, ValueError) as e:
@@ -64,6 +67,7 @@ class BaseRAGPipeline:
             logger.error(f"An unexpected error occurred during pipeline initialization: {e}", exc_info=True)
             raise
 
+    # MODIFIED run method to incorporate the two-step selection and scoring
     def run(self, 
             query: str, 
             lexical_k: int = config.DEFAULT_K_LEXICAL, 
@@ -97,8 +101,8 @@ class BaseRAGPipeline:
             logger.warning("No candidates found for query: '%s'", query)
             return None
 
-        # 3. Rerank
-        reranked_candidates = combined_candidates#self.reranker.rerank(query, combined_candidates, top_n=rerank_top_n)
+        # 3. Rerank (Uncommented as per intended logic)
+        reranked_candidates = self.reranker.rerank(query, combined_candidates, top_n=rerank_top_n)
 
         if not reranked_candidates:
             logger.warning("No candidates left after reranking for query: '%s'", query)
@@ -106,40 +110,49 @@ class BaseRAGPipeline:
         
         logger.info(f"Top {len(reranked_candidates)} candidates after reranking passed to LLM selector.")
 
-        # 4. Select with LLM
+        # 4. Select with Selector Agent
         selection = self.selector.select_best_term(query, reranked_candidates)
 
-        # 5. Process selection
         if not selection:
-            logger.warning("LLM selection failed. Returning the top reranked result as a fallback.")
-            top_fallback = reranked_candidates[0]
-            chosen_term_details = self.retriever.get_term_details(top_fallback['id'])
-            if chosen_term_details:
-                chosen_term_details['confidence_score'] = 0.0
-                chosen_term_details['explanation'] = "FALLBACK: LLM selection failed. This is the top result from the reranker."
-            return chosen_term_details, reranked_candidates
+            logger.warning("LLM selection failed. Cannot proceed to confidence scoring.")
+            return None, reranked_candidates
 
         chosen_id = selection['chosen_id']
+        initial_explanation = selection.get('explanation', 'No explanation provided.')
+        
         if chosen_id in ('0', '-1'):
-            logger.info("LLM determined no suitable match exists for query: '%s'", query)
+            logger.info("Selector determined no suitable match exists for query: '%s'", query)
             no_match_result = {
                 'id': chosen_id,
                 'label': 'No Match Found',
-                'definition': 'The Language Model determined that no candidate was a suitable match for the query.',
+                'definition': 'The selector model determined that no candidate was a suitable match.',
                 'synonyms': [], 'parents': [], 'ancestors': [], 'relations': {},
-                'confidence_score': selection.get('confidence_score', 0.0),
-                'explanation': selection.get('explanation', 'No explanation provided.')
+                'confidence_score': 0.0,
+                'explanation': initial_explanation
             }
             return no_match_result, reranked_candidates
-        
+
         chosen_term_details = self.retriever.get_term_details(chosen_id)
         if not chosen_term_details:
-            logger.error("LLM chose ID '%s', but its details could not be retrieved.", chosen_id)
-            return None
+            logger.error("Selector chose ID '%s', but its details could not be retrieved.", chosen_id)
+            return None, reranked_candidates
+        
+        # 5. Score Confidence with Confidence Agent
+        logger.info("Passing selection to confidence scorer for query: '%s'", query)
+        confidence_result = self.confidence_scorer.score_confidence(
+            query=query,
+            chosen_term_details=chosen_term_details,
+            all_candidates=reranked_candidates
+        )
 
-        # Add the confidence and explanation from the selector to the final result
-        chosen_term_details['confidence_score'] = selection.get('confidence_score', 0.0)
-        chosen_term_details['explanation'] = selection.get('explanation', 'No explanation provided.')
+        if confidence_result:
+            chosen_term_details['confidence_score'] = confidence_result.get('confidence_score', 0.0)
+            chosen_term_details['explanation'] = confidence_result.get('explanation', initial_explanation)
+            logger.info(f"Confidence score for '{chosen_id}': {chosen_term_details['confidence_score']:.2f}")
+        else:
+            logger.warning("Confidence scoring failed. Using default values.")
+            chosen_term_details['confidence_score'] = 0.0
+            chosen_term_details['explanation'] = initial_explanation
         
         return chosen_term_details, reranked_candidates
 

@@ -147,11 +147,9 @@ OLLAMA_SELECTOR_MODEL_NAME = 'llama3.1:8b'
 
 # Path to the prompt template for the selector
 SELECTOR_PROMPT_TEMPLATE_PATH = PROJECT_ROOT / "prompts" / "strict_selection_minimal.tpl"
+CONFIDENCE_PROMPT_TEMPLATE_PATH = PROJECT_ROOT / "prompts" / "confidence_assessment.tpl" 
 
-from src.pipeline.gemini_pipeline import GeminiRAGPipeline
-from src.pipeline.ollama_pipeline import OllamaRAGPipeline
-
-PIPELINE = GeminiRAGPipeline#OllamaRAGPipeline
+PIPELINE = "gemini" #or "ollama" 
 
 # Logging configuration
 LOG_LEVEL = "INFO"
