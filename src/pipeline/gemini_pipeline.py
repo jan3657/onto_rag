@@ -7,15 +7,18 @@ if str(PROJECT_ROOT) not in sys.path:
     
 from src.pipeline.base_pipeline import BaseRAGPipeline
 from src.rag_selectors.gemini_selector import GeminiSelector
+from src.confidence_scorers.gemini_confidence_scorer import GeminiConfidenceScorer # ADDED
 
 class GeminiRAGPipeline(BaseRAGPipeline):
     """
-    A RAG pipeline implementation that uses the GeminiSelector for the
-    final term selection step.
+    A RAG pipeline implementation that uses Gemini for both selection and confidence scoring.
     """
     def __init__(self):
         """
         Initializes the Gemini-specific RAG pipeline.
         """
-        # Pass the GeminiSelector class to the base constructor
-        super().__init__(selector_class=GeminiSelector)
+        # Pass the Gemini-specific classes to the base constructor
+        super().__init__(
+            selector_class=GeminiSelector, 
+            confidence_scorer_class=GeminiConfidenceScorer
+        )

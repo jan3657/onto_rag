@@ -9,9 +9,8 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-# Assuming you have an ollama_pipeline, but this works for gemini_pipeline too
-from src.pipeline.ollama_pipeline import OllamaRAGPipeline 
-from src.config import DEFAULT_K_LEXICAL, DEFAULT_K_VECTOR
+from src.pipeline.pipeline_factory import get_pipeline
+from src.config import DEFAULT_K_LEXICAL, DEFAULT_K_VECTOR, PIPELINE
 
 def main():
     parser = argparse.ArgumentParser(description="Run the Onto-RAG pipeline with LLM selection.")
@@ -24,7 +23,7 @@ def main():
 
     pipeline = None
     try:
-        pipeline = OllamaRAGPipeline()
+        pipeline = get_pipeline(PIPELINE)
         
         # --- MODIFIED: Unpack the tuple returned by pipeline.run ---
         result_tuple = pipeline.run(

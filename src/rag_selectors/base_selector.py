@@ -97,7 +97,7 @@ class BaseSelector(ABC):
                 logger.warning("LLM response missing 'explanation' key. Using default value.")
                 validated_result['explanation'] = 'No explanation provided.'
 
-            if 'confidence_score' in result:
+            '''if 'confidence_score' in result:
                 try:
                     validated_result['confidence_score'] = float(result['confidence_score'])
                 except (ValueError, TypeError):
@@ -107,7 +107,7 @@ class BaseSelector(ABC):
                     validated_result['confidence_score'] = 0.0
             else:
                 logger.warning("LLM response missing 'confidence_score' key. Defaulting to 0.0.")
-                validated_result['confidence_score'] = 0.0
+                validated_result['confidence_score'] = 0.0'''
 
             return validated_result
             
