@@ -150,7 +150,7 @@ OLLAMA_SCORER_MODEL_NAME = 'llama3.1:8b'
 
 # Path to the prompt template for the selector
 SELECTOR_PROMPT_TEMPLATE_PATH = PROJECT_ROOT / "prompts" /  "final_selection.tpl" #"strict_selection_minimal.tpl"
-CONFIDENCE_PROMPT_TEMPLATE_PATH = PROJECT_ROOT / "prompts" / "test_confidence_assessment.tpl" #"confidence_assessment.tpl"
+CONFIDENCE_PROMPT_TEMPLATE_PATH = PROJECT_ROOT / "prompts" / "confidence_assessment2.tpl" #"confidence_assessment.tpl"
 
 PIPELINE = "ollama" # "gemini" or "ollama" 
 
