@@ -140,16 +140,19 @@ CURIE_PREFIX_MAP = {
 
 # LLM API Key (placeholders)
 GEMINI_API_KEY = getenv("GEMINI_API_KEY")
-#LLM_SELECTOR_MODEL_NAME = "gemini-1.5-flash-latest"
-LLM_SELECTOR_MODEL_NAME = "gemini-2.5-flash-lite-preview-06-17"
+#GEMINI_SELECTOR_MODEL_NAME = "gemini-1.5-flash-latest"
+GEMINI_SELECTOR_MODEL_NAME = "gemini-2.5-flash-lite-preview-06-17"
+GEMINI_SCORER_MODEL_NAME = "gemini-2.5-flash-lite-preview-06-17"
+
 OLLAMA_SELECTOR_MODEL_NAME = 'llama3.1:8b'
+OLLAMA_SCORER_MODEL_NAME = 'llama3.1:8b'
 # OPENAI_API_KEY = getenv.OPENAI_API_KEY
 
 # Path to the prompt template for the selector
-SELECTOR_PROMPT_TEMPLATE_PATH = PROJECT_ROOT / "prompts" / "strict_selection_minimal.tpl"
-CONFIDENCE_PROMPT_TEMPLATE_PATH = PROJECT_ROOT / "prompts" / "confidence_assessment.tpl" 
+SELECTOR_PROMPT_TEMPLATE_PATH = PROJECT_ROOT / "prompts" /  "final_selection.tpl" #"strict_selection_minimal.tpl"
+CONFIDENCE_PROMPT_TEMPLATE_PATH = PROJECT_ROOT / "prompts" / "test_confidence_assessment.tpl" #"confidence_assessment.tpl"
 
-PIPELINE = "gemini" #or "ollama" 
+PIPELINE = "ollama" # "gemini" or "ollama" 
 
 # Logging configuration
 LOG_LEVEL = "INFO"

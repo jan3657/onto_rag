@@ -89,13 +89,12 @@ class BaseRAGPipeline:
         vector_results = retriever_output.get("vector_results", [])
         
         # 2. Merge unique candidates
-        combined_candidates = []
-        seen_ids = set()
-        for doc in lexical_results + vector_results:
-            doc_id = doc.get('id')
-            if doc_id and doc_id not in seen_ids:
-                combined_candidates.append(doc)
-                seen_ids.add(doc_id)
+        combined_candidates_dict = {
+            doc['id']: doc 
+            for doc in lexical_results + vector_results 
+            if doc.get('id')
+        }
+        combined_candidates = list(combined_candidates_dict.values())
         
         if not combined_candidates:
             logger.warning("No candidates found for query: '%s'", query)

@@ -97,18 +97,6 @@ class BaseSelector(ABC):
                 logger.warning("LLM response missing 'explanation' key. Using default value.")
                 validated_result['explanation'] = 'No explanation provided.'
 
-            '''if 'confidence_score' in result:
-                try:
-                    validated_result['confidence_score'] = float(result['confidence_score'])
-                except (ValueError, TypeError):
-                    logger.warning(
-                        f"Invalid confidence_score value in response: '{result.get('confidence_score')}'. Defaulting to 0.0."
-                    )
-                    validated_result['confidence_score'] = 0.0
-            else:
-                logger.warning("LLM response missing 'confidence_score' key. Defaulting to 0.0.")
-                validated_result['confidence_score'] = 0.0'''
-
             return validated_result
             
         except json.JSONDecodeError:
