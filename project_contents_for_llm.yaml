@@ -137,35 +137,35 @@
       ,\n    \"http://purl.obolibrary.org/obo/ENVO_\": \"ENVO\",\n    \"http://purl.obolibrary.org/obo/HP_\"\
       : \"HP\",\n    \"http://purl.obolibrary.org/obo/GO_\": \"GO\",\n    \"http://purl.obolibrary.org/obo/\"\
       : \"obo\",\n}\n\n# LLM API Key (placeholders)\nGEMINI_API_KEY = getenv(\"GEMINI_API_KEY\"\
-      )\n#LLM_SELECTOR_MODEL_NAME = \"gemini-1.5-flash-latest\"\nLLM_SELECTOR_MODEL_NAME\
-      \ = \"gemini-2.5-flash-lite-preview-06-17\"\nOLLAMA_SELECTOR_MODEL_NAME = 'llama3.1:8b'\n\
+      )\n#GEMINI_SELECTOR_MODEL_NAME = \"gemini-1.5-flash-latest\"\nGEMINI_SELECTOR_MODEL_NAME\
+      \ = \"gemini-2.5-flash-lite-preview-06-17\"\nGEMINI_SCORER_MODEL_NAME = \"gemini-2.5-flash-lite-preview-06-17\"\
+      \n\nOLLAMA_SELECTOR_MODEL_NAME = 'llama3.1:8b'\nOLLAMA_SCORER_MODEL_NAME = 'llama3.1:8b'\n\
       # OPENAI_API_KEY = getenv.OPENAI_API_KEY\n\n# Path to the prompt template for\
       \ the selector\nSELECTOR_PROMPT_TEMPLATE_PATH = PROJECT_ROOT / \"prompts\" /\
-      \ \"strict_selection_minimal.tpl\"\n\nfrom src.pipeline.gemini_pipeline import\
-      \ GeminiRAGPipeline\nfrom src.pipeline.ollama_pipeline import OllamaRAGPipeline\n\
-      \nPIPELINE = GeminiRAGPipeline#OllamaRAGPipeline\n\n# Logging configuration\n\
-      LOG_LEVEL = \"INFO\"\nLOG_FILE = PROJECT_ROOT / \"app.log\""
+      \ \"strict_selection_minimal.tpl\"\nCONFIDENCE_PROMPT_TEMPLATE_PATH = PROJECT_ROOT\
+      \ / \"prompts\" / \"confidence_assessment.tpl\" \n\nPIPELINE = \"ollama\" #\
+      \ \"gemini\" or \"ollama\" \n\n# Logging configuration\nLOG_LEVEL = \"INFO\"\
+      \nLOG_FILE = PROJECT_ROOT / \"app.log\""
     "src/main.py": "# src/main.py\nimport argparse\nimport json\nimport sys\nfrom\
       \ pathlib import Path\n\n# --- Add project root to sys.path ---\nPROJECT_ROOT\
       \ = Path(__file__).resolve().parent.parent\nif str(PROJECT_ROOT) not in sys.path:\n\
-      \    sys.path.insert(0, str(PROJECT_ROOT))\n\n# Assuming you have an ollama_pipeline,\
-      \ but this works for gemini_pipeline too\nfrom src.pipeline.ollama_pipeline\
-      \ import OllamaRAGPipeline \nfrom src.config import DEFAULT_K_LEXICAL, DEFAULT_K_VECTOR\n\
-      \ndef main():\n    parser = argparse.ArgumentParser(description=\"Run the Onto-RAG\
-      \ pipeline with LLM selection.\")\n    parser.add_argument(\"query\", type=str,\
-      \ help=\"The entity or text to search for (e.g., 'raw milk').\")\n    parser.add_argument(\"\
-      --lexical_k\", type=int, default=DEFAULT_K_LEXICAL, help=f\"Initial candidates\
-      \ from lexical search (default: {DEFAULT_K_LEXICAL}).\")\n    parser.add_argument(\"\
-      --vector_k\", type=int, default=DEFAULT_K_VECTOR, help=f\"Initial candidates\
-      \ from vector search (default: {DEFAULT_K_VECTOR}).\")\n    parser.add_argument(\"\
-      --top_n_rerank\", type=int, default=100, help=\"Number of candidates to rerank\
-      \ and pass to the LLM (default: 10).\")\n    parser.add_argument(\"--show_candidates\"\
-      , action=\"store_true\", help=\"Show the list of candidates provided to the\
-      \ LLM.\")\n    args = parser.parse_args()\n\n    pipeline = None\n    try:\n\
-      \        pipeline = OllamaRAGPipeline()\n        \n        # --- MODIFIED: Unpack\
-      \ the tuple returned by pipeline.run ---\n        result_tuple = pipeline.run(\n\
-      \            query=args.query,\n            lexical_k=args.lexical_k,\n    \
-      \        vector_k=args.vector_k,\n            rerank_top_n=args.top_n_rerank\n\
+      \    sys.path.insert(0, str(PROJECT_ROOT))\n\nfrom src.pipeline.pipeline_factory\
+      \ import get_pipeline\nfrom src.config import DEFAULT_K_LEXICAL, DEFAULT_K_VECTOR,\
+      \ PIPELINE\n\ndef main():\n    parser = argparse.ArgumentParser(description=\"\
+      Run the Onto-RAG pipeline with LLM selection.\")\n    parser.add_argument(\"\
+      query\", type=str, help=\"The entity or text to search for (e.g., 'raw milk').\"\
+      )\n    parser.add_argument(\"--lexical_k\", type=int, default=DEFAULT_K_LEXICAL,\
+      \ help=f\"Initial candidates from lexical search (default: {DEFAULT_K_LEXICAL}).\"\
+      )\n    parser.add_argument(\"--vector_k\", type=int, default=DEFAULT_K_VECTOR,\
+      \ help=f\"Initial candidates from vector search (default: {DEFAULT_K_VECTOR}).\"\
+      )\n    parser.add_argument(\"--top_n_rerank\", type=int, default=100, help=\"\
+      Number of candidates to rerank and pass to the LLM (default: 10).\")\n    parser.add_argument(\"\
+      --show_candidates\", action=\"store_true\", help=\"Show the list of candidates\
+      \ provided to the LLM.\")\n    args = parser.parse_args()\n\n    pipeline =\
+      \ None\n    try:\n        pipeline = get_pipeline(PIPELINE)\n        \n    \
+      \    # --- MODIFIED: Unpack the tuple returned by pipeline.run ---\n       \
+      \ result_tuple = pipeline.run(\n            query=args.query,\n            lexical_k=args.lexical_k,\n\
+      \            vector_k=args.vector_k,\n            rerank_top_n=args.top_n_rerank\n\
       \        )\n        \n        # Handle case where pipeline returns None\n  \
       \      if not result_tuple:\n            final_result, candidates = None, []\n\
       \        else:\n            final_result, candidates = result_tuple\n\n    \
@@ -222,6 +222,7 @@
         ├── evaluation_results_gemini_1.5-flash.json (excluded)
         ├── evaluation_results_llama.json (excluded)
         ├── export_files_contents.py (excluded)
+        ├── project_contents_for_llm.yaml (excluded)
         ├── requirements.txt
         ├── results.txt
         ├── review_app.py
@@ -322,6 +323,7 @@
             ├── chebi.owl (excluded)
             └── foodon.owl (excluded)
         ├── prompts/
+            ├── confidence_assessment.tpl
             ├── final_selection.tpl
             ├── final_selection2.tpl
             ├── final_selection_ingredients.tpl
@@ -336,6 +338,7 @@
             └── reduce_evaluation_set.py
         ├── src/
             ├── __pycache__/
+            ├── confidence_scorers/
             ├── embeddings/
             ├── evaluation/
             ├── ingestion/
@@ -354,6 +357,14 @@
             ├── __pycache__/
                 ├── __init__.cpython-39.pyc (excluded)
                 └── config.cpython-39.pyc (excluded)
+            ├── confidence_scorers/
+                ├── __pycache__/
+                ├── base_confidence_scorer.py
+                ├── gemini_confidence_scorer.py
+                └── ollama_confidence_scorer.py
+                ├── __pycache__/
+                    ├── base_confidence_scorer.cpython-39.pyc (excluded)
+                    └── gemini_confidence_scorer.cpython-39.pyc (excluded)
             ├── embeddings/
                 ├── __pycache__/
                 └── embed_docs.py
@@ -380,12 +391,14 @@
                 ├── __pycache__/
                 ├── base_pipeline.py
                 ├── gemini_pipeline.py
-                └── ollama_pipeline.py
+                ├── ollama_pipeline.py
+                └── pipeline_factory.py
                 ├── __pycache__/
                     ├── base_pipeline.cpython-39.pyc (excluded)
                     ├── gemini_pipeline.cpython-39.pyc (excluded)
                     ├── ollama_pipeline.cpython-39.pyc (excluded)
-                    └── pipeline.cpython-39.pyc (excluded)
+                    ├── pipeline.cpython-39.pyc (excluded)
+                    └── pipeline_factory.cpython-39.pyc (excluded)
             ├── rag_selectors/
                 ├── __pycache__/
                 ├── __init__.py
@@ -832,6 +845,48 @@
     \      display_details_drawer(selected_row_data)\n\nelse:\n    st.warning(\"Could\
     \ not load data. Please check the file path and format.\")"
   "prompts":
+    "confidence_assessment.tpl": |-
+      You are a rigorous AI confidence assessor for ontology mapping. Your task is to evaluate a proposed match between a user entity and a chosen ontology term, and assign a confidence score based on a strict rubric.
+
+      User Entity:
+      [USER_ENTITY]
+
+      Chosen Ontology Term:
+      [CHOSEN_TERM_DETAILS]
+
+      Other Top Candidates (for context):
+      [OTHER_CANDIDATES]
+
+      INSTRUCTIONS:
+
+      1.  **Analyze and Score:** Compare the user entity against the chosen term's Label, Definition, and Synonyms. Use the other candidates for context on why this specific term was chosen over others.
+      2.  **Apply the Rubric:** Use the following rubric to determine the confidence score. You must follow this hierarchy.
+      3.  **Format Output:** Provide your response in a valid JSON format only. Do not add any text, comments, or markdown fences before or after the JSON block.
+
+      ---
+      ### **Confidence Score Rubric**
+
+      *   **1.0 (Certain Match):** The user entity is an exact, case-insensitive match for the chosen term's `Label` or one of its `Synonyms`.
+      *   **0.9 (High-Confidence Match):** The user entity is a well-known alternative name, abbreviation, or a normalized form (e.g., handles plurals, spacing) of the chosen term's `Label` or `Synonyms`.
+      *   **0.6 (Plausible Match):** The user entity is a substring of the chosen term's label/synonym, or describes a very specific instance of it. The connection is strong and highly likely.
+      *   **0.4 (Speculative Match):** The entities are only related by broad category or context. The explanation must state the speculative nature.
+      *   **0.0 (No Confidence):** The match is incorrect or highly tenuous. For regulated substances, any difference in name or number (e.g., "Blue 1" vs. "Blue 2") means the match is wrong.
+
+      ---
+      **JSON OUTPUT FORMAT**:
+
+      The JSON object must contain two keys:
+      *   `"confidence_score"`: A float between 0.0 and 1.0, determined strictly by the rubric.
+      *   `"explanation"`: A brief, clear explanation for the assigned score, referencing the rubric and justifying the choice. This may refine the initial explanation.
+
+      **EXAMPLE**:
+      *User Entity*: 'organic apple'
+      *Chosen Term*: Label: 'Apple'
+      *Generated JSON*:
+      {
+        "confidence_score": 0.6,
+        "explanation": "Plausible Match. The entity 'organic apple' is a specific instance of the chosen term 'Apple'. The 'organic' quality is not captured in the ontology term, which prevents a higher score. Score based on the 0.6 rubric criteria."
+      }
     "final_selection.tpl": |-
       You are an expert ontologist specializing in food science. Your task is to analyze a list of candidate ontology terms and select the single most appropriate term that matches the user's provided entity.
 
@@ -1452,36 +1507,37 @@
       ,\n    \"http://purl.obolibrary.org/obo/ENVO_\": \"ENVO\",\n    \"http://purl.obolibrary.org/obo/HP_\"\
       : \"HP\",\n    \"http://purl.obolibrary.org/obo/GO_\": \"GO\",\n    \"http://purl.obolibrary.org/obo/\"\
       : \"obo\",\n}\n\n# LLM API Key (placeholders)\nGEMINI_API_KEY = getenv(\"GEMINI_API_KEY\"\
-      )\n#LLM_SELECTOR_MODEL_NAME = \"gemini-1.5-flash-latest\"\nLLM_SELECTOR_MODEL_NAME\
-      \ = \"gemini-2.5-flash-lite-preview-06-17\"\nOLLAMA_SELECTOR_MODEL_NAME = 'llama3.1:8b'\n\
+      )\n#GEMINI_SELECTOR_MODEL_NAME = \"gemini-1.5-flash-latest\"\nGEMINI_SELECTOR_MODEL_NAME\
+      \ = \"gemini-2.5-flash-lite-preview-06-17\"\nGEMINI_SCORER_MODEL_NAME = \"gemini-2.5-flash-lite-preview-06-17\"\
+      \n\nOLLAMA_SELECTOR_MODEL_NAME = 'llama3.1:8b'\nOLLAMA_SCORER_MODEL_NAME = 'llama3.1:8b'\n\
       # OPENAI_API_KEY = getenv.OPENAI_API_KEY\n\n# Path to the prompt template for\
       \ the selector\nSELECTOR_PROMPT_TEMPLATE_PATH = PROJECT_ROOT / \"prompts\" /\
-      \ \"strict_selection_minimal.tpl\"\n\nfrom src.pipeline.gemini_pipeline import\
-      \ GeminiRAGPipeline\nfrom src.pipeline.ollama_pipeline import OllamaRAGPipeline\n\
-      \nPIPELINE = GeminiRAGPipeline#OllamaRAGPipeline\n\n# Logging configuration\n\
-      LOG_LEVEL = \"INFO\"\nLOG_FILE = PROJECT_ROOT / \"app.log\""
+      \ \"strict_selection_minimal.tpl\"\nCONFIDENCE_PROMPT_TEMPLATE_PATH = PROJECT_ROOT\
+      \ / \"prompts\" / \"confidence_assessment.tpl\" \n\nPIPELINE = \"ollama\" #\
+      \ \"gemini\" or \"ollama\" \n\n# Logging configuration\nLOG_LEVEL = \"INFO\"\
+      \nLOG_FILE = PROJECT_ROOT / \"app.log\""
     "main.py": "# src/main.py\nimport argparse\nimport json\nimport sys\nfrom pathlib\
       \ import Path\n\n# --- Add project root to sys.path ---\nPROJECT_ROOT = Path(__file__).resolve().parent.parent\n\
       if str(PROJECT_ROOT) not in sys.path:\n    sys.path.insert(0, str(PROJECT_ROOT))\n\
-      \n# Assuming you have an ollama_pipeline, but this works for gemini_pipeline\
-      \ too\nfrom src.pipeline.ollama_pipeline import OllamaRAGPipeline \nfrom src.config\
-      \ import DEFAULT_K_LEXICAL, DEFAULT_K_VECTOR\n\ndef main():\n    parser = argparse.ArgumentParser(description=\"\
-      Run the Onto-RAG pipeline with LLM selection.\")\n    parser.add_argument(\"\
-      query\", type=str, help=\"The entity or text to search for (e.g., 'raw milk').\"\
-      )\n    parser.add_argument(\"--lexical_k\", type=int, default=DEFAULT_K_LEXICAL,\
-      \ help=f\"Initial candidates from lexical search (default: {DEFAULT_K_LEXICAL}).\"\
-      )\n    parser.add_argument(\"--vector_k\", type=int, default=DEFAULT_K_VECTOR,\
-      \ help=f\"Initial candidates from vector search (default: {DEFAULT_K_VECTOR}).\"\
-      )\n    parser.add_argument(\"--top_n_rerank\", type=int, default=100, help=\"\
-      Number of candidates to rerank and pass to the LLM (default: 10).\")\n    parser.add_argument(\"\
-      --show_candidates\", action=\"store_true\", help=\"Show the list of candidates\
-      \ provided to the LLM.\")\n    args = parser.parse_args()\n\n    pipeline =\
-      \ None\n    try:\n        pipeline = OllamaRAGPipeline()\n        \n       \
-      \ # --- MODIFIED: Unpack the tuple returned by pipeline.run ---\n        result_tuple\
-      \ = pipeline.run(\n            query=args.query,\n            lexical_k=args.lexical_k,\n\
-      \            vector_k=args.vector_k,\n            rerank_top_n=args.top_n_rerank\n\
-      \        )\n        \n        # Handle case where pipeline returns None\n  \
-      \      if not result_tuple:\n            final_result, candidates = None, []\n\
+      \nfrom src.pipeline.pipeline_factory import get_pipeline\nfrom src.config import\
+      \ DEFAULT_K_LEXICAL, DEFAULT_K_VECTOR, PIPELINE\n\ndef main():\n    parser =\
+      \ argparse.ArgumentParser(description=\"Run the Onto-RAG pipeline with LLM selection.\"\
+      )\n    parser.add_argument(\"query\", type=str, help=\"The entity or text to\
+      \ search for (e.g., 'raw milk').\")\n    parser.add_argument(\"--lexical_k\"\
+      , type=int, default=DEFAULT_K_LEXICAL, help=f\"Initial candidates from lexical\
+      \ search (default: {DEFAULT_K_LEXICAL}).\")\n    parser.add_argument(\"--vector_k\"\
+      , type=int, default=DEFAULT_K_VECTOR, help=f\"Initial candidates from vector\
+      \ search (default: {DEFAULT_K_VECTOR}).\")\n    parser.add_argument(\"--top_n_rerank\"\
+      , type=int, default=100, help=\"Number of candidates to rerank and pass to the\
+      \ LLM (default: 10).\")\n    parser.add_argument(\"--show_candidates\", action=\"\
+      store_true\", help=\"Show the list of candidates provided to the LLM.\")\n \
+      \   args = parser.parse_args()\n\n    pipeline = None\n    try:\n        pipeline\
+      \ = get_pipeline(PIPELINE)\n        \n        # --- MODIFIED: Unpack the tuple\
+      \ returned by pipeline.run ---\n        result_tuple = pipeline.run(\n     \
+      \       query=args.query,\n            lexical_k=args.lexical_k,\n         \
+      \   vector_k=args.vector_k,\n            rerank_top_n=args.top_n_rerank\n  \
+      \      )\n        \n        # Handle case where pipeline returns None\n    \
+      \    if not result_tuple:\n            final_result, candidates = None, []\n\
       \        else:\n            final_result, candidates = result_tuple\n\n    \
       \    # --- Print the final selection (no changes here) ---\n        print(\"\
       \\n--- Final LLM Selection ---\")\n        if not final_result:\n          \
@@ -1525,7 +1581,8 @@
       \ including candidates considered by the LLM,\nto an output JSON file. The final\
       \ mapping result is simplified to improve readability.\n\"\"\"\n\nimport sys\n\
       import json\nimport logging\nfrom tqdm import tqdm\nfrom pathlib import Path\n\
-      \n# --- Add project root to sys.path ---\nPROJECT_ROOT = Path(__file__).resolve().parent.parent\n\
+      from src.pipeline.pipeline_factory import get_pipeline\n\n# --- Add project\
+      \ root to sys.path ---\nPROJECT_ROOT = Path(__file__).resolve().parent.parent\n\
       if str(PROJECT_ROOT) not in sys.path:\n    sys.path.insert(0, str(PROJECT_ROOT))\n\
       \nfrom src import config\n\n# --- Configuration ---\nLOGGING_LEVEL = logging.INFO\n\
       PRODUCT_LIMIT = 100\n\n# --- Paths Configuration (using pathlib) ---\nDATA_DIR\
@@ -1542,7 +1599,7 @@
       \        if key not in keys_to_remove\n    }\n    return simplified_dict\n\n\
       \ndef main():\n    \"\"\"\n    Main function to run the batch ingredient mapping\
       \ process.\n    \"\"\"\n    logger.info(\"Starting batch ontology mapping process...\"\
-      )\n    logger.info(f\"Using pipeline: {config.PIPELINE.__name__}\")\n\n    OUTPUT_FILE.parent.mkdir(parents=True,\
+      )\n    logger.info(f\"Using pipeline: {config.PIPELINE}\")\n\n    OUTPUT_FILE.parent.mkdir(parents=True,\
       \ exist_ok=True)\n\n    pipeline = None\n    try:\n        # --- 1. Load Input\
       \ Data ---\n        logger.info(f\"Loading ingredients from: {INPUT_FILE}\"\
       )\n        if not INPUT_FILE.exists():\n            logger.error(f\"Input file\
@@ -1551,11 +1608,11 @@
       \ encoding='utf-8') as f:\n            ## MODIFIED ##: Renamed variable to reflect\
       \ new data structure\n            all_product_data = json.load(f)\n\n      \
       \  # --- 2. Initialize RAG Pipeline ---\n        logger.info(\"Initializing\
-      \ RAG pipeline...\")\n        pipeline = config.PIPELINE()\n        logger.info(\"\
-      RAG pipeline initialized successfully.\")\n\n        # --- 3. Process Ingredients\
-      \ ---\n        all_mappings = {}\n\n        ## MODIFIED ##: Use the new data\
-      \ variable\n        items_to_process = list(all_product_data.items())\n    \
-      \    if PRODUCT_LIMIT is not None:\n            items_to_process = items_to_process[:PRODUCT_LIMIT]\n\
+      \ RAG pipeline...\")\n        pipeline = get_pipeline(config.PIPELINE)\n   \
+      \     logger.info(\"RAG pipeline initialized successfully.\")\n\n        # ---\
+      \ 3. Process Ingredients ---\n        all_mappings = {}\n\n        ## MODIFIED\
+      \ ##: Use the new data variable\n        items_to_process = list(all_product_data.items())\n\
+      \        if PRODUCT_LIMIT is not None:\n            items_to_process = items_to_process[:PRODUCT_LIMIT]\n\
       \            logger.warning(f\"Processing a limited set of {PRODUCT_LIMIT} products.\"\
       )\n\n        ## MODIFIED ##: Loop now unpacks the product data dictionary\n\
       \        for product_id, product_data in tqdm(items_to_process, desc=\"Processing\
@@ -1593,6 +1650,105 @@
       \            pipeline.close()\n\nif __name__ == \"__main__\":\n    main()"
     "tempCodeRunnerFile.py": |-
       f
+    "confidence_scorers":
+      "base_confidence_scorer.py": "# src/confidence_scorers/base_confidence_scorer.py\n\
+        import logging\nfrom abc import ABC, abstractmethod\nfrom typing import List,\
+        \ Dict, Any, Optional\nimport json\n\nfrom src import config\n\nlogger = logging.getLogger(__name__)\n\
+        \nclass BaseConfidenceScorer(ABC):\n    \"\"\"Abstract base class for LLM-based\
+        \ confidence scorers.\"\"\"\n\n    def __init__(self, model_name: str):\n\
+        \        self.model_name = model_name\n        self.prompt_template = self._load_prompt_template()\n\
+        \        logger.info(f\"{self.__class__.__name__} initialized for model: {self.model_name}\"\
+        )\n\n    def _load_prompt_template(self) -> str:\n        template_path =\
+        \ config.CONFIDENCE_PROMPT_TEMPLATE_PATH\n        try:\n            with template_path.open('r',\
+        \ encoding='utf-8') as f:\n                return f.read()\n        except\
+        \ FileNotFoundError:\n            logger.error(f\"Confidence prompt template\
+        \ not found at {template_path}\")\n            raise\n\n    def _format_term_details(self,\
+        \ term_details: Dict[str, Any]) -> str:\n        label = term_details.get(\"\
+        label\", \"N/A\")\n        definition = term_details.get(\"definition\", \"\
+        No definition available.\")\n        synonyms = \"; \".join(term_details.get(\"\
+        synonyms\", [])) or \"None\"\n        return f\"ID: {term_details.get('id',\
+        \ 'N/A')}\\nLabel: {label}\\nDefinition: {definition}\\nSynonyms: {synonyms}\"\
+        \n\n    def _format_other_candidates(self, candidates: List[Dict[str, Any]],\
+        \ chosen_id: str, limit: int = 5) -> str:\n        other_candidates = [c for\
+        \ c in candidates if c.get('id') != chosen_id][:limit]\n        if not other_candidates:\n\
+        \            return \"None provided.\"\n        \n        formatted_list =\
+        \ []\n        for cand in other_candidates:\n            formatted_list.append(f\"\
+        - {cand.get('label', 'N/A')} (ID: {cand.get('id', 'N/A')})\")\n        return\
+        \ \"\\n\".join(formatted_list)\n    \n    def _parse_response(self, response_text:\
+        \ str) -> Optional[Dict[str, Any]]:\n        try:\n            cleaned_response\
+        \ = response_text.strip().lstrip(\"```json\").rstrip(\"```\").strip()\n  \
+        \          result = json.loads(cleaned_response)\n            \n         \
+        \   if 'confidence_score' not in result or 'explanation' not in result:\n\
+        \                logger.error(\"Confidence scorer response missing required\
+        \ keys. Response: %s\", result)\n                return None\n           \
+        \ \n            return {\n                'confidence_score': float(result['confidence_score']),\n\
+        \                'explanation': str(result['explanation'])\n            }\n\
+        \        except (json.JSONDecodeError, ValueError, TypeError) as e:\n    \
+        \        logger.error(f\"Failed to decode or parse confidence scorer response:\
+        \ {response_text}. Error: {e}\")\n            return None\n\n    @abstractmethod\n\
+        \    def _call_llm(self, prompt: str) -> Optional[str]:\n        \"\"\"Makes\
+        \ the actual API call to the specific LLM provider.\"\"\"\n        pass\n\
+        \    \n    def score_confidence(self, query: str, chosen_term_details: Dict[str,\
+        \ Any], all_candidates: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:\n\
+        \        \"\"\"Formats the prompt, calls the LLM, and parses the response\
+        \ for confidence scoring.\"\"\"\n        chosen_details_str = self._format_term_details(chosen_term_details)\n\
+        \        other_candidates_str = self._format_other_candidates(all_candidates,\
+        \ chosen_term_details.get('id', ''))\n\n        prompt = self.prompt_template.replace(\"\
+        [USER_ENTITY]\", query)\n        prompt = prompt.replace(\"[CHOSEN_TERM_DETAILS]\"\
+        , chosen_details_str)\n        prompt = prompt.replace(\"[OTHER_CANDIDATES]\"\
+        , other_candidates_str)\n\n        response_text = self._call_llm(prompt)\n\
+        \        if response_text is None:\n            return None\n        \n  \
+        \      return self._parse_response(response_text)"
+      "gemini_confidence_scorer.py": "# src/confidence_scorers/gemini_confidence_scorer.py\n\
+        import logging\nfrom typing import Optional\n\nfrom google import genai\n\
+        from google.api_core import exceptions\n\nfrom src.confidence_scorers.base_confidence_scorer\
+        \ import BaseConfidenceScorer\nfrom src import config\n\nlogger = logging.getLogger(__name__)\n\
+        \nclass GeminiConfidenceScorer(BaseConfidenceScorer):\n    \"\"\"Uses Google\
+        \ Gemini to assess the confidence of an ontology mapping.\"\"\"\n    def __init__(self):\n\
+        \        model_name = config.GEMINI_SCORER_MODEL_NAME # Use the same model\
+        \ for now\n        super().__init__(model_name=model_name)\n        \n   \
+        \     if not config.GEMINI_API_KEY:\n            raise ValueError(\"GEMINI_API_KEY\
+        \ not found in environment variables.\")\n        \n        self.client =\
+        \ genai.Client(api_key=config.GEMINI_API_KEY)\n\n    def _call_llm(self, prompt:\
+        \ str) -> Optional[str]:\n        logger.info(f\"Sending confidence scoring\
+        \ request to Gemini...\")\n        try:\n            generation_config = {'temperature':\
+        \ 0}\n            response = self.client.models.generate_content(\n      \
+        \          model=self.model_name,\n                contents=prompt,\n    \
+        \            config=generation_config\n            )\n\n            feedback\
+        \ = getattr(response, 'prompt_feedback', None)\n            if feedback and\
+        \ any(r.blocked for r in feedback.safety_ratings or []):\n               \
+        \ logger.warning(f\"Confidence scoring request was blocked by safety filters.\"\
+        )\n                return None\n\n            return response.text\n     \
+        \   except exceptions.GoogleAPIError as e:\n            logger.error(f\"A\
+        \ Google API error occurred with the Gemini call for confidence scoring: {e}\"\
+        , exc_info=True)\n            return None\n        except Exception as e:\n\
+        \            logger.error(f\"An unexpected error occurred with the Gemini\
+        \ confidence API call: {e}\", exc_info=True)\n            return None"
+      "ollama_confidence_scorer.py": "# src/rag_selectors/ollama_confidence_scorer.py\n\
+        import logging\nfrom typing import Optional\n\nimport ollama\n\nfrom src.confidence_scorers.base_confidence_scorer\
+        \ import BaseConfidenceScorer\nfrom src import config\n\nlogger = logging.getLogger(__name__)\n\
+        \nclass OllamaConfidenceScorer(BaseConfidenceScorer):\n    \"\"\"Uses a local\
+        \ LLM via Ollama to assess the confidence of an ontology mapping.\"\"\"\n\
+        \    \n    def __init__(self):\n        # Use a specific model for confidence\
+        \ scoring if needed, or reuse the selector model\n        model_name = config.OLLAMA_SCORER_MODEL_NAME\n\
+        \        super().__init__(model_name=model_name)\n        \n        try:\n\
+        \            ollama.ps()\n            logger.info(\"Ollama service is running\
+        \ for confidence scorer.\")\n        except Exception as exc:\n          \
+        \  logger.error(\"Ollama service not detected. Please ensure Ollama is running.\"\
+        )\n            raise ConnectionError(\"Ollama service not available.\") from\
+        \ exc\n\n    def _call_llm(self, prompt: str) -> Optional[str]:\n        logger.info(f\"\
+        Sending confidence scoring request to Ollama with model '{self.model_name}'\"\
+        )\n        try:\n            response = ollama.chat(\n                model=self.model_name,\n\
+        \                messages=[\n                    {\n                     \
+        \   'role': 'user',\n                        'content': prompt,\n        \
+        \            },\n                ],\n                format='json',\n    \
+        \            options={'temperature': 0.0}\n            )\n            return\
+        \ response['message']['content']\n        except ollama.ResponseError as e:\n\
+        \            logger.error(f\"An error occurred with the Ollama API call for\
+        \ confidence scoring: {e.status_code} - {e.error}\")\n            return None\n\
+        \        except Exception as e:\n            logger.error(f\"An unexpected\
+        \ error occurred during the Ollama confidence scoring call: {e}\", exc_info=True)\n\
+        \            return None"
     "embeddings":
       "embed_docs.py": "# src/embeddings/embed_docs.py\nimport json\nimport os\nimport\
         \ logging\nimport time\nfrom typing import List, Dict, Any\n\n# Ensure src\
@@ -2317,18 +2473,21 @@
         from typing import List, Dict, Any, Optional, Type\nfrom pathlib import Path\n\
         \n\nPROJECT_ROOT = Path(__file__).resolve().parent.parent\nif str(PROJECT_ROOT)\
         \ not in sys.path:\n    sys.path.insert(0, str(PROJECT_ROOT))\n\nfrom src.rag_selectors.base_selector\
-        \ import BaseSelector\nfrom src.retriever.hybrid_retriever import HybridRetriever\n\
-        from src.reranker.llm_reranker import LLMReranker\nfrom src import config\n\
-        \nlogging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s\
-        \ - %(name)s - %(message)s')\nlogger = logging.getLogger(__name__)\n\nclass\
-        \ BaseRAGPipeline:\n    \"\"\"\n    A base class for the RAG pipeline, abstracting\
-        \ the common logic for\n    retrieving, reranking, and selecting ontology\
-        \ terms.\n    \n    Subclasses should specify the selector to use.\n    \"\
-        \"\"\n    def __init__(self, selector_class: Type[BaseSelector]):\n      \
-        \  \"\"\"\n        Initializes the RAG Pipeline.\n\n        Args:\n      \
-        \      selector_class (Type[BaseSelector]): The class of the selector to use\n\
-        \                                                 (e.g., GeminiSelector, OllamaSelector).\n\
-        \        \"\"\"\n        logger.info(f\"Initializing RAG Pipeline with {selector_class.__name__}...\"\
+        \ import BaseSelector\nfrom src.confidence_scorers.base_confidence_scorer\
+        \ import BaseConfidenceScorer\nfrom src.retriever.hybrid_retriever import\
+        \ HybridRetriever\nfrom src.reranker.llm_reranker import LLMReranker\nfrom\
+        \ src import config\n\nlogging.basicConfig(level=logging.INFO, format='%(asctime)s\
+        \ - %(levelname)s - %(name)s - %(message)s')\nlogger = logging.getLogger(__name__)\n\
+        \nclass BaseRAGPipeline:\n    \"\"\"\n    A base class for the RAG pipeline,\
+        \ abstracting the common logic for\n    retrieving, reranking, and selecting\
+        \ ontology terms.\n    \n    Subclasses should specify the selector to use.\n\
+        \    \"\"\"\n    # MODIFIED __init__ to accept a confidence scorer\n    def\
+        \ __init__(self, selector_class: Type[BaseSelector], confidence_scorer_class:\
+        \ Type[BaseConfidenceScorer]):\n        \"\"\"\n        Initializes the RAG\
+        \ Pipeline.\n\n        Args:\n            selector_class (Type[BaseSelector]):\
+        \ The class of the selector to use.\n            confidence_scorer_class (Type[BaseConfidenceScorer]):\
+        \ The class of the confidence scorer to use.\n        \"\"\"\n        logger.info(f\"\
+        Initializing RAG Pipeline with {selector_class.__name__} and {confidence_scorer_class.__name__}...\"\
         )\n        try:\n            self.retriever = HybridRetriever()\n\n      \
         \      all_enriched_docs_paths = [\n                data['enriched_docs_path']\
         \ \n                for data in config.ONTOLOGIES_CONFIG.values()\n      \
@@ -2341,6 +2500,7 @@
         \                enriched_docs_paths=all_enriched_docs_paths,\n          \
         \      device=config.EMBEDDING_DEVICE\n            )\n            \n     \
         \       self.selector = selector_class(retriever=self.retriever)\n       \
+        \     self.confidence_scorer = confidence_scorer_class() # ADDED\n       \
         \     logger.info(\"RAG Pipeline initialized successfully.\")\n          \
         \  \n        except (FileNotFoundError, ValueError) as e:\n            logger.error(f\"\
         Failed to initialize pipeline: {e}\")\n            logger.error(\"Please run\
@@ -2348,7 +2508,8 @@
         \ API keys are set in your .env file.\")\n            raise\n        except\
         \ Exception as e:\n            logger.error(f\"An unexpected error occurred\
         \ during pipeline initialization: {e}\", exc_info=True)\n            raise\n\
-        \n    def run(self, \n            query: str, \n            lexical_k: int\
+        \n    # MODIFIED run method to incorporate the two-step selection and scoring\n\
+        \    def run(self, \n            query: str, \n            lexical_k: int\
         \ = config.DEFAULT_K_LEXICAL, \n            vector_k: int = config.DEFAULT_K_VECTOR,\
         \ \n            rerank_top_n: int = 10\n            ) -> Optional[tuple[Dict[str,\
         \ Any], List[Dict[str, Any]]]]:\n        \"\"\"\n        Executes the full\
@@ -2365,51 +2526,57 @@
         \ in seen_ids:\n                combined_candidates.append(doc)\n        \
         \        seen_ids.add(doc_id)\n        \n        if not combined_candidates:\n\
         \            logger.warning(\"No candidates found for query: '%s'\", query)\n\
-        \            return None\n\n        # 3. Rerank\n        reranked_candidates\
-        \ = combined_candidates#self.reranker.rerank(query, combined_candidates, top_n=rerank_top_n)\n\
-        \n        if not reranked_candidates:\n            logger.warning(\"No candidates\
-        \ left after reranking for query: '%s'\", query)\n            return None\n\
-        \        \n        logger.info(f\"Top {len(reranked_candidates)} candidates\
-        \ after reranking passed to LLM selector.\")\n\n        # 4. Select with LLM\n\
-        \        selection = self.selector.select_best_term(query, reranked_candidates)\n\
-        \n        # 5. Process selection\n        if not selection:\n            logger.warning(\"\
-        LLM selection failed. Returning the top reranked result as a fallback.\")\n\
-        \            top_fallback = reranked_candidates[0]\n            chosen_term_details\
-        \ = self.retriever.get_term_details(top_fallback['id'])\n            if chosen_term_details:\n\
-        \                chosen_term_details['confidence_score'] = 0.0\n         \
-        \       chosen_term_details['explanation'] = \"FALLBACK: LLM selection failed.\
-        \ This is the top result from the reranker.\"\n            return chosen_term_details,\
-        \ reranked_candidates\n\n        chosen_id = selection['chosen_id']\n    \
-        \    if chosen_id in ('0', '-1'):\n            logger.info(\"LLM determined\
-        \ no suitable match exists for query: '%s'\", query)\n            no_match_result\
-        \ = {\n                'id': chosen_id,\n                'label': 'No Match\
-        \ Found',\n                'definition': 'The Language Model determined that\
-        \ no candidate was a suitable match for the query.',\n                'synonyms':\
-        \ [], 'parents': [], 'ancestors': [], 'relations': {},\n                'confidence_score':\
-        \ selection.get('confidence_score', 0.0),\n                'explanation':\
-        \ selection.get('explanation', 'No explanation provided.')\n            }\n\
-        \            return no_match_result, reranked_candidates\n        \n     \
-        \   chosen_term_details = self.retriever.get_term_details(chosen_id)\n   \
-        \     if not chosen_term_details:\n            logger.error(\"LLM chose ID\
-        \ '%s', but its details could not be retrieved.\", chosen_id)\n          \
-        \  return None\n\n        # Add the confidence and explanation from the selector\
-        \ to the final result\n        chosen_term_details['confidence_score'] = selection.get('confidence_score',\
-        \ 0.0)\n        chosen_term_details['explanation'] = selection.get('explanation',\
-        \ 'No explanation provided.')\n        \n        return chosen_term_details,\
-        \ reranked_candidates\n\n    def close(self):\n        \"\"\"Closes any open\
-        \ resources, like database connections.\"\"\"\n        if hasattr(self.retriever,\
-        \ 'close'):\n            self.retriever.close()\n        logger.info(\"Pipeline\
-        \ resources closed.\")"
+        \            return None\n\n        # 3. Rerank (Uncommented as per intended\
+        \ logic)\n        reranked_candidates = self.reranker.rerank(query, combined_candidates,\
+        \ top_n=rerank_top_n)\n\n        if not reranked_candidates:\n           \
+        \ logger.warning(\"No candidates left after reranking for query: '%s'\", query)\n\
+        \            return None\n        \n        logger.info(f\"Top {len(reranked_candidates)}\
+        \ candidates after reranking passed to LLM selector.\")\n\n        # 4. Select\
+        \ with Selector Agent\n        selection = self.selector.select_best_term(query,\
+        \ reranked_candidates)\n\n        if not selection:\n            logger.warning(\"\
+        LLM selection failed. Cannot proceed to confidence scoring.\")\n         \
+        \   return None, reranked_candidates\n\n        chosen_id = selection['chosen_id']\n\
+        \        initial_explanation = selection.get('explanation', 'No explanation\
+        \ provided.')\n        \n        if chosen_id in ('0', '-1'):\n          \
+        \  logger.info(\"Selector determined no suitable match exists for query: '%s'\"\
+        , query)\n            no_match_result = {\n                'id': chosen_id,\n\
+        \                'label': 'No Match Found',\n                'definition':\
+        \ 'The selector model determined that no candidate was a suitable match.',\n\
+        \                'synonyms': [], 'parents': [], 'ancestors': [], 'relations':\
+        \ {},\n                'confidence_score': 0.0,\n                'explanation':\
+        \ initial_explanation\n            }\n            return no_match_result,\
+        \ reranked_candidates\n\n        chosen_term_details = self.retriever.get_term_details(chosen_id)\n\
+        \        if not chosen_term_details:\n            logger.error(\"Selector\
+        \ chose ID '%s', but its details could not be retrieved.\", chosen_id)\n \
+        \           return None, reranked_candidates\n        \n        # 5. Score\
+        \ Confidence with Confidence Agent\n        logger.info(\"Passing selection\
+        \ to confidence scorer for query: '%s'\", query)\n        confidence_result\
+        \ = self.confidence_scorer.score_confidence(\n            query=query,\n \
+        \           chosen_term_details=chosen_term_details,\n            all_candidates=reranked_candidates\n\
+        \        )\n\n        if confidence_result:\n            chosen_term_details['confidence_score']\
+        \ = confidence_result.get('confidence_score', 0.0)\n            chosen_term_details['explanation']\
+        \ = confidence_result.get('explanation', initial_explanation)\n          \
+        \  logger.info(f\"Confidence score for '{chosen_id}': {chosen_term_details['confidence_score']:.2f}\"\
+        )\n        else:\n            logger.warning(\"Confidence scoring failed.\
+        \ Using default values.\")\n            chosen_term_details['confidence_score']\
+        \ = 0.0\n            chosen_term_details['explanation'] = initial_explanation\n\
+        \        \n        return chosen_term_details, reranked_candidates\n\n   \
+        \ def close(self):\n        \"\"\"Closes any open resources, like database\
+        \ connections.\"\"\"\n        if hasattr(self.retriever, 'close'):\n     \
+        \       self.retriever.close()\n        logger.info(\"Pipeline resources closed.\"\
+        )"
       "gemini_pipeline.py": "# src/pipeline/gemini_pipeline.py\nimport sys\nfrom pathlib\
         \ import Path\nPROJECT_ROOT = Path(__file__).resolve().parent.parent\nif str(PROJECT_ROOT)\
         \ not in sys.path:\n    sys.path.insert(0, str(PROJECT_ROOT))\n    \nfrom\
         \ src.pipeline.base_pipeline import BaseRAGPipeline\nfrom src.rag_selectors.gemini_selector\
-        \ import GeminiSelector\n\nclass GeminiRAGPipeline(BaseRAGPipeline):\n   \
-        \ \"\"\"\n    A RAG pipeline implementation that uses the GeminiSelector for\
-        \ the\n    final term selection step.\n    \"\"\"\n    def __init__(self):\n\
-        \        \"\"\"\n        Initializes the Gemini-specific RAG pipeline.\n \
-        \       \"\"\"\n        # Pass the GeminiSelector class to the base constructor\n\
-        \        super().__init__(selector_class=GeminiSelector)"
+        \ import GeminiSelector\nfrom src.confidence_scorers.gemini_confidence_scorer\
+        \ import GeminiConfidenceScorer # ADDED\n\nclass GeminiRAGPipeline(BaseRAGPipeline):\n\
+        \    \"\"\"\n    A RAG pipeline implementation that uses Gemini for both selection\
+        \ and confidence scoring.\n    \"\"\"\n    def __init__(self):\n        \"\
+        \"\"\n        Initializes the Gemini-specific RAG pipeline.\n        \"\"\"\
+        \n        # Pass the Gemini-specific classes to the base constructor\n   \
+        \     super().__init__(\n            selector_class=GeminiSelector, \n   \
+        \         confidence_scorer_class=GeminiConfidenceScorer\n        )"
       "ollama_pipeline.py": "# src/pipeline/ollama_pipeline.py\nimport sys\nfrom pathlib\
         \ import Path\nPROJECT_ROOT = Path(__file__).resolve().parent.parent\nif str(PROJECT_ROOT)\
         \ not in sys.path:\n    sys.path.insert(0, str(PROJECT_ROOT))\n    \n\nfrom\
@@ -2420,6 +2587,27 @@
         \        \"\"\"\n        Initializes the Ollama-specific RAG pipeline.\n \
         \       \"\"\"\n        # Pass the OllamaSelector class to the base constructor\n\
         \        super().__init__(selector_class=OllamaSelector)"
+      "pipeline_factory.py": |-
+        # src/pipeline/pipeline_factory.py
+        from src.pipeline.base_pipeline import BaseRAGPipeline
+        from src.pipeline.gemini_pipeline import GeminiRAGPipeline
+        from src.pipeline.ollama_pipeline import OllamaRAGPipeline
+
+        def get_pipeline(pipeline_name: str) -> BaseRAGPipeline:
+            """
+            Factory function to get an instance of a RAG pipeline.
+            This is the central place to manage pipeline selection.
+            """
+            if pipeline_name == "gemini":
+                return GeminiRAGPipeline()
+            elif pipeline_name == "ollama":
+                return OllamaRAGPipeline()
+            # To add a new pipeline, you would just add another elif here.
+            # elif pipeline_name == "huggingface":
+            #     from .huggingface_pipeline import HuggingFaceRAGPipeline
+            #     return HuggingFaceRAGPipeline()
+            else:
+                raise ValueError(f"Unknown pipeline name: '{pipeline_name}'. Valid options are 'gemini', 'ollama'.")
     "rag_selectors":
       "__init__.py": ""
       "base_selector.py": "# src/rag_selectors/base_selector.py\nimport logging\n\
@@ -2473,15 +2661,15 @@
         \               validated_result['explanation'] = result['explanation']\n\
         \            else:\n                logger.warning(\"LLM response missing\
         \ 'explanation' key. Using default value.\")\n                validated_result['explanation']\
-        \ = 'No explanation provided.'\n\n            if 'confidence_score' in result:\n\
-        \                try:\n                    validated_result['confidence_score']\
+        \ = 'No explanation provided.'\n\n            '''if 'confidence_score' in\
+        \ result:\n                try:\n                    validated_result['confidence_score']\
         \ = float(result['confidence_score'])\n                except (ValueError,\
         \ TypeError):\n                    logger.warning(\n                     \
         \   f\"Invalid confidence_score value in response: '{result.get('confidence_score')}'.\
         \ Defaulting to 0.0.\"\n                    )\n                    validated_result['confidence_score']\
         \ = 0.0\n            else:\n                logger.warning(\"LLM response\
         \ missing 'confidence_score' key. Defaulting to 0.0.\")\n                validated_result['confidence_score']\
-        \ = 0.0\n\n            return validated_result\n            \n        except\
+        \ = 0.0'''\n\n            return validated_result\n            \n        except\
         \ json.JSONDecodeError:\n            logger.error(f\"Failed to decode JSON\
         \ from LLM response: {response_text}\")\n            return None\n\n    @abstractmethod\n\
         \    def _call_llm(self, prompt: str, query: str) -> Optional[str]:\n    \
@@ -2514,9 +2702,9 @@
         \ term.\n    \"\"\"\n    def __init__(self, retriever: HybridRetriever):\n\
         \        \"\"\"\n        Initializes the GeminiSelector.\n\n        Args:\n\
         \            retriever (HybridRetriever): An initialized retriever instance.\n\
-        \        \"\"\"\n        model_name = config.LLM_SELECTOR_MODEL_NAME\n   \
-        \     super().__init__(retriever=retriever, model_name=model_name)\n     \
-        \   \n        if not config.GEMINI_API_KEY:\n            raise ValueError(\"\
+        \        \"\"\"\n        model_name = config.GEMINI_SELECTOR_MODEL_NAME\n\
+        \        super().__init__(retriever=retriever, model_name=model_name)\n  \
+        \      \n        if not config.GEMINI_API_KEY:\n            raise ValueError(\"\
         GEMINI_API_KEY not found in environment variables.\")\n        \n        self.client\
         \ = genai.Client(api_key=config.GEMINI_API_KEY)\n\n    def _call_llm(self,\
         \ prompt: str, query: str) -> Optional[str]:\n        \"\"\"\n        Makes\

@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 class GeminiConfidenceScorer(BaseConfidenceScorer):
     """Uses Google Gemini to assess the confidence of an ontology mapping."""
     def __init__(self):
-        model_name = config.LLM_SELECTOR_MODEL_NAME # Use the same model for now
+        model_name = config.GEMINI_SCORER_MODEL_NAME # Use the same model for now
         super().__init__(model_name=model_name)
         
         if not config.GEMINI_API_KEY:

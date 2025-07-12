@@ -22,7 +22,7 @@ class GeminiSelector(BaseSelector):
         Args:
             retriever (HybridRetriever): An initialized retriever instance.
         """
-        model_name = config.LLM_SELECTOR_MODEL_NAME
+        model_name = config.GEMINI_SELECTOR_MODEL_NAME
         super().__init__(retriever=retriever, model_name=model_name)
         
         if not config.GEMINI_API_KEY:

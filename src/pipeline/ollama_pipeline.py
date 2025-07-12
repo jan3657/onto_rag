@@ -8,6 +8,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from src.pipeline.base_pipeline import BaseRAGPipeline
 from src.rag_selectors.ollama_selector import OllamaSelector
+from src.confidence_scorers.ollama_confidence_scorer import OllamaConfidenceScorer
 
 class OllamaRAGPipeline(BaseRAGPipeline):
     """
@@ -19,4 +20,5 @@ class OllamaRAGPipeline(BaseRAGPipeline):
         Initializes the Ollama-specific RAG pipeline.
         """
         # Pass the OllamaSelector class to the base constructor
-        super().__init__(selector_class=OllamaSelector)
+        super().__init__(selector_class=OllamaSelector, 
+                         confidence_scorer_class=OllamaConfidenceScorer)

@@ -13,6 +13,7 @@ import json
 import logging
 from tqdm import tqdm
 from pathlib import Path
+from src.pipeline.pipeline_factory import get_pipeline
 
 # --- Add project root to sys.path ---
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -57,7 +58,7 @@ def main():
     Main function to run the batch ingredient mapping process.
     """
     logger.info("Starting batch ontology mapping process...")
-    logger.info(f"Using pipeline: {config.PIPELINE.__name__}")
+    logger.info(f"Using pipeline: {config.PIPELINE}")
 
     OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
 
@@ -76,7 +77,7 @@ def main():
 
         # --- 2. Initialize RAG Pipeline ---
         logger.info("Initializing RAG pipeline...")
-        pipeline = config.PIPELINE()
+        pipeline = get_pipeline(config.PIPELINE)
         logger.info("RAG pipeline initialized successfully.")
 
         # --- 3. Process Ingredients ---
