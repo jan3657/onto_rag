@@ -14,7 +14,8 @@ class BaseSelector(ABC):
     """
     Abstract base class for LLM-based term selectors.
 
-    This class provides the common framework for loading prompts, formatting
+    This class provides the common framework for loading
+    prompts, formatting
     candidate lists, and parsing the final LLM response. Subclasses must
     implement the provider-specific `__init__` setup and the `_call_llm` method.
     """
@@ -137,11 +138,15 @@ class BaseSelector(ABC):
         candidate_str = self._format_candidates_for_prompt(candidates)
         prompt = self.prompt_template.replace("[USER_ENTITY]", query).replace("[CANDIDATE_LIST]", candidate_str)
         
+        logger.debug(f"Selector Prompt:\n---\n{prompt}\n---")
+
         # Delegate the provider-specific call to the subclass
         response_text = self._call_llm(prompt, query)
         
         if response_text is None:
             return None
+            
+        logger.debug(f"Selector Raw Response:\n---\n{response_text}\n---") 
         
         # Use the centralized parsing and validation method
         return self._parse_and_validate_response(response_text)

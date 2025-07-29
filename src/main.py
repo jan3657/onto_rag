@@ -3,6 +3,10 @@ import argparse
 import json
 import sys
 from pathlib import Path
+import logging
+
+# Get a logger instance for this module
+logger = logging.getLogger(__name__)
 
 # --- Add project root to sys.path ---
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -11,6 +15,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from src.pipeline.pipeline_factory import get_pipeline
 from src.config import DEFAULT_K_LEXICAL, DEFAULT_K_VECTOR, PIPELINE
+from src.utils.logging_config import setup_run_logging
 
 def main():
     parser = argparse.ArgumentParser(description="Run the Onto-RAG pipeline with LLM selection.")
@@ -21,25 +26,27 @@ def main():
     parser.add_argument("--show_candidates", action="store_true", help="Show the list of candidates provided to the LLM.")
     args = parser.parse_args()
 
+    setup_run_logging(args.query)
+
+    logger.info(f"Starting pipeline run for query: '{args.query}' with pipeline: '{PIPELINE}'")
+    
     pipeline = None
     try:
         pipeline = get_pipeline(PIPELINE)
         
-        # --- MODIFIED: Unpack the tuple returned by pipeline.run ---
         result_tuple = pipeline.run(
             query=args.query,
             lexical_k=args.lexical_k,
-            vector_k=args.vector_k,
-            rerank_top_n=args.top_n_rerank
+            vector_k=args.vector_k
         )
         
-        # Handle case where pipeline returns None
         if not result_tuple:
             final_result, candidates = None, []
+            logger.warning("Pipeline did not return a result.")
         else:
             final_result, candidates = result_tuple
 
-        # --- Print the final selection (no changes here) ---
+        # Use print() for the final, user-facing output. This is the script's "result".
         print("\n--- Final LLM Selection ---")
         if not final_result:
             print("Could not determine a matching ontology term.")
@@ -55,13 +62,12 @@ def main():
             print(f"  > {final_result.get('explanation', 'No explanation provided.')}")
         print("---------------------------\n")
 
-        # --- NEW: Print the candidates if requested ---
         if args.show_candidates and candidates:
+            # Also use print() here as this is user-requested output via a command-line flag.
             print(f"--- Top {len(candidates)} Candidates Provided to LLM ---")
             chosen_id = final_result.get('id') if final_result else None
             
             for i, candidate in enumerate(candidates):
-                # Fetch full details for printing
                 details = pipeline.retriever.get_term_details(candidate.get('id'))
                 if not details: continue
 
@@ -72,7 +78,7 @@ def main():
                 print(f"{i+1}. {marker} {details.get('label', 'N/A')} `{details.get('id', 'N/A')}` {score_str}")
                 definition = details.get('definition')
                 if definition:
-                    print(f"       Def: {definition[:150]}...")  # Print first 150 chars of definition
+                    print(f"       Def: {definition[:150]}...")
                 else:
                     print(f"       Def: No definition available.")
 
@@ -83,13 +89,13 @@ def main():
         elif args.show_candidates:
             print("--- No Candidates to Display ---")
 
-
     except Exception as e:
-        print(f"\nAn error occurred during the pipeline execution: {e}", file=sys.stderr)
-        import traceback
-        traceback.print_exc()
+        # Use the logger for exceptions. exc_info=True includes the traceback.
+        logger.error(f"An unhandled error occurred during the pipeline execution: {e}", exc_info=True)
+    
     finally:
         if pipeline:
+            logger.info("Closing pipeline resources.")
             pipeline.close()
 
 if __name__ == "__main__":

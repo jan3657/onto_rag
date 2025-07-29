@@ -15,7 +15,8 @@ INSTRUCTIONS:
 2. **Penalize Wrong Substances:** If the user entity refers to a different compound, substance, or regulated item (e.g., "Blue 1" vs. "Blue 2"), the confidence must be very low, even if the name is similar.
 3. **Apply Continuous Scoring:** Use scores from 0.0 to 1.0 with decimal precision (e.g., 0.15, 0.45, 0.85) to reflect subtle differences.
 4. **Suggest Alternatives (if low confidence):** If the score is **below 0.5**, suggest up to 3 better-matching ontology term labels from `Other Top Candidates`.
-
+5. **Formulation indicators (lake, salt, hydrate, ester, etc.) generally do not indicate a different parent substance; do not penalise if the root compound matches.**
+6. **If the user entity contains a formulation indicator, state explicitly whether it affects substance identity in your explanation.**
 ---
 ### **Confidence Score Rubric (Continuous)**
 

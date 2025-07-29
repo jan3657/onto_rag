@@ -25,6 +25,7 @@ EXCLUDE_ITEMS_EXACT = {
     "models",
     ".DS_Store",
     "tempCodeRunnerFile.py",
+    "logs",
     ".devcontainer",
     ".pytest_cache",
     "evaluation_results_llama.json",

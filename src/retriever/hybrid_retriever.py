@@ -123,7 +123,7 @@ class HybridRetriever:
                 
                 for hit in search_results:
                     hit_fields = hit.fields()
-                    term_curie = hit_fields.get('id') # Corrected field name to 'id' as per typical schema
+                    term_curie = hit_fields.get('curie') 
                     if not term_curie: continue
                     
                     all_results.append({
@@ -134,7 +134,7 @@ class HybridRetriever:
                 logger.error(f"Error during lexical search in '{name}' for '{query_string}': {e}", exc_info=True)
         
         all_results.sort(key=lambda x: x['score'], reverse=True)
-        return all_results[:limit]
+        return all_results
 
     def _vector_search(self, query_string: str, k: int = DEFAULT_K_VECTOR, target_ontologies: Optional[List[str]] = None):
         """Performs vector search on all or a subset of FAISS indexes."""
@@ -161,7 +161,7 @@ class HybridRetriever:
             logger.error(f"Error during vector search for '{query_string}': {e}", exc_info=True)
 
         all_results.sort(key=lambda x: x['score'])
-        return all_results[:k]
+        return all_results
 
     def search(self, query_string: str, lexical_limit: int = DEFAULT_K_LEXICAL, vector_k: int = DEFAULT_K_VECTOR, target_ontologies: Optional[List[str]] = None):
         """

@@ -1,0 +1,171 @@
+2025-07-29 13:29:08,563 - root - INFO - logging_config.setup_run_logging:82 - Logging configured to level DEBUG. Console output enabled.
+2025-07-29 13:29:08,563 - root - INFO - logging_config.setup_run_logging:83 - Saving run-specific log to: /Users/jandrole/projects/onto_rag/logs/run_Brilliant_Blue_FCF_gemini-2.5-flash-lite-preview-06-17.log
+2025-07-29 13:29:08,563 - __main__ - INFO - main.main:31 - Starting pipeline run for query: 'Brilliant Blue FCF' with pipeline: 'gemini'
+2025-07-29 13:29:08,563 - src.pipeline.base_pipeline - INFO - base_pipeline.__init__:39 - Initializing RAG Pipeline with GeminiSelector and GeminiConfidenceScorer...
+2025-07-29 13:29:08,563 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:36 - Initializing HybridRetriever for multiple ontologies...
+2025-07-29 13:29:08,563 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:45 - Loading embedding model: all-MiniLM-L6-v2
+2025-07-29 13:29:10,866 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:49 - --- Initializing resources for ontology: 'foodon' ---
+2025-07-29 13:29:10,866 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:53 - Loading ontology data from: /Users/jandrole/projects/onto_rag/data/ontology_dump_foodon.json
+2025-07-29 13:29:11,076 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:58 - Loaded 39725 entries for 'foodon'.
+2025-07-29 13:29:11,076 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:62 - Loading Whoosh index from: /Users/jandrole/projects/onto_rag/data/whoosh_index_foodon
+2025-07-29 13:29:11,122 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:72 - Whoosh index for 'foodon' loaded.
+2025-07-29 13:29:11,122 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:77 - Initializing FAISS store for 'foodon' (index: /Users/jandrole/projects/onto_rag/data/faiss_index_foodon.bin, metadata: /Users/jandrole/projects/onto_rag/data/faiss_metadata_foodon.json)...
+2025-07-29 13:29:11,122 - src.vector_store.faiss_store - INFO - faiss_store.__init__:29 - Loading existing FAISS index from /Users/jandrole/projects/onto_rag/data/faiss_index_foodon.bin and metadata from /Users/jandrole/projects/onto_rag/data/faiss_metadata_foodon.json
+2025-07-29 13:29:11,153 - src.vector_store.faiss_store - INFO - faiss_store.load_store:138 - FAISS index loaded. Index has 39725 vectors of dim 384.
+2025-07-29 13:29:11,163 - src.vector_store.faiss_store - INFO - faiss_store.load_store:142 - FAISS metadata loaded. 39725 items.
+2025-07-29 13:29:11,163 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:88 - FAISS store for 'foodon' initialized.
+2025-07-29 13:29:11,163 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:49 - --- Initializing resources for ontology: 'chebi' ---
+2025-07-29 13:29:11,163 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:53 - Loading ontology data from: /Users/jandrole/projects/onto_rag/data/ontology_dump_chebi.json
+2025-07-29 13:29:12,701 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:58 - Loaded 203574 entries for 'chebi'.
+2025-07-29 13:29:12,701 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:62 - Loading Whoosh index from: /Users/jandrole/projects/onto_rag/data/whoosh_index_chebi
+2025-07-29 13:29:12,848 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:72 - Whoosh index for 'chebi' loaded.
+2025-07-29 13:29:12,848 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:77 - Initializing FAISS store for 'chebi' (index: /Users/jandrole/projects/onto_rag/data/faiss_index_chebi.bin, metadata: /Users/jandrole/projects/onto_rag/data/faiss_metadata_chebi.json)...
+2025-07-29 13:29:12,848 - src.vector_store.faiss_store - INFO - faiss_store.__init__:29 - Loading existing FAISS index from /Users/jandrole/projects/onto_rag/data/faiss_index_chebi.bin and metadata from /Users/jandrole/projects/onto_rag/data/faiss_metadata_chebi.json
+2025-07-29 13:29:12,943 - src.vector_store.faiss_store - INFO - faiss_store.load_store:138 - FAISS index loaded. Index has 203574 vectors of dim 384.
+2025-07-29 13:29:12,994 - src.vector_store.faiss_store - INFO - faiss_store.load_store:142 - FAISS metadata loaded. 203574 items.
+2025-07-29 13:29:12,994 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:88 - FAISS store for 'chebi' initialized.
+2025-07-29 13:29:12,994 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:90 - HybridRetriever initialized successfully for all configured ontologies.
+2025-07-29 13:29:12,994 - src.pipeline.base_pipeline - INFO - base_pipeline.__init__:52 - Initializing LLMReranker with 2 enriched document file(s).
+2025-07-29 13:29:12,994 - src.reranker.llm_reranker - INFO - llm_reranker.__init__:38 - Loading CrossEncoder model: cross-encoder/ms-marco-MiniLM-L-6-v2 on cpu
+2025-07-29 13:29:14,386 - src.reranker.llm_reranker - INFO - llm_reranker.__init__:44 - Set CrossEncoder max_length to: 512
+2025-07-29 13:29:14,603 - src.reranker.llm_reranker - INFO - llm_reranker._load_enriched_documents:81 - Loaded a total of 241567 enriched documents from 2 file(s).
+2025-07-29 13:29:14,613 - src.rag_selectors.base_selector - INFO - base_selector.__init__:34 - GeminiSelector initialized for model: gemini-2.5-flash-lite-preview-06-17
+2025-07-29 13:29:14,614 - asyncio - DEBUG - selector_events.__init__:54 - Using selector: KqueueSelector
+2025-07-29 13:29:14,619 - src.confidence_scorers.base_confidence_scorer - INFO - base_confidence_scorer.__init__:17 - GeminiConfidenceScorer initialized for model: gemini-2.5-flash-lite-preview-06-17
+2025-07-29 13:29:14,624 - src.synonym_generators.base_synonym_generator - INFO - base_synonym_generator.__init__:17 - GeminiSynonymGenerator initialized for model: gemini-2.5-flash-lite-preview-06-17
+2025-07-29 13:29:14,629 - src.pipeline.base_pipeline - INFO - base_pipeline.__init__:72 - RAG Pipeline initialized successfully.
+2025-07-29 13:29:14,629 - src.pipeline.base_pipeline - INFO - base_pipeline.run:113 - --- Starting Pipeline Loop 1/4 ---
+2025-07-29 13:29:14,629 - src.pipeline.base_pipeline - INFO - base_pipeline.run:121 - Retrieving candidates for sub-query: 'Brilliant Blue FCF'
+2025-07-29 13:29:15,182 - src.pipeline.base_pipeline - INFO - base_pipeline.run:136 - Accumulated 19 unique candidates so far.
+2025-07-29 13:29:15,182 - src.reranker.llm_reranker - INFO - llm_reranker.rerank:113 - Reranking 19 document(s) for query: 'Brilliant Blue FCF'
+2025-07-29 13:29:15,528 - src.pipeline.base_pipeline - INFO - base_pipeline.run:147 - Top 19 candidates passed to LLM selector.
+2025-07-29 13:29:15,528 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'PATO:0000318'.
+2025-07-29 13:29:15,528 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'PATO:0001243'.
+2025-07-29 13:29:15,528 - src.rag_selectors.base_selector - DEBUG - base_selector.select_best_term:141 - Selector Prompt:
+---
+You are an expert ontologist specializing in food science. Your task is to analyze a list of candidate ontology terms and select the single most appropriate term that matches the user's provided entity.
+
+**User Entity:**
+Brilliant Blue FCF
+
+**Candidate Ontology Terms:**
+1. ID: CHEBI:82411
+   Label: Brilliant Blue
+   Definition: None
+   Synonyms: Brilliant Blue FCF, disodium salt
+
+2. ID: CHEBI:88171
+   Label: brilliant cresyl blue(1+)
+   Definition: An organic cation that is phenoxazin-5-ium substituted by methyl, amino and diethylamino groups at positions 2, 3 and 7 respectively. The tetrachlorozincate salt salt is the histological dye 'brilliant cresyl blue'.
+   Synonyms: 3-amino-7-(diethylamino)-2-methylphenoxazin-5-ium; brilliant cresyl blue(1+) cation
+
+3. ID: CHEBI:82468
+   Label: Fast green FCF
+   Definition: An organic sodium salt having 2-{(4-{ethyl[(3-sulfonatophenyl)methyl]amino}phenyl)[4-{ethyl[(3-sulfonatophenyl)methyl]iminio}cyclohexa-2,5-dien-1-ylidene]methyl}-5-hydroxybenzene-1-sulfonate as the counterion. Used as a substitute for Light green SF yellowish in Masson's trichrome as it is less likely to fade, and is more brilliant in colour. Also used as a food colouring agent.
+   Synonyms: disodium 2-{(4-{ethyl[(3-sulfonatophenyl)methyl]amino}phenyl)[4-{ethyl[(3-sulfonatophenyl)methyl]iminio}cyclohexa-2,5-dien-1-ylidene]methyl}-5-hydroxybenzene-1-sulfonate; C.I. 42053; C.I. Food Green 3; C.I. Food Green 3, disodium salt; Food green 3
+
+4. ID: CHEBI:82538
+   Label: Sunset Yellow FCF
+   Definition: None
+   Synonyms: C.I. Food Yellow 3
+
+5. ID: FOODON:03413297
+   Label: sunset yellow fcf/orange yellow s
+   Definition: None
+   Synonyms: None
+
+6. ID: CHEBI:88293
+   Label: Fast green FCF(1+)
+   Definition: An iminium ion that is the free acid form of Fast green FCF.
+   Synonyms: N-ethyl-4-[(4-{ethyl[(3-sulfophenyl)methyl]amino}phenyl)(4-hydroxy-2-sulfophenyl)methylidene]-N-[(3-sulfophenyl)methyl]cyclohexa-2,5-dien-1-iminium
+
+7. ID: CHEBI:88292
+   Label: Fast green FCF(2-)
+   Definition: An organosulfonate oxoanion obtained by the removal of three protons from Fast green FCF(1+).
+   Synonyms: 2-{(4-{ethyl[(3-sulfonatophenyl)methyl]amino}phenyl)[4-{ethyl[(3-sulfonatophenyl)methyl]iminio}cyclohexa-2,5-dien-1-ylidene]methyl}-5-hydroxybenzene-1-sulfonate; Fast green FCF dianion
+
+8. ID: CHEBI:82467
+   Label: Evans blue
+   Definition: An organic sodium salt that is the tetrasodium salt of 6,6'-{(3,3'-dimethyl[1,1'-biphenyl]-4,4'-diyl)bis[diazene-2,1-diyl]}bis(4-amino-5-hydroxynaphthalene-1,3-disulfonate). It is sometimes used as a counterstain, especially in fluorescent methods to suppress background autofluorescence.
+   Synonyms: tetrasodium 6,6'-{(3,3'-dimethyl[1,1'-biphenyl]-4,4'-diyl)bis[diazene-2,1-diyl]}bis(4-amino-5-hydroxynaphthalene-1,3-disulfonate); 4,4'-Bis(1-amino-8-hydroxy-2,4-disulfo-7-naphthylazo)-3,3'-bitolyl, tetrasodium salt; 4,4'-Bis(1-amino-8-hydroxy-2,4-disulpho-7-naphthylazo)-3,3'-bitolyl, tetrasodium salt; 4,4'-Bis(7-(1-amino-8-hydroxy-2,4-disulfo)naphthylazo)-3,3'-bitolyl, tetrasodium salt; 4,4'-Bis(7-(1-amino-8-hydroxy-2,4-disulpho)naphthylazo)-3,3'-bitolyl, tetrasodium salt; C.I. 23860; C.I. Direct Blue 53; C.I. direct blue 53 tetrasodium salt; azovan blue; direct blue 53
+
+9. ID: CHEBI:63240
+   Label: pacific blue succinimidyl ester
+   Definition: An N-hydroxysuccinimide ester derived from 6,8-difluoro-7-hydroxycoumarin-3-carboxylic acid (pacific blue). A fluorescent dye of excitation wavelength 403 nm and emission wavelength 455 nm.
+   Synonyms: 1-{[(6,8-difluoro-7-hydroxy-2-oxo-2H-chromen-3-yl)carbonyl]oxy}pyrrolidine-2,5-dione; 6,8-difluoro-7-hydroxy-2-oxo-2H-chromene-3-carboxylic acid N-hydroxysuccinimidyl ester; 6,8-difluoro-7-hydroxy-2-oxo-2H-chromene-3-carboxylic acid succinimidyl ester; pacific blue N-hydroxysuccinimidyl ester
+
+10. ID: CHEBI:232551
+   Label: Chicago Sky Blue 6B
+   Definition: None
+   Synonyms: Direct blue 1
+
+13. ID: CHEBI:63236
+   Label: pacific blue
+   Definition: A hydroxycoumarin having the hydroxy group located at position 7 and bearing two fluoro substituents at positions 6 and 8 as well as a carboxy group at position 3. A fluorescent dye of excitation wavelength 403 nm and emission wavelength 455 nm.
+   Synonyms: 6,8-difluoro-7-hydroxy-2-oxo-2H-chromene-3-carboxylic acid; 6,8-difluoro-7-hydroxy-3-carboxycoumarin
+
+14. ID: FOODON:03412864
+   Label: obsolete: blue ling
+   Definition: None
+   Synonyms: None
+
+15. ID: CHEBI:176933
+   Label: Tetrabromophenol blue
+   Definition: None
+   Synonyms: 2,6-dibromo-4-[4,5,6,7-tetrabromo-3-(3,5-dibromo-4-hydroxyphenyl)-1,1-dioxo-2,1lambda6-benzoxathiol-3-yl]phenol
+
+16. ID: CHEBI:52126
+   Label: marina blue dye
+   Definition: None
+   Synonyms: 2-(6,8-difluoro-7-hydroxy-4-methyl-2-oxo-2H-chromen-3-yl)acetohydrazide
+
+17. ID: FOODON:03415163
+   Label: obsolete: blueflag plant
+   Definition: None
+   Synonyms: None
+
+18. ID: CHEBI:51104
+   Label: Fluo-5F
+   Definition: None
+   Synonyms: {[2-(2-{2-[bis(carboxymethyl)amino]-5-(2,7-difluoro-6-hydroxy-3-oxo-3H-xanthen-9-yl)phenoxy}ethoxy)-4-fluorophenyl](carboxymethyl)amino}acetic acid
+
+19. ID: CHEBI:51106
+   Label: Fluo-4FF
+   Definition: None
+   Synonyms: {[2-(2-{2-[bis(carboxymethyl)amino]-5-(2,7-difluoro-6-hydroxy-3-oxo-3H-xanthen-9-yl)phenoxy}ethoxy)-3,4-difluorophenyl](carboxymethyl)amino}acetic acid
+
+**Instructions:**
+1.  Carefully review the user's entity and each candidate's details (ID, Label, Definition, Synonyms).
+2.  Select the single best match. Consider exact matches of labels or synonyms as strong signals. If there are multiple good matches, prefer the more specific term over a general one.
+3.  Provide your response in a valid JSON format only. Do not add any text before or after the JSON block.
+4.  The JSON object must contain two keys:
+    - "chosen_id": The CURIE (ID) of the single best matching term (e.g., "FOODON:00001290").
+    - "explanation": A brief, clear explanation for your choice, justifying why it is the best fit compared to other options.
+
+**Example Response Format:**
+{
+  "chosen_id": "FOODON:00001290",
+  "explanation": "I chose 'garlic' because its label is an exact match for the user entity. Candidate 'allium sativum' is the scientific name but 'garlic' is the common term and therefore a better fit."
+}
+---
+2025-07-29 13:29:15,528 - src.rag_selectors.gemini_selector - INFO - gemini_selector._call_llm:37 - Sending request to Gemini for query: 'Brilliant Blue FCF'
+2025-07-29 13:29:15,529 - google_genai.models - INFO - models.generate_content:5969 - AFC is enabled with max remote calls: 10.
+2025-07-29 13:29:16,202 - google_genai.models - INFO - models.generate_content:5980 - AFC remote call 1 is done.
+2025-07-29 13:29:16,202 - src.rag_selectors.base_selector - DEBUG - base_selector.select_best_term:149 - Selector Raw Response:
+---
+```json
+{
+  "chosen_id": "CHEBI:82411",
+  "explanation": "The label 'Brilliant Blue' and the synonym 'Brilliant Blue FCF' directly match the user's entity 'Brilliant Blue FCF'. This is the most specific and accurate match among the provided candidates."
+}
+```
+---
+2025-07-29 13:29:16,202 - src.confidence_scorers.gemini_confidence_scorer - INFO - gemini_confidence_scorer._call_llm:25 - Sending confidence scoring request to Gemini...
+2025-07-29 13:29:16,202 - google_genai.models - INFO - models.generate_content:5969 - AFC is enabled with max remote calls: 10.
+2025-07-29 13:29:16,683 - google_genai.models - INFO - models.generate_content:5980 - AFC remote call 1 is done.
+2025-07-29 13:29:16,683 - src.pipeline.base_pipeline - INFO - base_pipeline.run:177 - Selection: 'Brilliant Blue' (ID: CHEBI:82411), Confidence: 0.95
+2025-07-29 13:29:16,683 - src.pipeline.base_pipeline - INFO - base_pipeline.run:185 - Confidence score (0.95) meets threshold (0.7). Finalizing result.
+2025-07-29 13:29:16,684 - __main__ - INFO - main.main:99 - Closing pipeline resources.
+2025-07-29 13:29:16,687 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.close:215 - Whoosh searcher for 'foodon' closed.
+2025-07-29 13:29:16,700 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.close:215 - Whoosh searcher for 'chebi' closed.
+2025-07-29 13:29:16,700 - src.pipeline.base_pipeline - INFO - base_pipeline.close:214 - Pipeline resources closed.
