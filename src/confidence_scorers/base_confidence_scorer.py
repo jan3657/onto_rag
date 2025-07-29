@@ -71,6 +71,7 @@ class BaseConfidenceScorer(ABC):
         prompt = self.prompt_template.replace("[USER_ENTITY]", query)
         prompt = prompt.replace("[CHOSEN_TERM_DETAILS]", chosen_details_str)
         prompt = prompt.replace("[OTHER_CANDIDATES]", other_candidates_str)
+        logger.debug(f"Formatted prompt for confidence scoring:\n{prompt}")
 
         response_text = self._call_llm(prompt)
         if response_text is None:

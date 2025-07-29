@@ -137,23 +137,30 @@ CURIE_PREFIX_MAP = {
     "http://purl.obolibrary.org/obo/GO_": "GO",
     "http://purl.obolibrary.org/obo/": "obo",
 }
+	
+# --- Pipeline Loop Configuration ---
+CONFIDENCE_THRESHOLD = 0.7  # If score is below this, try to generate synonyms
+MAX_PIPELINE_LOOPS = 4     # Max number of attempts (initial + retries)
 
 # LLM API Key (placeholders)
 GEMINI_API_KEY = getenv("GEMINI_API_KEY")
 #GEMINI_SELECTOR_MODEL_NAME = "gemini-1.5-flash-latest"
 GEMINI_SELECTOR_MODEL_NAME = "gemini-2.5-flash-lite-preview-06-17"
 GEMINI_SCORER_MODEL_NAME = "gemini-2.5-flash-lite-preview-06-17"
+GEMINI_SYNONYM_MODEL_NAME = "gemini-2.5-flash-lite-preview-06-17"
 
 OLLAMA_SELECTOR_MODEL_NAME = 'llama3.1:8b'
 OLLAMA_SCORER_MODEL_NAME = 'llama3.1:8b'
+OLLAMA_SYNONYM_MODEL_NAME = 'llama3.1:8b'
 # OPENAI_API_KEY = getenv.OPENAI_API_KEY
 
 # Path to the prompt template for the selector
 SELECTOR_PROMPT_TEMPLATE_PATH = PROJECT_ROOT / "prompts" /  "final_selection.tpl" #"strict_selection_minimal.tpl"
 CONFIDENCE_PROMPT_TEMPLATE_PATH = PROJECT_ROOT / "prompts" / "confidence_assessment2.tpl" #"confidence_assessment.tpl"
+SYNONYM_PROMPT_TEMPLATE_PATH = PROJECT_ROOT / "prompts" / "synonym_generation.tpl"
 
-PIPELINE = "ollama" # "gemini" or "ollama" 
+PIPELINE = "gemini" # "gemini" or "ollama" 
 
 # Logging configuration
-LOG_LEVEL = "INFO"
+LOG_LEVEL = "DEBUG"
 LOG_FILE = PROJECT_ROOT / "app.log"
