@@ -157,7 +157,7 @@ OLLAMA_SYNONYM_MODEL_NAME = 'llama3.1:8b'
 
 HF_SELECTOR_MODEL_ID = "arcee-ai/AFM-4.5B"
 HF_MODEL_KWARGS = {
-    "torch_dtype": torch.float16,
+    "torch_dtype": torch.bfloat16,
     "device_map": "mps",
 }
 HF_GENERATION_KWARGS = {

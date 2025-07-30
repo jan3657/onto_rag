@@ -73,12 +73,18 @@ class HuggingFaceLocalGenerator:
                 return_tensors="pt"
             ).to(self.model.device)
 
-            # Use generation kwargs from config, but allow overrides
+            attention_mask = torch.ones_like(input_ids)
+
             gen_kwargs = config.HF_GENERATION_KWARGS.copy()
             if generation_kwargs:
                 gen_kwargs.update(generation_kwargs)
             
-            outputs = self.model.generate(input_ids, **gen_kwargs)
+            # 3. Pass both tensors as explicit keyword arguments to generate()
+            outputs = self.model.generate(
+                input_ids=input_ids,
+                attention_mask=attention_mask, # This solves the warning
+                **gen_kwargs
+            )
             
             # Decode the response, skipping the prompt part
             # outputs[0] contains the full sequence (prompt + response)

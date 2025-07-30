@@ -1,48 +1,48 @@
-2025-07-30 13:32:16,201 - root - INFO - logging_config.setup_run_logging:82 - Logging configured to level DEBUG. Console output enabled.
-2025-07-30 13:32:16,201 - root - INFO - logging_config.setup_run_logging:83 - Saving run-specific log to: /Users/jandrole/projects/onto_rag/logs/run_blue_2_lake_unknown_model.log
-2025-07-30 13:32:16,201 - __main__ - INFO - main.main:31 - Starting pipeline run for query: 'blue 2 lake' with pipeline: 'huggingface'
-2025-07-30 13:32:16,201 - src.pipeline.base_pipeline - INFO - base_pipeline.__init__:39 - Initializing RAG Pipeline with HuggingFaceSelector and HuggingFaceConfidenceScorer...
-2025-07-30 13:32:16,201 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:36 - Initializing HybridRetriever for multiple ontologies...
-2025-07-30 13:32:16,201 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:45 - Loading embedding model: all-MiniLM-L6-v2
-2025-07-30 13:32:17,954 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:49 - --- Initializing resources for ontology: 'foodon' ---
-2025-07-30 13:32:17,955 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:53 - Loading ontology data from: /Users/jandrole/projects/onto_rag/data/ontology_dump_foodon.json
-2025-07-30 13:32:18,142 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:58 - Loaded 39725 entries for 'foodon'.
-2025-07-30 13:32:18,142 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:62 - Loading Whoosh index from: /Users/jandrole/projects/onto_rag/data/whoosh_index_foodon
-2025-07-30 13:32:18,189 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:72 - Whoosh index for 'foodon' loaded.
-2025-07-30 13:32:18,189 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:77 - Initializing FAISS store for 'foodon' (index: /Users/jandrole/projects/onto_rag/data/faiss_index_foodon.bin, metadata: /Users/jandrole/projects/onto_rag/data/faiss_metadata_foodon.json)...
-2025-07-30 13:32:18,189 - src.vector_store.faiss_store - INFO - faiss_store.__init__:29 - Loading existing FAISS index from /Users/jandrole/projects/onto_rag/data/faiss_index_foodon.bin and metadata from /Users/jandrole/projects/onto_rag/data/faiss_metadata_foodon.json
-2025-07-30 13:32:18,208 - src.vector_store.faiss_store - INFO - faiss_store.load_store:138 - FAISS index loaded. Index has 39725 vectors of dim 384.
-2025-07-30 13:32:18,217 - src.vector_store.faiss_store - INFO - faiss_store.load_store:142 - FAISS metadata loaded. 39725 items.
-2025-07-30 13:32:18,217 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:88 - FAISS store for 'foodon' initialized.
-2025-07-30 13:32:18,217 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:49 - --- Initializing resources for ontology: 'chebi' ---
-2025-07-30 13:32:18,217 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:53 - Loading ontology data from: /Users/jandrole/projects/onto_rag/data/ontology_dump_chebi.json
-2025-07-30 13:32:19,574 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:58 - Loaded 203574 entries for 'chebi'.
-2025-07-30 13:32:19,574 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:62 - Loading Whoosh index from: /Users/jandrole/projects/onto_rag/data/whoosh_index_chebi
-2025-07-30 13:32:19,718 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:72 - Whoosh index for 'chebi' loaded.
-2025-07-30 13:32:19,718 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:77 - Initializing FAISS store for 'chebi' (index: /Users/jandrole/projects/onto_rag/data/faiss_index_chebi.bin, metadata: /Users/jandrole/projects/onto_rag/data/faiss_metadata_chebi.json)...
-2025-07-30 13:32:19,718 - src.vector_store.faiss_store - INFO - faiss_store.__init__:29 - Loading existing FAISS index from /Users/jandrole/projects/onto_rag/data/faiss_index_chebi.bin and metadata from /Users/jandrole/projects/onto_rag/data/faiss_metadata_chebi.json
-2025-07-30 13:32:19,807 - src.vector_store.faiss_store - INFO - faiss_store.load_store:138 - FAISS index loaded. Index has 203574 vectors of dim 384.
-2025-07-30 13:32:19,861 - src.vector_store.faiss_store - INFO - faiss_store.load_store:142 - FAISS metadata loaded. 203574 items.
-2025-07-30 13:32:19,861 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:88 - FAISS store for 'chebi' initialized.
-2025-07-30 13:32:19,861 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:90 - HybridRetriever initialized successfully for all configured ontologies.
-2025-07-30 13:32:19,861 - src.rag_selectors.base_selector - INFO - base_selector.__init__:34 - HuggingFaceSelector initialized for model: arcee-ai/AFM-4.5B
-2025-07-30 13:32:19,861 - src.rag_selectors.huggingface_generator - INFO - huggingface_generator.__init__:28 - Initializing HuggingFaceLocalGenerator for the first time...
-2025-07-30 13:32:19,861 - src.rag_selectors.huggingface_generator - INFO - huggingface_generator.__init__:37 - Loading tokenizer: arcee-ai/AFM-4.5B
-2025-07-30 13:32:20,458 - src.rag_selectors.huggingface_generator - INFO - huggingface_generator.__init__:40 - Loading model: arcee-ai/AFM-4.5B with kwargs: {'torch_dtype': torch.bfloat16, 'device_map': 'mps'}
-2025-07-30 13:32:27,497 - src.rag_selectors.huggingface_generator - INFO - huggingface_generator.__init__:45 - Hugging Face model and tokenizer loaded successfully.
-2025-07-30 13:32:27,498 - src.confidence_scorers.base_confidence_scorer - INFO - base_confidence_scorer.__init__:17 - HuggingFaceConfidenceScorer initialized for model: arcee-ai/AFM-4.5B
-2025-07-30 13:32:27,499 - src.synonym_generators.base_synonym_generator - INFO - base_synonym_generator.__init__:17 - HuggingFaceSynonymGenerator initialized for model: arcee-ai/AFM-4.5B
-2025-07-30 13:32:27,499 - src.pipeline.base_pipeline - INFO - base_pipeline.__init__:78 - RAG Pipeline initialized successfully.
-2025-07-30 13:32:27,499 - src.pipeline.base_pipeline - INFO - base_pipeline.run:114 - --- Starting Pipeline Attempt 1/4 for query: 'blue 2 lake' ---
-2025-07-30 13:32:28,074 - src.pipeline.base_pipeline - INFO - base_pipeline.run:126 - 80 candidates passed to LLM selector for query 'blue 2 lake'.
-2025-07-30 13:32:28,075 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'ENVO:01000252'.
-2025-07-30 13:32:28,075 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'PATO:0001265'.
-2025-07-30 13:32:28,075 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'PATO:0001243'.
-2025-07-30 13:32:28,075 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'PATO:0001244'.
-2025-07-30 13:32:28,075 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'PATO:0001266'.
-2025-07-30 13:32:28,076 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'PATO:0001265'.
-2025-07-30 13:32:28,076 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'NCBITaxon:7815'.
-2025-07-30 13:32:28,076 - src.rag_selectors.base_selector - DEBUG - base_selector.select_best_term:141 - Selector Prompt:
+2025-07-30 13:43:09,493 - root - INFO - logging_config.setup_run_logging:84 - Logging configured to level DEBUG. Console output enabled.
+2025-07-30 13:43:09,493 - root - INFO - logging_config.setup_run_logging:85 - Saving run-specific log to: /Users/jandrole/projects/onto_rag/logs/run_blue_2_lake_arcee-ai-AFM-4.5B.log
+2025-07-30 13:43:09,493 - __main__ - INFO - main.main:31 - Starting pipeline run for query: 'blue 2 lake' with pipeline: 'huggingface'
+2025-07-30 13:43:09,493 - src.pipeline.base_pipeline - INFO - base_pipeline.__init__:39 - Initializing RAG Pipeline with HuggingFaceSelector and HuggingFaceConfidenceScorer...
+2025-07-30 13:43:09,493 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:36 - Initializing HybridRetriever for multiple ontologies...
+2025-07-30 13:43:09,493 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:45 - Loading embedding model: all-MiniLM-L6-v2
+2025-07-30 13:43:11,186 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:49 - --- Initializing resources for ontology: 'foodon' ---
+2025-07-30 13:43:11,187 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:53 - Loading ontology data from: /Users/jandrole/projects/onto_rag/data/ontology_dump_foodon.json
+2025-07-30 13:43:11,375 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:58 - Loaded 39725 entries for 'foodon'.
+2025-07-30 13:43:11,375 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:62 - Loading Whoosh index from: /Users/jandrole/projects/onto_rag/data/whoosh_index_foodon
+2025-07-30 13:43:11,414 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:72 - Whoosh index for 'foodon' loaded.
+2025-07-30 13:43:11,414 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:77 - Initializing FAISS store for 'foodon' (index: /Users/jandrole/projects/onto_rag/data/faiss_index_foodon.bin, metadata: /Users/jandrole/projects/onto_rag/data/faiss_metadata_foodon.json)...
+2025-07-30 13:43:11,414 - src.vector_store.faiss_store - INFO - faiss_store.__init__:29 - Loading existing FAISS index from /Users/jandrole/projects/onto_rag/data/faiss_index_foodon.bin and metadata from /Users/jandrole/projects/onto_rag/data/faiss_metadata_foodon.json
+2025-07-30 13:43:11,432 - src.vector_store.faiss_store - INFO - faiss_store.load_store:138 - FAISS index loaded. Index has 39725 vectors of dim 384.
+2025-07-30 13:43:11,441 - src.vector_store.faiss_store - INFO - faiss_store.load_store:142 - FAISS metadata loaded. 39725 items.
+2025-07-30 13:43:11,442 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:88 - FAISS store for 'foodon' initialized.
+2025-07-30 13:43:11,442 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:49 - --- Initializing resources for ontology: 'chebi' ---
+2025-07-30 13:43:11,442 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:53 - Loading ontology data from: /Users/jandrole/projects/onto_rag/data/ontology_dump_chebi.json
+2025-07-30 13:43:12,754 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:58 - Loaded 203574 entries for 'chebi'.
+2025-07-30 13:43:12,754 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:62 - Loading Whoosh index from: /Users/jandrole/projects/onto_rag/data/whoosh_index_chebi
+2025-07-30 13:43:12,891 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:72 - Whoosh index for 'chebi' loaded.
+2025-07-30 13:43:12,892 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:77 - Initializing FAISS store for 'chebi' (index: /Users/jandrole/projects/onto_rag/data/faiss_index_chebi.bin, metadata: /Users/jandrole/projects/onto_rag/data/faiss_metadata_chebi.json)...
+2025-07-30 13:43:12,892 - src.vector_store.faiss_store - INFO - faiss_store.__init__:29 - Loading existing FAISS index from /Users/jandrole/projects/onto_rag/data/faiss_index_chebi.bin and metadata from /Users/jandrole/projects/onto_rag/data/faiss_metadata_chebi.json
+2025-07-30 13:43:12,982 - src.vector_store.faiss_store - INFO - faiss_store.load_store:138 - FAISS index loaded. Index has 203574 vectors of dim 384.
+2025-07-30 13:43:13,035 - src.vector_store.faiss_store - INFO - faiss_store.load_store:142 - FAISS metadata loaded. 203574 items.
+2025-07-30 13:43:13,035 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:88 - FAISS store for 'chebi' initialized.
+2025-07-30 13:43:13,035 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:90 - HybridRetriever initialized successfully for all configured ontologies.
+2025-07-30 13:43:13,035 - src.rag_selectors.base_selector - INFO - base_selector.__init__:34 - HuggingFaceSelector initialized for model: arcee-ai/AFM-4.5B
+2025-07-30 13:43:13,035 - src.rag_selectors.huggingface_generator - INFO - huggingface_generator.__init__:28 - Initializing HuggingFaceLocalGenerator for the first time...
+2025-07-30 13:43:13,035 - src.rag_selectors.huggingface_generator - INFO - huggingface_generator.__init__:37 - Loading tokenizer: arcee-ai/AFM-4.5B
+2025-07-30 13:43:13,596 - src.rag_selectors.huggingface_generator - INFO - huggingface_generator.__init__:40 - Loading model: arcee-ai/AFM-4.5B with kwargs: {'torch_dtype': torch.bfloat16, 'device_map': 'mps'}
+2025-07-30 13:43:21,181 - src.rag_selectors.huggingface_generator - INFO - huggingface_generator.__init__:45 - Hugging Face model and tokenizer loaded successfully.
+2025-07-30 13:43:21,184 - src.confidence_scorers.base_confidence_scorer - INFO - base_confidence_scorer.__init__:17 - HuggingFaceConfidenceScorer initialized for model: arcee-ai/AFM-4.5B
+2025-07-30 13:43:21,189 - src.synonym_generators.base_synonym_generator - INFO - base_synonym_generator.__init__:17 - HuggingFaceSynonymGenerator initialized for model: arcee-ai/AFM-4.5B
+2025-07-30 13:43:21,189 - src.pipeline.base_pipeline - INFO - base_pipeline.__init__:78 - RAG Pipeline initialized successfully.
+2025-07-30 13:43:21,189 - src.pipeline.base_pipeline - INFO - base_pipeline.run:114 - --- Starting Pipeline Attempt 1/4 for query: 'blue 2 lake' ---
+2025-07-30 13:43:21,873 - src.pipeline.base_pipeline - INFO - base_pipeline.run:126 - 80 candidates passed to LLM selector for query 'blue 2 lake'.
+2025-07-30 13:43:21,875 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'ENVO:01000252'.
+2025-07-30 13:43:21,876 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'PATO:0001265'.
+2025-07-30 13:43:21,877 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'PATO:0001243'.
+2025-07-30 13:43:21,877 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'PATO:0001244'.
+2025-07-30 13:43:21,877 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'PATO:0001266'.
+2025-07-30 13:43:21,879 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'PATO:0001265'.
+2025-07-30 13:43:21,879 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'NCBITaxon:7815'.
+2025-07-30 13:43:21,881 - src.rag_selectors.base_selector - DEBUG - base_selector.select_best_term:141 - Selector Prompt:
 ---
 You are an expert ontologist specializing in food science. Your task is to analyze a list of candidate ontology terms and select the single most appropriate term that matches the user's provided entity.
 
@@ -429,8 +429,8 @@ blue 2 lake
   "explanation": "I chose 'garlic' because its label is an exact match for the user entity. Candidate 'allium sativum' is the scientific name but 'garlic' is the common term and therefore a better fit."
 }
 ---
-2025-07-30 13:32:28,076 - src.rag_selectors.huggingface_selector - INFO - huggingface_selector._call_llm:27 - Sending request to local HF model for query: 'blue 2 lake'
-2025-07-30 13:34:43,289 - __main__ - INFO - main.main:98 - Closing pipeline resources.
-2025-07-30 13:34:43,303 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.close:215 - Whoosh searcher for 'foodon' closed.
-2025-07-30 13:34:43,309 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.close:215 - Whoosh searcher for 'chebi' closed.
-2025-07-30 13:34:43,309 - src.pipeline.base_pipeline - INFO - base_pipeline.close:181 - Pipeline resources closed.
+2025-07-30 13:43:21,881 - src.rag_selectors.huggingface_selector - INFO - huggingface_selector._call_llm:27 - Sending request to local HF model for query: 'blue 2 lake'
+2025-07-30 13:46:29,431 - __main__ - INFO - main.main:98 - Closing pipeline resources.
+2025-07-30 13:46:29,455 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.close:215 - Whoosh searcher for 'foodon' closed.
+2025-07-30 13:46:29,461 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.close:215 - Whoosh searcher for 'chebi' closed.
+2025-07-30 13:46:29,461 - src.pipeline.base_pipeline - INFO - base_pipeline.close:181 - Pipeline resources closed.
