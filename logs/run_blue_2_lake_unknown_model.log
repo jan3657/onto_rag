@@ -1,0 +1,432 @@
+2025-07-30 13:14:41,923 - root - INFO - logging_config.setup_run_logging:82 - Logging configured to level DEBUG. Console output enabled.
+2025-07-30 13:14:41,923 - root - INFO - logging_config.setup_run_logging:83 - Saving run-specific log to: /Users/jandrole/projects/onto_rag/logs/run_blue_2_lake_unknown_model.log
+2025-07-30 13:14:41,923 - __main__ - INFO - main.main:31 - Starting pipeline run for query: 'blue 2 lake' with pipeline: 'huggingface'
+2025-07-30 13:14:41,923 - src.pipeline.base_pipeline - INFO - base_pipeline.__init__:39 - Initializing RAG Pipeline with HuggingFaceSelector and HuggingFaceConfidenceScorer...
+2025-07-30 13:14:41,923 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:36 - Initializing HybridRetriever for multiple ontologies...
+2025-07-30 13:14:41,923 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:45 - Loading embedding model: all-MiniLM-L6-v2
+2025-07-30 13:14:43,573 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:49 - --- Initializing resources for ontology: 'foodon' ---
+2025-07-30 13:14:43,573 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:53 - Loading ontology data from: /Users/jandrole/projects/onto_rag/data/ontology_dump_foodon.json
+2025-07-30 13:14:43,751 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:58 - Loaded 39725 entries for 'foodon'.
+2025-07-30 13:14:43,751 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:62 - Loading Whoosh index from: /Users/jandrole/projects/onto_rag/data/whoosh_index_foodon
+2025-07-30 13:14:43,795 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:72 - Whoosh index for 'foodon' loaded.
+2025-07-30 13:14:43,795 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:77 - Initializing FAISS store for 'foodon' (index: /Users/jandrole/projects/onto_rag/data/faiss_index_foodon.bin, metadata: /Users/jandrole/projects/onto_rag/data/faiss_metadata_foodon.json)...
+2025-07-30 13:14:43,795 - src.vector_store.faiss_store - INFO - faiss_store.__init__:29 - Loading existing FAISS index from /Users/jandrole/projects/onto_rag/data/faiss_index_foodon.bin and metadata from /Users/jandrole/projects/onto_rag/data/faiss_metadata_foodon.json
+2025-07-30 13:14:43,812 - src.vector_store.faiss_store - INFO - faiss_store.load_store:138 - FAISS index loaded. Index has 39725 vectors of dim 384.
+2025-07-30 13:14:43,821 - src.vector_store.faiss_store - INFO - faiss_store.load_store:142 - FAISS metadata loaded. 39725 items.
+2025-07-30 13:14:43,822 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:88 - FAISS store for 'foodon' initialized.
+2025-07-30 13:14:43,822 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:49 - --- Initializing resources for ontology: 'chebi' ---
+2025-07-30 13:14:43,822 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:53 - Loading ontology data from: /Users/jandrole/projects/onto_rag/data/ontology_dump_chebi.json
+2025-07-30 13:14:45,098 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:58 - Loaded 203574 entries for 'chebi'.
+2025-07-30 13:14:45,099 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:62 - Loading Whoosh index from: /Users/jandrole/projects/onto_rag/data/whoosh_index_chebi
+2025-07-30 13:14:45,235 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:72 - Whoosh index for 'chebi' loaded.
+2025-07-30 13:14:45,235 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:77 - Initializing FAISS store for 'chebi' (index: /Users/jandrole/projects/onto_rag/data/faiss_index_chebi.bin, metadata: /Users/jandrole/projects/onto_rag/data/faiss_metadata_chebi.json)...
+2025-07-30 13:14:45,235 - src.vector_store.faiss_store - INFO - faiss_store.__init__:29 - Loading existing FAISS index from /Users/jandrole/projects/onto_rag/data/faiss_index_chebi.bin and metadata from /Users/jandrole/projects/onto_rag/data/faiss_metadata_chebi.json
+2025-07-30 13:14:45,323 - src.vector_store.faiss_store - INFO - faiss_store.load_store:138 - FAISS index loaded. Index has 203574 vectors of dim 384.
+2025-07-30 13:14:45,375 - src.vector_store.faiss_store - INFO - faiss_store.load_store:142 - FAISS metadata loaded. 203574 items.
+2025-07-30 13:14:45,375 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:88 - FAISS store for 'chebi' initialized.
+2025-07-30 13:14:45,375 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:90 - HybridRetriever initialized successfully for all configured ontologies.
+2025-07-30 13:14:45,376 - src.rag_selectors.base_selector - INFO - base_selector.__init__:34 - HuggingFaceSelector initialized for model: arcee-ai/AFM-4.5B
+2025-07-30 13:14:45,376 - src.rag_selectors.huggingface_generator - INFO - huggingface_generator.__init__:28 - Initializing HuggingFaceLocalGenerator for the first time...
+2025-07-30 13:14:45,376 - src.rag_selectors.huggingface_generator - INFO - huggingface_generator.__init__:37 - Loading tokenizer: arcee-ai/AFM-4.5B
+2025-07-30 13:14:45,917 - src.rag_selectors.huggingface_generator - INFO - huggingface_generator.__init__:40 - Loading model: arcee-ai/AFM-4.5B with kwargs: {'torch_dtype': torch.float16, 'device_map': 'mps'}
+2025-07-30 13:14:54,747 - src.rag_selectors.huggingface_generator - INFO - huggingface_generator.__init__:45 - Hugging Face model and tokenizer loaded successfully.
+2025-07-30 13:14:54,747 - src.confidence_scorers.base_confidence_scorer - INFO - base_confidence_scorer.__init__:17 - HuggingFaceConfidenceScorer initialized for model: arcee-ai/AFM-4.5B
+2025-07-30 13:14:54,748 - src.synonym_generators.base_synonym_generator - INFO - base_synonym_generator.__init__:17 - HuggingFaceSynonymGenerator initialized for model: arcee-ai/AFM-4.5B
+2025-07-30 13:14:54,748 - src.pipeline.base_pipeline - INFO - base_pipeline.__init__:78 - RAG Pipeline initialized successfully.
+2025-07-30 13:14:54,748 - src.pipeline.base_pipeline - INFO - base_pipeline.run:114 - --- Starting Pipeline Attempt 1/4 for query: 'blue 2 lake' ---
+2025-07-30 13:14:55,299 - src.pipeline.base_pipeline - INFO - base_pipeline.run:126 - 80 candidates passed to LLM selector for query 'blue 2 lake'.
+2025-07-30 13:14:55,299 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'ENVO:01000252'.
+2025-07-30 13:14:55,299 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'PATO:0001265'.
+2025-07-30 13:14:55,300 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'PATO:0001243'.
+2025-07-30 13:14:55,300 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'PATO:0001244'.
+2025-07-30 13:14:55,300 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'PATO:0001266'.
+2025-07-30 13:14:55,300 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'PATO:0001265'.
+2025-07-30 13:14:55,300 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'NCBITaxon:7815'.
+2025-07-30 13:14:55,300 - src.rag_selectors.base_selector - DEBUG - base_selector.select_best_term:141 - Selector Prompt:
+---
+You are an expert ontologist specializing in food science. Your task is to analyze a list of candidate ontology terms and select the single most appropriate term that matches the user's provided entity.
+
+**User Entity:**
+blue 2 lake
+
+**Candidate Ontology Terms:**
+1. ID: CHEBI:87471
+   Label: aniline blue WS
+   Definition: A dye that is a mixture of methyl blue and water blue. Used for staining collagen in Masson's trichrome and Mallory's method for connective tissue.
+   Synonyms: aniline blue; china blue; soluble blue
+
+2. ID: CHEBI:86495
+   Label: spirit blue(1+)
+   Definition: An organic cation obtained by protonation of spirit blue base.
+   Synonyms: spirit blue cation
+
+3. ID: CHEBI:75198
+   Label: tetrazolium blue
+   Definition: An organic chloride salt having tetrazolium blue(1+) as the counterion.
+   Synonyms: 3,3'-(3,3'-dimethoxybiphenyl-4,4'-diyl)bis(2,5-diphenyl-2H-tetrazol-3-ium) dichloride; 3,3'-(3,3'-Dimethoxy-4,4'-biphenylene)bis(2,5-diphenyl-2H-tetrazolium) chloride; 3,3'-Dianisolebis(4,4'-(3,5-diphenyl)tetrazolium chloride); 4-Anisyltetrazolium blue; Blue tetrazolium; Blue tetrazolium chloride; Dimethoxy neotetrazolium; Ditetrazolium chloride
+
+4. ID: CHEBI:78900
+   Label: trypan blue sulfonic acid
+   Definition: An aminonaphthalenesulfonic acid that is the free acid form of trypan blue dye.
+   Synonyms: 3,3'-[(3,3'-dimethylbiphenyl-4,4'-diyl)didiazene-2,1-diyl]bis(5-amino-4-hydroxynaphthalene-2,7-disulfonic acid); Trypan blue free acid; trypan blue acid
+
+5. ID: CHEBI:86483
+   Label: spirit blue
+   Definition: A hydrochloride obtained by combining the free base of spirit blue with one equivalent of hydrochloric acid.
+   Synonyms: N,N'-[{[4-(phenylimino)cyclohexa-2,5-dien-1-ylidene]methylene}di(4,1-phenylene)]dianiline hydrochloride; HSDB 466; Opal Blue SS; Solvent Blue 23, monohydrochloride
+
+6. ID: CHEBI:87646
+   Label: night blue(1+)
+   Definition: An iminium ion that forms the cationic portion of the histological dye 'night blue'.
+   Synonyms: 4-{(4-anilinonaphthalen-1-yl)[4-(diethylamino)phenyl]methylidene}-N,N-diethylcyclohexa-2,5-dien-1-iminium; night blue cation
+
+7. ID: CHEBI:90520
+   Label: victoria blue R(1+)
+   Definition: An iminium ion that forms the cationic portion of the histological dye 'victoria blue R'.
+   Synonyms: 4-{[4-(dimethylamino)phenyl][4-(ethylamino)naphthalen-1-yl]methylidene}-N,N-dimethylcyclohexa-2,5-dien-1-iminium; victoria blue R cation
+
+8. ID: CHEBI:87652
+   Label: victoria blue B(1+)
+   Definition: An iminium ion that forms the cationic portion of the histological dye 'victoria blue B'.
+   Synonyms: 4-{(4-anilinonaphthalen-1-yl)[4-(dimethylamino)phenyl]methylidene}-N,N-dimethylcyclohexa-2,5-dien-1-iminium; victoria blue B cation
+
+9. ID: CHEBI:87472
+   Label: methyl blue
+   Definition: An organic sodium salt that is the trisodium salt of 4,4'-{({4-[(4-sulfophenyl)imino]cyclohexa-2,5-dien-1-ylidene}methylene)bis[(4,1-phenylene)azanediyl]}di(benzene-1-sulfonic acid). A histological dye that can be used either on its own or part of a mixture (aniline blue WS) for staining collagen in Masson's trichrome and Mallory's method for connective tissue.
+   Synonyms: disodium 4,4'-{({4-[(4-sulfonatophenyl)iminio]cyclohexa-2,5-dien-1-ylidene}methylene)bis[(4,1-phenylene)azanediyl]}di(benzene-1-sulfonate); C.I. 42780; C.I. Acid Blue 93; C.I. Acid Blue 93, disodium salt; acid blue 93; cotton blue; helvetia blue
+
+10. ID: CHEBI:88299
+   Label: Gallamin blue(1+)
+   Definition: An organic cation that is 3,4-dihydroxyphenoxazin-5-ium carrying additional carbamoyl and dimethylamino groups at positions 1 and 7 respectively. The chloride salt is the histological dye 'Gallamin blue'.
+   Synonyms: 1-carbamoyl-7-(dimethylamino)-3,4-dihydroxyphenoxazin-5-ium; Gallamin blue cation
+
+11. ID: CHEBI:88189
+   Label: Celestin blue B(1+)
+   Definition: An organic cation that is 3,4-dihydroxyphenoxazin-5-ium carrying additional carbamoyl and diethylamino groups at positions 1 and 7 respectively. The chloride salt is the histological dye 'Celestin blue B'.
+   Synonyms: 1-carbamoyl-7-(diethylamino)-3,4-dihydroxyphenoxazin-5-ium; Celestin blue B cation
+
+12. ID: CHEBI:88183
+   Label: Celestin blue B
+   Definition: An organic chloride salt composed of 1-carbamoyl-7-(diethylamino)-3,4-dihydroxyphenoxazin-5-ium and chloride ions in a 1:1 ratio. A histological dye used in solution with an iron alum mordant as a hematoxylin substitute in the H&E stain.
+   Synonyms: 1-carbamoyl-7-(diethylamino)-3,4-dihydroxyphenoxazin-5-ium chloride; 1-Carbamoyl-7-(diethylamino)-3,4-dihydroxyphenoxazinium chloride; C.I. 51050; C.I. Mordant Blue 14; Celestin blue; Coelestin blue; Coreine Blue B; Gallo Sky Blue B; Gallo Sky Blue S; Mordant blue 14
+
+13. ID: CHEBI:85681
+   Label: water blue
+   Definition: An organic sodium salt resulting from the formal condensation of NSC 56820 with 2 mol eq. of sodium hydroxide. It is used as a histological stain for collagen and in Mallory's method for connective tissue.
+   Synonyms: disodium 2-amino-3-methyl-5-({4-[(4-sulfonatophenyl)amino]phenyl}{4-[(4-sulfonatophenyl)iminio]cyclohexa-2,5-dien-1-ylidene}methyl)benzenesulfonate; Acid Blue 22; Aniline Blue; C.I. 42755; C.I. Acid Blue 22; Cotton blue; Marine Blue V; Soluble Blue 3M
+
+14. ID: CHEBI:34946
+   Label: Reactive blue 2
+   Definition: None
+   Synonyms: Reactive blue 2
+
+15. ID: CHEBI:34906
+   Label: Patent blue
+   Definition: None
+   Synonyms: Patent blue
+
+16. ID: CHEBI:88283
+   Label: Durazol blue 4R
+   Definition: An organic sodium salt resulting from the formal condensation of Durazol blue 4R (acid form) with three equivalents of sodium hydroxide.
+   Synonyms: trisodium 4-({4-[(6-anilino-1-hydroxy-3-sulfonatonaphthalen-2-yl)diazenyl]-5-methoxy-2-methylphenyl}diazenyl)-5-hydroxynaphthalene-2,7-disulfonate; C.I. 27925; C.I. Direct Blue 67; Durazol blue; Sirius supra blue F3R; Trisodium 4-hydroxy-5-((4-((1-hydroxy-6-(phenylamino)-3-sulphonato-2-naphthyl)azo)-5-methoxy-2-methylphenyl)azo)naphthalene-2,7-disulphonate
+
+17. ID: CHEBI:9505
+   Label: nitro blue tetrazolium dichloride
+   Definition: An organic chloride salt having nitro blue tetrazolium(2+) as the counterion.
+   Synonyms: 3,3'-(3,3'-dimethoxy-[1,1'-biphenyl]-4,4'-diyl)bis[2-(4-nitrophenyl)-5-phenyl-2H-tetrazol-3-ium] dichloride; 2,2'-(3,3'-dimethoxy-[1,1'-biphenyl]-4,4'-diyl)bis[3-(4-nitrophenyl)-5-phenyl-2H-tetrazol-3-ium] dichloride; 3,3'-[3,3'-dimethoxy(1,1'-biphenyl)-4,4'-diyl]bis[2-(4-nitrophenyl)-5-phenyl-2H-tetrazolium] dichloride; 5,5'-diphenyl-3,3'-bis(4-nitrophenyl)-2,2'-(3,3'-dimethoxybiphenyl-4,4'-ylene)ditetrazolium dichloride; NBT; Nitro Blue tetrazolium chloride; Nitro blue tetrazolium; Nitroblue tetrazolium chloride; p-nitro blue tetrazolium chloride
+
+18. ID: CHEBI:52168
+   Label: nile blue(1+)
+   Definition: An organic cation that is 6a,12a-dihydrobenzo[a]phenoxazin-7-ium substituted by amino and dimethylamino groups at positions 5 and 9 respectively. The chloride salt is the histological dye 'nile blue A'
+   Synonyms: 5-amino-9-(diethylamino)-6a,12a-dihydrobenzo[a]phenoxazin-7-ium; nile blue cation
+
+19. ID: CHEBI:90518
+   Label: victoria blue R
+   Definition: An iminium salt composed of 4-{[4-(dimethylamino)phenyl][4-(ethylamino)naphthalen-1-yl]methylidene}-N,N-dimethylcyclohexa-2,5-dien-1-iminium and chloride ions in a 1:1 ratio.
+   Synonyms: 4-{[4-(dimethylamino)phenyl][4-(ethylamino)naphthalen-1-yl]methylidene}-N,N-dimethylcyclohexa-2,5-dien-1-iminium chloride; Basic blue K; C.I. 44040; C.I. Basic Blue 11; CI 44040; basic blue 11; victoria blue
+
+20. ID: CHEBI:88171
+   Label: brilliant cresyl blue(1+)
+   Definition: An organic cation that is phenoxazin-5-ium substituted by methyl, amino and diethylamino groups at positions 2, 3 and 7 respectively. The tetrachlorozincate salt salt is the histological dye 'brilliant cresyl blue'.
+   Synonyms: 3-amino-7-(diethylamino)-2-methylphenoxazin-5-ium; brilliant cresyl blue(1+) cation
+
+21. ID: FOODON:00002885
+   Label: blue crabmeat
+   Definition: Blue crabmeat is crab meat derived from a blue crab, Callinectes sapidus.
+   Synonyms: blue crab meat
+
+23. ID: FOODON:03411746
+   Label: blue-green algae
+   Definition: Cyanobacteria also known as blue-green algae, blue-green bacteria, and  *Cyanophyta*) is a phylum of bacteria that obtain their energy through photosynthesis.
+   Synonyms: blue-green bacteria; cyanophycota; cyanophyta
+
+24. ID: FOODON:02021865
+   Label: piece of blue swimmer crab meat
+   Definition: A piece of meat that is derived from a blue swimmer crab.
+   Synonyms: blue swimmer crab meat
+
+25. ID: FOODON:02021862
+   Label: blue swimmer crab carcass
+   Definition: A carcass of a blue swimmer crab that includes all anatomical parts.
+   Synonyms: dead blue swimmer crab
+
+26. ID: FOODON:02021863
+   Label: blue swimmer crab carcass (raw)
+   Definition: A raw blue swimmer crab carcass.
+   Synonyms: raw blue swimmer crab carcass
+
+27. ID: FOODON:00004600
+   Label: blue elderberry
+   Definition: A berry fruit of a blue elderberry plant.
+   Synonyms: None
+
+28. ID: FOODON:00003535
+   Label: blue plum
+   Definition: A drupe fruit of a blue plum plant.
+   Synonyms: None
+
+29. ID: FOODON:00004601
+   Label: blue elderberry (frozen)
+   Definition: A frozen blue elderberry.
+   Synonyms: None
+
+34. ID: FOODON:02021866
+   Label: piece of blue swimmer crab meat (raw)
+   Definition: A raw piece of blue swimmer crab meat.
+   Synonyms: raw blue swimmer crab meat
+
+35. ID: FOODON:02021861
+   Label: blue swimmer crab
+   Definition: A whole blue swimmer crab.
+   Synonyms: None
+
+36. ID: FOODON:00003306
+   Label: blue corn flour
+   Definition: Flour ground from blue flint corn.
+   Synonyms: None
+
+37. ID: FOODON:00002513
+   Label: blue corn mush (dish)
+   Definition: Blue corn mush is a dish prepared by thickening blue corn meal, water, and juniper ash on the stove.
+   Synonyms: None
+
+38. ID: FOODON:02021864
+   Label: piece of blue swimmer crab
+   Definition: A severed part of a blue swimmer crab.
+   Synonyms: None
+
+39. ID: FOODON:02021860
+   Label: blue swimmer crab material
+   Definition: Material that derives from some blue swimmer crab.
+   Synonyms: None
+
+40. ID: FOODON:00002514
+   Label: blue corn meal
+   Definition: Blue corn meal is a corn meal that is ground from whole blue corn and has a sweet flavor. It is also a staple of New Mexican cuisine used commonly to make tortillas.
+   Synonyms: None
+
+41. ID: CHEBI:34946
+   Label: Reactive blue 2
+   Definition: None
+   Synonyms: Reactive blue 2
+
+42. ID: FOODON:03414608
+   Label: obsolete: blue shark
+   Definition: None
+   Synonyms: None
+
+43. ID: FOODON:03412667
+   Label: obsolete: blue rockfish
+   Definition: None
+   Synonyms: None
+
+44. ID: FOODON:03411907
+   Label: obsolete: lake whitefish
+   Definition: None
+   Synonyms: None
+
+45. ID: FOODON:03309319
+   Label: lake superior bluefin fillet (raw)
+   Definition: None
+   Synonyms: None
+
+46. ID: FOODON:03414058
+   Label: obsolete: blue whitefish
+   Definition: None
+   Synonyms: None
+
+47. ID: FOODON:03411512
+   Label: obsolete: bluefish
+   Definition: None
+   Synonyms: None
+
+48. ID: CHEBI:155903
+   Label: copper(II) phthalocyanine
+   Definition: A metallophthalocyanine that is copper(2+) forming a coordination complex with phthalocyanine. It is a synthetic blue pigment which is used as a colorant in paints and dyes.
+   Synonyms: [29H,31H-phthalocyaninato(2-)-kappa(4)N(29),N(30),N(31),N(32)]copper; Accosperse cyan blue GT; Aqualine blue; Arlocyanine blue PS; Bahama blue BC; Bahama blue BNC; Bahama blue WD; Bahama blue lake NCNF; Bermuda blue; Blue GLA; C.I. 74160; C.I. pigment blue 15; Congo blue B 4; Cromophtal blue 4G; Cromophtal blue 4GN; Cromophtal blue GF; Cu-phthaloblue; CuPc; Cyan blue GT; Cyan blue GTNF; Cyan peacock blue G; Cyanine Blue BF; Cyanine Blue C; Cyanine Blue GNPS; Cyanine Blue HB; Cyanine blue BB; Cyanine blue LBG; Cyanine blue Rnf; Fastogen blue; Fastolux blue; Fastolux peacock blue; Graphtol blue; Helio blue B; Helio fast blue; Heliogen blue; Hostaperm blue; Indolen blue 3G; Irgalite blue; Irgaplast blue RBP; Isol fast blue; Isol phthalo blue; Linnol blue; Lumatex blue B; Lutetia fast cyanine B; Monarch blue; Monarch blue toner; Monastral blue B; copper (II) phthalocyanine; copper phthalocyanin; copper phthalocyanine; copper phthalocyanine blue; copper tetrabenzoporphyrazine; copper(2+) phthalocyanine; copper-phthalocyanine; pigment blue 15
+
+49. ID: FOODON:03411900
+   Label: obsolete: blue catfish
+   Definition: None
+   Synonyms: None
+
+50. ID: CHEBI:232551
+   Label: Chicago Sky Blue 6B
+   Definition: None
+   Synonyms: Direct blue 1
+
+51. ID: CHEBI:52126
+   Label: marina blue dye
+   Definition: None
+   Synonyms: 2-(6,8-difluoro-7-hydroxy-4-methyl-2-oxo-2H-chromen-3-yl)acetohydrazide
+
+52. ID: FOODON:03412290
+   Label: obsolete: blue cod
+   Definition: None
+   Synonyms: None
+
+53. ID: FOODON:03415163
+   Label: obsolete: blueflag plant
+   Definition: None
+   Synonyms: None
+
+54. ID: FOODON:03411778
+   Label: obsolete: blue runner
+   Definition: None
+   Synonyms: None
+
+55. ID: FOODON:03413741
+   Label: obsolete: lowbush blueberry plant
+   Definition: None
+   Synonyms: None
+
+56. ID: FOODON:03414054
+   Label: obsolete: lake neuchâtel whitefish
+   Definition: None
+   Synonyms: None
+
+57. ID: CHEBI:51932
+   Label: cascade blue
+   Definition: None
+   Synonyms: N-(4-{[4-(diethylamino)phenyl][4-(ethylamino)-2-naphthyl]methylene}cyclohexa-2,5-dien-1-ylidene)-N-ethylethanaminium; CI Pigment Blue 1
+
+58. ID: FOODON:03414474
+   Label: obsolete: alaska blueberry plant
+   Definition: None
+   Synonyms: None
+
+59. ID: FOODON:03414082
+   Label: obsolete: blue skate
+   Definition: None
+   Synonyms: None
+
+60. ID: CHEBI:86247
+   Label: NSC 56820
+   Definition: An amino sulfonic acid that is 4-[(4-methylenecyclohexa-2,5-dien-1-ylidene)amino]benzenesulfonic acid in which the hydrogens of the methylene group are replaced by 4-amino-3-methyl-5-sulfophenyl and 4-[(4-sulfophenyl)amino]phenyl groups. The disodium salt is the biological stain C.I. Acid Blue 22, also known as water blue.
+   Synonyms: 2-amino-3-methyl-5-({4-[(4-sulfophenyl)amino]phenyl}{4-[(4-sulfophenyl)imino]cyclohexa-2,5-dien-1-ylidene}methyl)benzenesulfonic acid; water blue (acid form)
+
+61. ID: FOODON:03412249
+   Label: obsolete: bluefin searobin
+   Definition: None
+   Synonyms: None
+
+62. ID: CHEBI:82472
+   Label: HC Blue No. 2
+   Definition: None
+   Synonyms: 2,2'-[[4-[(2-Hydroxyethyl)amino]-3-nitrophenyl]imino]bis-ethanol; KL2880000
+
+63. ID: FOODON:03411003
+   Label: obsolete: southern bluefin tuna
+   Definition: None
+   Synonyms: None
+
+66. ID: FOODON:03411424
+   Label: obsolete: blue pike
+   Definition: Synonym of *WALLEYE PIKE [B1398]*.
+   Synonyms: None
+
+67. ID: FOODON:03412026
+   Label: obsolete: highbush blueberry plant
+   Definition: None
+   Synonyms: None
+
+68. ID: CHEBI:86483
+   Label: spirit blue
+   Definition: A hydrochloride obtained by combining the free base of spirit blue with one equivalent of hydrochloric acid.
+   Synonyms: N,N'-[{[4-(phenylimino)cyclohexa-2,5-dien-1-ylidene]methylene}di(4,1-phenylene)]dianiline hydrochloride; HSDB 466; Opal Blue SS; Solvent Blue 23, monohydrochloride
+
+69. ID: CHEBI:82411
+   Label: Brilliant Blue
+   Definition: None
+   Synonyms: Brilliant Blue FCF, disodium salt
+
+70. ID: CHEBI:87646
+   Label: night blue(1+)
+   Definition: An iminium ion that forms the cationic portion of the histological dye 'night blue'.
+   Synonyms: 4-{(4-anilinonaphthalen-1-yl)[4-(diethylamino)phenyl]methylidene}-N,N-diethylcyclohexa-2,5-dien-1-iminium; night blue cation
+
+71. ID: CHEBI:88171
+   Label: brilliant cresyl blue(1+)
+   Definition: An organic cation that is phenoxazin-5-ium substituted by methyl, amino and diethylamino groups at positions 2, 3 and 7 respectively. The tetrachlorozincate salt salt is the histological dye 'brilliant cresyl blue'.
+   Synonyms: 3-amino-7-(diethylamino)-2-methylphenoxazin-5-ium; brilliant cresyl blue(1+) cation
+
+72. ID: CHEBI:86250
+   Label: NSC 56820(2-)
+   Definition: An arenesulfonate oxoanion that is a dianion resulting from the removal of a proton from all three sulfonic acid groups of NSC 56820 and the protonation of its imino nitrogen. The disodium salt is the biological stain C.I. Acid Blue 22, also known as water blue.
+   Synonyms: 2-amino-3-methyl-5-({4-[(4-sulfonatophenyl)amino]phenyl}{4-[(4-sulfonatophenyl)iminio]cyclohexa-2,5-dien-1-ylidene}methyl)benzenesulfonate; water blue (acid form)(2-)
+
+73. ID: CHEBI:52750
+   Label: Lake Placid 490
+   Definition: A nanocrystalline fluorescent dye with an emission wavelength of 490 nm.
+   Synonyms: Evitag490
+
+74. ID: CHEBI:52168
+   Label: nile blue(1+)
+   Definition: An organic cation that is 6a,12a-dihydrobenzo[a]phenoxazin-7-ium substituted by amino and dimethylamino groups at positions 5 and 9 respectively. The chloride salt is the histological dye 'nile blue A'
+   Synonyms: 5-amino-9-(diethylamino)-6a,12a-dihydrobenzo[a]phenoxazin-7-ium; nile blue cation
+
+75. ID: CHEBI:86495
+   Label: spirit blue(1+)
+   Definition: An organic cation obtained by protonation of spirit blue base.
+   Synonyms: spirit blue cation
+
+76. ID: CHEBI:52727
+   Label: ethyl nile blue A
+   Definition: The sulfate salt of ethyl nile blue.
+   Synonyms: bis[9-(diethylamino)-5-(ethylamino)benzo[a]phenoxazin-7-ium] sulfate
+
+77. ID: CHEBI:34906
+   Label: Patent blue
+   Definition: None
+   Synonyms: Patent blue
+
+78. ID: CHEBI:82333
+   Label: HC Blue No.1
+   Definition: None
+   Synonyms: 2,2'-[[4-(methylamino)-3-nitrophenyl]imino]bis-Ethanol
+
+79. ID: CHEBI:87478
+   Label: methyl blue(2-)
+   Definition: None
+   Synonyms: 4,4'-{({4-[(4-sulfonatophenyl)iminio]cyclohexa-2,5-dien-1-ylidene}methylene)bis[(4,1-phenylene)azanediyl]}di(benzene-1-sulfonate)
+
+80. ID: CHEBI:211276
+   Label: Spumigin B2
+   Definition: None
+   Synonyms: (2R)-5-(diaminomethylideneamino)-2-[[(2S,4S)-1-[(2R)-2-[[(2R)-2-hydroxy-3-(4-hydroxyphenyl)propanoyl]amino]-4-(4-hydroxyphenyl)butanoyl]-4-methylpyrrolidine-2-carbonyl]amino]pentanoic acid
+
+**Instructions:**
+1.  Carefully review the user's entity and each candidate's details (ID, Label, Definition, Synonyms).
+2.  Select the single best match. Consider exact matches of labels or synonyms as strong signals. If there are multiple good matches, prefer the more specific term over a general one.
+3.  Provide your response in a valid JSON format only. Do not add any text before or after the JSON block.
+4.  The JSON object must contain two keys:
+    - "chosen_id": The CURIE (ID) of the single best matching term (e.g., "FOODON:00001290").
+    - "explanation": A brief, clear explanation for your choice, justifying why it is the best fit compared to other options.
+
+**Example Response Format:**
+{
+  "chosen_id": "FOODON:00001290",
+  "explanation": "I chose 'garlic' because its label is an exact match for the user entity. Candidate 'allium sativum' is the scientific name but 'garlic' is the common term and therefore a better fit."
+}
+---
+2025-07-30 13:14:55,301 - src.rag_selectors.huggingface_selector - INFO - huggingface_selector._call_llm:27 - Sending request to local HF model for query: 'blue 2 lake'

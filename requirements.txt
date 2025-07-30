@@ -22,3 +22,9 @@ streamlit-aggrid
 
 # Testing (optional, but good for development)
 pytest>=6.2.0
+
+# Local LLM / Hugging Face
+transformers>=4.39.0
+torch>=2.1.0
+accelerate>=0.28.0
+bitsandbytes>=0.42.0 # For 8-bit/4-bit quantization

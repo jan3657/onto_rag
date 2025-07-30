@@ -3,6 +3,8 @@ from pathlib import Path
 from dotenv import load_dotenv
 from rdflib import Namespace
 from os import getenv
+import torch
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
 # --- Path Configuration (using pathlib) ---
 
@@ -146,20 +148,30 @@ MAX_PIPELINE_LOOPS = 4     # Max number of attempts (initial + retries)
 GEMINI_API_KEY = getenv("GEMINI_API_KEY")
 #GEMINI_SELECTOR_MODEL_NAME = "gemini-1.5-flash-latest"
 GEMINI_SELECTOR_MODEL_NAME = "gemini-2.5-flash-lite-preview-06-17"
-GEMINI_SCORER_MODEL_NAME = "gemini-2.5-flash-lite-preview-06-17"
+GEMINI_SCORER_MODEL_NAME = "gemini-2.5-pro"
 GEMINI_SYNONYM_MODEL_NAME = "gemini-2.5-flash-lite-preview-06-17"
 
 OLLAMA_SELECTOR_MODEL_NAME = 'llama3.1:8b'
 OLLAMA_SCORER_MODEL_NAME = 'llama3.1:8b'
 OLLAMA_SYNONYM_MODEL_NAME = 'llama3.1:8b'
-# OPENAI_API_KEY = getenv.OPENAI_API_KEY
+
+HF_SELECTOR_MODEL_ID = "arcee-ai/AFM-4.5B"
+HF_MODEL_KWARGS = {
+    "torch_dtype": torch.float16,
+    "device_map": "mps",
+}
+HF_GENERATION_KWARGS = {
+    "max_new_tokens": 256,
+    "do_sample": False,
+    "top_k": 50
+}
 
 # Path to the prompt template for the selector
 SELECTOR_PROMPT_TEMPLATE_PATH = PROJECT_ROOT / "prompts" /  "final_selection.tpl" #"strict_selection_minimal.tpl"
 CONFIDENCE_PROMPT_TEMPLATE_PATH = PROJECT_ROOT / "prompts" / "confidence_assessment2.tpl" #"confidence_assessment.tpl"
 SYNONYM_PROMPT_TEMPLATE_PATH = PROJECT_ROOT / "prompts" / "synonym_generation.tpl"
 
-PIPELINE = "gemini" # "gemini" or "ollama" 
+PIPELINE = "huggingface" # "gemini", "ollama", or "huggingface"
 
 # Logging configuration
 LOG_LEVEL = "DEBUG"
