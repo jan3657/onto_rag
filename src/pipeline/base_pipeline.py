@@ -62,9 +62,15 @@ class BaseRAGPipeline:
 
             # --- Initialize Synonym Generator ---
             if config.PIPELINE == "ollama":
+                from src.synonym_generators.ollama_synonym_generator import OllamaSynonymGenerator
                 self.synonym_generator = OllamaSynonymGenerator()
             elif config.PIPELINE == "gemini":
+                from src.synonym_generators.gemini_synonym_generator import GeminiSynonymGenerator
                 self.synonym_generator = GeminiSynonymGenerator()
+            elif config.PIPELINE == "huggingface":
+                # This is the new part
+                from src.synonym_generators.huggingface_synonym_generator import HuggingFaceSynonymGenerator
+                self.synonym_generator = HuggingFaceSynonymGenerator()
             else:
                 self.synonym_generator = None
                 logger.warning("No synonym generator configured for the current pipeline.")
