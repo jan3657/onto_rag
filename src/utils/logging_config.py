@@ -44,6 +44,8 @@ def setup_run_logging(query: str):
         model_name = sanitize_filename(config.OLLAMA_SELECTOR_MODEL_NAME)
     elif config.PIPELINE == "gemini":
         model_name = sanitize_filename(config.GEMINI_SELECTOR_MODEL_NAME)
+    elif config.PIPELINE == "huggingface":
+        model_name = sanitize_filename(config.HF_SELECTOR_MODEL_ID)
     else:
         model_name = "unknown_model"
 
