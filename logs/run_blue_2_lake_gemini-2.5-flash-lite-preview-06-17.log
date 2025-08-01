@@ -1,45 +1,45 @@
-2025-07-30 13:12:08,896 - root - INFO - logging_config.setup_run_logging:82 - Logging configured to level DEBUG. Console output enabled.
-2025-07-30 13:12:08,896 - root - INFO - logging_config.setup_run_logging:83 - Saving run-specific log to: /Users/jandrole/projects/onto_rag/logs/run_blue_2_lake_gemini-2.5-flash-lite-preview-06-17.log
-2025-07-30 13:12:08,896 - __main__ - INFO - main.main:31 - Starting pipeline run for query: 'blue 2 lake' with pipeline: 'gemini'
-2025-07-30 13:12:08,896 - src.pipeline.base_pipeline - INFO - base_pipeline.__init__:39 - Initializing RAG Pipeline with GeminiSelector and GeminiConfidenceScorer...
-2025-07-30 13:12:08,896 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:36 - Initializing HybridRetriever for multiple ontologies...
-2025-07-30 13:12:08,896 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:45 - Loading embedding model: all-MiniLM-L6-v2
-2025-07-30 13:12:10,789 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:49 - --- Initializing resources for ontology: 'foodon' ---
-2025-07-30 13:12:10,790 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:53 - Loading ontology data from: /Users/jandrole/projects/onto_rag/data/ontology_dump_foodon.json
-2025-07-30 13:12:10,969 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:58 - Loaded 39725 entries for 'foodon'.
-2025-07-30 13:12:10,969 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:62 - Loading Whoosh index from: /Users/jandrole/projects/onto_rag/data/whoosh_index_foodon
-2025-07-30 13:12:11,010 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:72 - Whoosh index for 'foodon' loaded.
-2025-07-30 13:12:11,010 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:77 - Initializing FAISS store for 'foodon' (index: /Users/jandrole/projects/onto_rag/data/faiss_index_foodon.bin, metadata: /Users/jandrole/projects/onto_rag/data/faiss_metadata_foodon.json)...
-2025-07-30 13:12:11,010 - src.vector_store.faiss_store - INFO - faiss_store.__init__:29 - Loading existing FAISS index from /Users/jandrole/projects/onto_rag/data/faiss_index_foodon.bin and metadata from /Users/jandrole/projects/onto_rag/data/faiss_metadata_foodon.json
-2025-07-30 13:12:11,030 - src.vector_store.faiss_store - INFO - faiss_store.load_store:138 - FAISS index loaded. Index has 39725 vectors of dim 384.
-2025-07-30 13:12:11,039 - src.vector_store.faiss_store - INFO - faiss_store.load_store:142 - FAISS metadata loaded. 39725 items.
-2025-07-30 13:12:11,039 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:88 - FAISS store for 'foodon' initialized.
-2025-07-30 13:12:11,039 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:49 - --- Initializing resources for ontology: 'chebi' ---
-2025-07-30 13:12:11,039 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:53 - Loading ontology data from: /Users/jandrole/projects/onto_rag/data/ontology_dump_chebi.json
-2025-07-30 13:12:12,425 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:58 - Loaded 203574 entries for 'chebi'.
-2025-07-30 13:12:12,425 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:62 - Loading Whoosh index from: /Users/jandrole/projects/onto_rag/data/whoosh_index_chebi
-2025-07-30 13:12:12,567 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:72 - Whoosh index for 'chebi' loaded.
-2025-07-30 13:12:12,567 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:77 - Initializing FAISS store for 'chebi' (index: /Users/jandrole/projects/onto_rag/data/faiss_index_chebi.bin, metadata: /Users/jandrole/projects/onto_rag/data/faiss_metadata_chebi.json)...
-2025-07-30 13:12:12,567 - src.vector_store.faiss_store - INFO - faiss_store.__init__:29 - Loading existing FAISS index from /Users/jandrole/projects/onto_rag/data/faiss_index_chebi.bin and metadata from /Users/jandrole/projects/onto_rag/data/faiss_metadata_chebi.json
-2025-07-30 13:12:12,655 - src.vector_store.faiss_store - INFO - faiss_store.load_store:138 - FAISS index loaded. Index has 203574 vectors of dim 384.
-2025-07-30 13:12:12,709 - src.vector_store.faiss_store - INFO - faiss_store.load_store:142 - FAISS metadata loaded. 203574 items.
-2025-07-30 13:12:12,709 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:88 - FAISS store for 'chebi' initialized.
-2025-07-30 13:12:12,709 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:90 - HybridRetriever initialized successfully for all configured ontologies.
-2025-07-30 13:12:12,709 - src.rag_selectors.base_selector - INFO - base_selector.__init__:34 - GeminiSelector initialized for model: gemini-2.5-flash-lite-preview-06-17
-2025-07-30 13:12:12,710 - asyncio - DEBUG - selector_events.__init__:54 - Using selector: KqueueSelector
-2025-07-30 13:12:12,715 - src.confidence_scorers.base_confidence_scorer - INFO - base_confidence_scorer.__init__:17 - GeminiConfidenceScorer initialized for model: gemini-2.5-pro
-2025-07-30 13:12:12,719 - src.synonym_generators.base_synonym_generator - INFO - base_synonym_generator.__init__:17 - GeminiSynonymGenerator initialized for model: gemini-2.5-flash-lite-preview-06-17
-2025-07-30 13:12:12,724 - src.pipeline.base_pipeline - INFO - base_pipeline.__init__:78 - RAG Pipeline initialized successfully.
-2025-07-30 13:12:12,724 - src.pipeline.base_pipeline - INFO - base_pipeline.run:114 - --- Starting Pipeline Attempt 1/4 for query: 'blue 2 lake' ---
-2025-07-30 13:12:12,958 - src.pipeline.base_pipeline - INFO - base_pipeline.run:126 - 80 candidates passed to LLM selector for query 'blue 2 lake'.
-2025-07-30 13:12:12,959 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'ENVO:01000252'.
-2025-07-30 13:12:12,959 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'PATO:0001265'.
-2025-07-30 13:12:12,959 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'PATO:0001243'.
-2025-07-30 13:12:12,959 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'PATO:0001244'.
-2025-07-30 13:12:12,959 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'PATO:0001266'.
-2025-07-30 13:12:12,959 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'PATO:0001265'.
-2025-07-30 13:12:12,959 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'NCBITaxon:7815'.
-2025-07-30 13:12:12,959 - src.rag_selectors.base_selector - DEBUG - base_selector.select_best_term:141 - Selector Prompt:
+2025-08-01 08:33:33,088 - root - INFO - logging_config.setup_run_logging:84 - Logging configured to level DEBUG. Console output enabled.
+2025-08-01 08:33:33,089 - root - INFO - logging_config.setup_run_logging:85 - Saving run-specific log to: /Users/jandrole/projects/onto_rag/logs/run_blue_2_lake_gemini-2.5-flash-lite-preview-06-17.log
+2025-08-01 08:33:33,089 - __main__ - INFO - main.main:31 - Starting pipeline run for query: 'blue 2 lake' with pipeline: 'gemini'
+2025-08-01 08:33:33,089 - src.pipeline.base_pipeline - INFO - base_pipeline.__init__:39 - Initializing RAG Pipeline with GeminiSelector and GeminiConfidenceScorer...
+2025-08-01 08:33:33,089 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:36 - Initializing HybridRetriever for multiple ontologies...
+2025-08-01 08:33:33,089 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:45 - Loading embedding model: all-MiniLM-L6-v2
+2025-08-01 08:33:36,812 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:49 - --- Initializing resources for ontology: 'foodon' ---
+2025-08-01 08:33:36,812 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:53 - Loading ontology data from: /Users/jandrole/projects/onto_rag/data/ontology_dump_foodon.json
+2025-08-01 08:33:37,018 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:58 - Loaded 39725 entries for 'foodon'.
+2025-08-01 08:33:37,019 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:62 - Loading Whoosh index from: /Users/jandrole/projects/onto_rag/data/whoosh_index_foodon
+2025-08-01 08:33:37,063 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:72 - Whoosh index for 'foodon' loaded.
+2025-08-01 08:33:37,063 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:77 - Initializing FAISS store for 'foodon' (index: /Users/jandrole/projects/onto_rag/data/faiss_index_foodon.bin, metadata: /Users/jandrole/projects/onto_rag/data/faiss_metadata_foodon.json)...
+2025-08-01 08:33:37,063 - src.vector_store.faiss_store - INFO - faiss_store.__init__:29 - Loading existing FAISS index from /Users/jandrole/projects/onto_rag/data/faiss_index_foodon.bin and metadata from /Users/jandrole/projects/onto_rag/data/faiss_metadata_foodon.json
+2025-08-01 08:33:37,092 - src.vector_store.faiss_store - INFO - faiss_store.load_store:138 - FAISS index loaded. Index has 39725 vectors of dim 384.
+2025-08-01 08:33:37,103 - src.vector_store.faiss_store - INFO - faiss_store.load_store:142 - FAISS metadata loaded. 39725 items.
+2025-08-01 08:33:37,103 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:88 - FAISS store for 'foodon' initialized.
+2025-08-01 08:33:37,103 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:49 - --- Initializing resources for ontology: 'chebi' ---
+2025-08-01 08:33:37,103 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:53 - Loading ontology data from: /Users/jandrole/projects/onto_rag/data/ontology_dump_chebi.json
+2025-08-01 08:33:38,458 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:58 - Loaded 203574 entries for 'chebi'.
+2025-08-01 08:33:38,458 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:62 - Loading Whoosh index from: /Users/jandrole/projects/onto_rag/data/whoosh_index_chebi
+2025-08-01 08:33:38,601 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:72 - Whoosh index for 'chebi' loaded.
+2025-08-01 08:33:38,601 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:77 - Initializing FAISS store for 'chebi' (index: /Users/jandrole/projects/onto_rag/data/faiss_index_chebi.bin, metadata: /Users/jandrole/projects/onto_rag/data/faiss_metadata_chebi.json)...
+2025-08-01 08:33:38,601 - src.vector_store.faiss_store - INFO - faiss_store.__init__:29 - Loading existing FAISS index from /Users/jandrole/projects/onto_rag/data/faiss_index_chebi.bin and metadata from /Users/jandrole/projects/onto_rag/data/faiss_metadata_chebi.json
+2025-08-01 08:33:38,694 - src.vector_store.faiss_store - INFO - faiss_store.load_store:138 - FAISS index loaded. Index has 203574 vectors of dim 384.
+2025-08-01 08:33:38,748 - src.vector_store.faiss_store - INFO - faiss_store.load_store:142 - FAISS metadata loaded. 203574 items.
+2025-08-01 08:33:38,748 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:88 - FAISS store for 'chebi' initialized.
+2025-08-01 08:33:38,748 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:90 - HybridRetriever initialized successfully for all configured ontologies.
+2025-08-01 08:33:38,748 - src.rag_selectors.base_selector - INFO - base_selector.__init__:34 - GeminiSelector initialized for model: gemini-2.5-flash-lite-preview-06-17
+2025-08-01 08:33:38,749 - asyncio - DEBUG - selector_events.__init__:54 - Using selector: KqueueSelector
+2025-08-01 08:33:38,754 - src.confidence_scorers.base_confidence_scorer - INFO - base_confidence_scorer.__init__:17 - GeminiConfidenceScorer initialized for model: gemini-2.5-pro
+2025-08-01 08:33:38,758 - src.synonym_generators.base_synonym_generator - INFO - base_synonym_generator.__init__:17 - GeminiSynonymGenerator initialized for model: gemini-2.5-flash-lite-preview-06-17
+2025-08-01 08:33:38,763 - src.pipeline.base_pipeline - INFO - base_pipeline.__init__:78 - RAG Pipeline initialized successfully.
+2025-08-01 08:33:38,763 - src.pipeline.base_pipeline - INFO - base_pipeline.run:114 - --- Starting Pipeline Attempt 1/4 for query: 'blue 2 lake' ---
+2025-08-01 08:33:39,263 - src.pipeline.base_pipeline - INFO - base_pipeline.run:126 - 80 candidates passed to LLM selector for query 'blue 2 lake'.
+2025-08-01 08:33:39,263 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'ENVO:01000252'.
+2025-08-01 08:33:39,264 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'PATO:0001265'.
+2025-08-01 08:33:39,264 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'PATO:0001243'.
+2025-08-01 08:33:39,264 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'PATO:0001244'.
+2025-08-01 08:33:39,264 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'PATO:0001266'.
+2025-08-01 08:33:39,264 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'PATO:0001265'.
+2025-08-01 08:33:39,264 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'NCBITaxon:7815'.
+2025-08-01 08:33:39,264 - src.rag_selectors.base_selector - DEBUG - base_selector.select_best_term:141 - Selector Prompt:
 ---
 You are an expert ontologist specializing in food science. Your task is to analyze a list of candidate ontology terms and select the single most appropriate term that matches the user's provided entity.
 
@@ -426,10 +426,10 @@ blue 2 lake
   "explanation": "I chose 'garlic' because its label is an exact match for the user entity. Candidate 'allium sativum' is the scientific name but 'garlic' is the common term and therefore a better fit."
 }
 ---
-2025-07-30 13:12:12,959 - src.rag_selectors.gemini_selector - INFO - gemini_selector._call_llm:37 - Sending request to Gemini for query: 'blue 2 lake'
-2025-07-30 13:12:12,960 - google_genai.models - INFO - models.generate_content:5969 - AFC is enabled with max remote calls: 10.
-2025-07-30 13:12:13,912 - google_genai.models - INFO - models.generate_content:5980 - AFC remote call 1 is done.
-2025-07-30 13:12:13,912 - src.rag_selectors.base_selector - DEBUG - base_selector.select_best_term:149 - Selector Raw Response:
+2025-08-01 08:33:39,264 - src.rag_selectors.gemini_selector - INFO - gemini_selector._call_llm:37 - Sending request to Gemini for query: 'blue 2 lake'
+2025-08-01 08:33:39,265 - google_genai.models - INFO - models.generate_content:5969 - AFC is enabled with max remote calls: 10.
+2025-08-01 08:33:40,391 - google_genai.models - INFO - models.generate_content:5980 - AFC remote call 1 is done.
+2025-08-01 08:33:40,391 - src.rag_selectors.base_selector - DEBUG - base_selector.select_best_term:149 - Selector Raw Response:
 ---
 ```json
 {
@@ -438,8 +438,8 @@ blue 2 lake
 }
 ```
 ---
-2025-07-30 13:12:13,912 - src.pipeline.base_pipeline - INFO - base_pipeline.run:142 - Scoring selection 'FOODON:03411907' against the ORIGINAL query: 'blue 2 lake'
-2025-07-30 13:12:13,913 - src.confidence_scorers.base_confidence_scorer - DEBUG - base_confidence_scorer.score_confidence:74 - Formatted prompt for confidence scoring:
+2025-08-01 08:33:40,391 - src.pipeline.base_pipeline - INFO - base_pipeline.run:142 - Scoring selection 'FOODON:03411907' against the ORIGINAL query: 'blue 2 lake'
+2025-08-01 08:33:40,391 - src.confidence_scorers.base_confidence_scorer - DEBUG - base_confidence_scorer.score_confidence:74 - Formatted prompt for confidence scoring:
 You are a rigorous AI confidence assessor for ontology mapping. Your task is to evaluate a proposed match between a user entity and a chosen ontology term, and assign a confidence score based on a nuanced rubric. You must penalize mismatches in substance identity, even if terms are linguistically or semantically similar.
 
 User Entity:
@@ -495,11 +495,11 @@ Generated JSON:
   "suggested_alternatives": ["Blue 1", "FD&C Blue No.1"]
 }
 
-2025-07-30 13:12:13,913 - src.confidence_scorers.gemini_confidence_scorer - INFO - gemini_confidence_scorer._call_llm:25 - Sending confidence scoring request to Gemini...
-2025-07-30 13:12:13,913 - google_genai.models - INFO - models.generate_content:5969 - AFC is enabled with max remote calls: 10.
-2025-07-30 13:12:30,339 - google_genai.models - INFO - models.generate_content:5980 - AFC remote call 1 is done.
-2025-07-30 13:12:30,340 - src.pipeline.base_pipeline - INFO - base_pipeline.run:159 - Selection: 'obsolete: lake whitefish' (ID: FOODON:03411907), Confidence against original query: 0.00, Explanation: No Match. The user entity 'blue 2 lake' is a chemical food coloring, a specific formulation of the dye FD&C Blue No. 2. The chosen ontology term 'obsolete: lake whitefish' is a species of fish. These are entirely different entities from different domains (a chemical vs. an animal). The shared word 'lake' is a coincidental homonym: in the user entity, it is a formulation indicator for a type of pigment, while in the ontology term, it refers to the fish's habitat. The substance identities are completely different, resulting in a zero score. The ontology term is also marked as obsolete.
-2025-07-30 13:12:30,340 - src.synonym_generators.base_synonym_generator - DEBUG - base_synonym_generator.generate_synonyms:50 - Synonym Generator Prompt:
+2025-08-01 08:33:40,392 - src.confidence_scorers.gemini_confidence_scorer - INFO - gemini_confidence_scorer._call_llm:25 - Sending confidence scoring request to Gemini...
+2025-08-01 08:33:40,392 - google_genai.models - INFO - models.generate_content:5969 - AFC is enabled with max remote calls: 10.
+2025-08-01 08:34:01,384 - google_genai.models - INFO - models.generate_content:5980 - AFC remote call 1 is done.
+2025-08-01 08:34:01,385 - src.pipeline.base_pipeline - INFO - base_pipeline.run:159 - Selection: 'obsolete: lake whitefish' (ID: FOODON:03411907), Confidence against original query: 0.00, Explanation: No Match. The user entity 'blue 2 lake' is a chemical pigment (FD&C Blue No. 2 Aluminum Lake). The chosen ontology term 'obsolete: lake whitefish' is a species of fish. These are fundamentally different entities from entirely different domains (chemical vs. biological organism). The shared word 'lake' is a coincidental and misleading lexical overlap; in the user entity, 'lake' is a formulation indicator for an insoluble pigment, while in the chosen term, it refers to the fish's habitat. The substance identities are completely different, resulting in a score of 0.00. The term is also marked as 'obsolete', making it an unsuitable choice.
+2025-08-01 08:34:01,386 - src.synonym_generators.base_synonym_generator - DEBUG - base_synonym_generator.generate_synonyms:50 - Synonym Generator Prompt:
 ---
 You are a helpful AI assistant specialized in query expansion for scientific and food-related domains. Your task is to generate alternative search queries (synonyms, reformulations, or related terms) for a given user entity to improve search recall in an ontology.
 
@@ -536,12 +536,11 @@ Generated JSON:
   ]
 }
 ---
-2025-07-30 13:12:30,341 - src.synonym_generators.gemini_synonym_generator - INFO - gemini_synonym_generator._call_llm:26 - Sending synonym generation request to Gemini...
-2025-07-30 13:12:30,341 - google_genai.models - INFO - models.generate_content:5969 - AFC is enabled with max remote calls: 10.
-2025-07-30 13:12:30,832 - google_genai.models - INFO - models.generate_content:5980 - AFC remote call 1 is done.
-2025-07-30 13:12:30,832 - src.synonym_generators.base_synonym_generator - DEBUG - base_synonym_generator.generate_synonyms:56 - Synonym Generator Raw Response:
+2025-08-01 08:34:01,386 - src.synonym_generators.gemini_synonym_generator - INFO - gemini_synonym_generator._call_llm:26 - Sending synonym generation request to Gemini...
+2025-08-01 08:34:01,386 - google_genai.models - INFO - models.generate_content:5969 - AFC is enabled with max remote calls: 10.
+2025-08-01 08:34:02,095 - google_genai.models - INFO - models.generate_content:5980 - AFC remote call 1 is done.
+2025-08-01 08:34:02,096 - src.synonym_generators.base_synonym_generator - DEBUG - base_synonym_generator.generate_synonyms:56 - Synonym Generator Raw Response:
 ---
-```json
 {
   "synonyms": [
     "Brilliant Blue FCF",
@@ -551,18 +550,17 @@ Generated JSON:
     "E133"
   ]
 }
-```
 ---
-2025-07-30 13:12:30,833 - src.pipeline.base_pipeline - INFO - base_pipeline.run:114 - --- Starting Pipeline Attempt 2/4 for query: 'Brilliant Blue FCF' ---
-2025-07-30 13:12:30,920 - src.pipeline.base_pipeline - INFO - base_pipeline.run:126 - 80 candidates passed to LLM selector for query 'Brilliant Blue FCF'.
-2025-07-30 13:12:30,920 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'PATO:0001265'.
-2025-07-30 13:12:30,920 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'PATO:0001243'.
-2025-07-30 13:12:30,920 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'PATO:0001244'.
-2025-07-30 13:12:30,920 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'PATO:0001266'.
-2025-07-30 13:12:30,920 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'PATO:0000318'.
-2025-07-30 13:12:30,920 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'PATO:0001243'.
-2025-07-30 13:12:30,920 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'PATO:0001244'.
-2025-07-30 13:12:30,920 - src.rag_selectors.base_selector - DEBUG - base_selector.select_best_term:141 - Selector Prompt:
+2025-08-01 08:34:02,096 - src.pipeline.base_pipeline - INFO - base_pipeline.run:114 - --- Starting Pipeline Attempt 2/4 for query: 'Brilliant Blue FCF' ---
+2025-08-01 08:34:02,196 - src.pipeline.base_pipeline - INFO - base_pipeline.run:126 - 80 candidates passed to LLM selector for query 'Brilliant Blue FCF'.
+2025-08-01 08:34:02,196 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'PATO:0001265'.
+2025-08-01 08:34:02,196 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'PATO:0001243'.
+2025-08-01 08:34:02,196 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'PATO:0001244'.
+2025-08-01 08:34:02,196 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'PATO:0001266'.
+2025-08-01 08:34:02,196 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'PATO:0000318'.
+2025-08-01 08:34:02,196 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'PATO:0001243'.
+2025-08-01 08:34:02,196 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'PATO:0001244'.
+2025-08-01 08:34:02,196 - src.rag_selectors.base_selector - DEBUG - base_selector.select_best_term:141 - Selector Prompt:
 ---
 You are an expert ontologist specializing in food science. Your task is to analyze a list of candidate ontology terms and select the single most appropriate term that matches the user's provided entity.
 
@@ -949,10 +947,10 @@ Brilliant Blue FCF
   "explanation": "I chose 'garlic' because its label is an exact match for the user entity. Candidate 'allium sativum' is the scientific name but 'garlic' is the common term and therefore a better fit."
 }
 ---
-2025-07-30 13:12:30,921 - src.rag_selectors.gemini_selector - INFO - gemini_selector._call_llm:37 - Sending request to Gemini for query: 'Brilliant Blue FCF'
-2025-07-30 13:12:30,921 - google_genai.models - INFO - models.generate_content:5969 - AFC is enabled with max remote calls: 10.
-2025-07-30 13:12:31,649 - google_genai.models - INFO - models.generate_content:5980 - AFC remote call 1 is done.
-2025-07-30 13:12:31,649 - src.rag_selectors.base_selector - DEBUG - base_selector.select_best_term:149 - Selector Raw Response:
+2025-08-01 08:34:02,196 - src.rag_selectors.gemini_selector - INFO - gemini_selector._call_llm:37 - Sending request to Gemini for query: 'Brilliant Blue FCF'
+2025-08-01 08:34:02,196 - google_genai.models - INFO - models.generate_content:5969 - AFC is enabled with max remote calls: 10.
+2025-08-01 08:34:03,111 - google_genai.models - INFO - models.generate_content:5980 - AFC remote call 1 is done.
+2025-08-01 08:34:03,111 - src.rag_selectors.base_selector - DEBUG - base_selector.select_best_term:149 - Selector Raw Response:
 ---
 ```json
 {
@@ -961,8 +959,8 @@ Brilliant Blue FCF
 }
 ```
 ---
-2025-07-30 13:12:31,649 - src.pipeline.base_pipeline - INFO - base_pipeline.run:142 - Scoring selection 'CHEBI:82411' against the ORIGINAL query: 'blue 2 lake'
-2025-07-30 13:12:31,649 - src.confidence_scorers.base_confidence_scorer - DEBUG - base_confidence_scorer.score_confidence:74 - Formatted prompt for confidence scoring:
+2025-08-01 08:34:03,111 - src.pipeline.base_pipeline - INFO - base_pipeline.run:142 - Scoring selection 'CHEBI:82411' against the ORIGINAL query: 'blue 2 lake'
+2025-08-01 08:34:03,111 - src.confidence_scorers.base_confidence_scorer - DEBUG - base_confidence_scorer.score_confidence:74 - Formatted prompt for confidence scoring:
 You are a rigorous AI confidence assessor for ontology mapping. Your task is to evaluate a proposed match between a user entity and a chosen ontology term, and assign a confidence score based on a nuanced rubric. You must penalize mismatches in substance identity, even if terms are linguistically or semantically similar.
 
 User Entity:
@@ -1018,17 +1016,17 @@ Generated JSON:
   "suggested_alternatives": ["Blue 1", "FD&C Blue No.1"]
 }
 
-2025-07-30 13:12:31,651 - src.confidence_scorers.gemini_confidence_scorer - INFO - gemini_confidence_scorer._call_llm:25 - Sending confidence scoring request to Gemini...
-2025-07-30 13:12:31,651 - google_genai.models - INFO - models.generate_content:5969 - AFC is enabled with max remote calls: 10.
-2025-07-30 13:12:56,275 - google_genai.models - INFO - models.generate_content:5980 - AFC remote call 1 is done.
-2025-07-30 13:12:56,275 - src.pipeline.base_pipeline - INFO - base_pipeline.run:159 - Selection: 'Brilliant Blue' (ID: CHEBI:82411), Confidence against original query: 0.10, Explanation: Poor Match. The user entity 'blue 2 lake' refers to the substance FD&C Blue No. 2 (also known as Indigotine). The chosen ontology term 'Brilliant Blue', with its synonym 'Brilliant Blue FCF', refers to the distinct substance FD&C Blue No. 1. Although both are blue food colorants, they are chemically different compounds. The rubric requires a heavy penalty for a mismatch in substance identity. The term 'lake' is a formulation indicator specifying an insoluble pigment, but it does not change the identity of the parent substance, which is Blue No. 2.
-2025-07-30 13:12:56,275 - src.pipeline.base_pipeline - INFO - base_pipeline.run:114 - --- Starting Pipeline Attempt 3/4 for query: 'FD&C Blue No. 2' ---
-2025-07-30 13:12:56,363 - src.pipeline.base_pipeline - INFO - base_pipeline.run:126 - 80 candidates passed to LLM selector for query 'FD&C Blue No. 2'.
-2025-07-30 13:12:56,363 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'PATO:0001265'.
-2025-07-30 13:12:56,363 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'PATO:0001243'.
-2025-07-30 13:12:56,363 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'PATO:0001244'.
-2025-07-30 13:12:56,363 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'PATO:0001266'.
-2025-07-30 13:12:56,363 - src.rag_selectors.base_selector - DEBUG - base_selector.select_best_term:141 - Selector Prompt:
+2025-08-01 08:34:03,111 - src.confidence_scorers.gemini_confidence_scorer - INFO - gemini_confidence_scorer._call_llm:25 - Sending confidence scoring request to Gemini...
+2025-08-01 08:34:03,112 - google_genai.models - INFO - models.generate_content:5969 - AFC is enabled with max remote calls: 10.
+2025-08-01 08:34:25,517 - google_genai.models - INFO - models.generate_content:5980 - AFC remote call 1 is done.
+2025-08-01 08:34:25,519 - src.pipeline.base_pipeline - INFO - base_pipeline.run:159 - Selection: 'Brilliant Blue' (ID: CHEBI:82411), Confidence against original query: 0.10, Explanation: Poor Match. The user entity 'blue 2 lake' refers to the substance FD&C Blue No. 2 (also known as Indigotine). The chosen ontology term 'Brilliant Blue', with its synonym 'Brilliant Blue FCF', refers to the chemically distinct substance FD&C Blue No. 1. The rubric requires a heavy penalty for mismatches in substance identity, as these are different regulated compounds. The term 'lake' is a formulation indicator that does not change the identity of the parent compound, but the parent compound itself is a mismatch. Conflating these two color additives is incorrect.
+2025-08-01 08:34:25,519 - src.pipeline.base_pipeline - INFO - base_pipeline.run:114 - --- Starting Pipeline Attempt 3/4 for query: 'FD&C Blue No. 2' ---
+2025-08-01 08:34:25,630 - src.pipeline.base_pipeline - INFO - base_pipeline.run:126 - 80 candidates passed to LLM selector for query 'FD&C Blue No. 2'.
+2025-08-01 08:34:25,630 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'PATO:0001265'.
+2025-08-01 08:34:25,630 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'PATO:0001243'.
+2025-08-01 08:34:25,630 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'PATO:0001244'.
+2025-08-01 08:34:25,630 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'PATO:0001266'.
+2025-08-01 08:34:25,630 - src.rag_selectors.base_selector - DEBUG - base_selector.select_best_term:141 - Selector Prompt:
 ---
 You are an expert ontologist specializing in food science. Your task is to analyze a list of candidate ontology terms and select the single most appropriate term that matches the user's provided entity.
 
@@ -1430,20 +1428,20 @@ FD&C Blue No. 2
   "explanation": "I chose 'garlic' because its label is an exact match for the user entity. Candidate 'allium sativum' is the scientific name but 'garlic' is the common term and therefore a better fit."
 }
 ---
-2025-07-30 13:12:56,363 - src.rag_selectors.gemini_selector - INFO - gemini_selector._call_llm:37 - Sending request to Gemini for query: 'FD&C Blue No. 2'
-2025-07-30 13:12:56,363 - google_genai.models - INFO - models.generate_content:5969 - AFC is enabled with max remote calls: 10.
-2025-07-30 13:12:57,655 - google_genai.models - INFO - models.generate_content:5980 - AFC remote call 1 is done.
-2025-07-30 13:12:57,655 - src.rag_selectors.base_selector - DEBUG - base_selector.select_best_term:149 - Selector Raw Response:
+2025-08-01 08:34:25,631 - src.rag_selectors.gemini_selector - INFO - gemini_selector._call_llm:37 - Sending request to Gemini for query: 'FD&C Blue No. 2'
+2025-08-01 08:34:25,631 - google_genai.models - INFO - models.generate_content:5969 - AFC is enabled with max remote calls: 10.
+2025-08-01 08:34:26,506 - google_genai.models - INFO - models.generate_content:5980 - AFC remote call 1 is done.
+2025-08-01 08:34:26,506 - src.rag_selectors.base_selector - DEBUG - base_selector.select_best_term:149 - Selector Raw Response:
 ---
 ```json
 {
   "chosen_id": "CHEBI:31695",
-  "explanation": "The user entity 'FD&C Blue No. 2' is an exact synonym for 'FD and C Blue No. 2' and 'FD&C Blue No. 2' listed under the candidate term 'indigo carmine'. This term also includes 'C.I. Food Blue 1' and 'E 132', which are common identifiers for this food coloring agent."
+  "explanation": "The user entity 'FD&C Blue No. 2' is an exact synonym for 'FD and C Blue No. 2' and 'FD&C Blue No. 2' listed under the 'indigo carmine' entry (CHEBI:31695). This entry also includes other relevant synonyms like 'C.I. Food Blue 1' and 'E 132', which are directly associated with this food coloring."
 }
 ```
 ---
-2025-07-30 13:12:57,655 - src.pipeline.base_pipeline - INFO - base_pipeline.run:142 - Scoring selection 'CHEBI:31695' against the ORIGINAL query: 'blue 2 lake'
-2025-07-30 13:12:57,655 - src.confidence_scorers.base_confidence_scorer - DEBUG - base_confidence_scorer.score_confidence:74 - Formatted prompt for confidence scoring:
+2025-08-01 08:34:26,507 - src.pipeline.base_pipeline - INFO - base_pipeline.run:142 - Scoring selection 'CHEBI:31695' against the ORIGINAL query: 'blue 2 lake'
+2025-08-01 08:34:26,507 - src.confidence_scorers.base_confidence_scorer - DEBUG - base_confidence_scorer.score_confidence:74 - Formatted prompt for confidence scoring:
 You are a rigorous AI confidence assessor for ontology mapping. Your task is to evaluate a proposed match between a user entity and a chosen ontology term, and assign a confidence score based on a nuanced rubric. You must penalize mismatches in substance identity, even if terms are linguistically or semantically similar.
 
 User Entity:
@@ -1499,11 +1497,11 @@ Generated JSON:
   "suggested_alternatives": ["Blue 1", "FD&C Blue No.1"]
 }
 
-2025-07-30 13:12:57,655 - src.confidence_scorers.gemini_confidence_scorer - INFO - gemini_confidence_scorer._call_llm:25 - Sending confidence scoring request to Gemini...
-2025-07-30 13:12:57,655 - google_genai.models - INFO - models.generate_content:5969 - AFC is enabled with max remote calls: 10.
-2025-07-30 13:13:19,170 - google_genai.models - INFO - models.generate_content:5980 - AFC remote call 1 is done.
-2025-07-30 13:13:19,171 - src.pipeline.base_pipeline - INFO - base_pipeline.run:159 - Selection: 'indigo carmine' (ID: CHEBI:31695), Confidence against original query: 0.92, Explanation: High Match. The core substance 'Blue 2' is a common name for the chosen ontology term 'indigo carmine', which is confirmed by the synonym 'FD&C Blue No. 2'. The term 'lake' in the user entity is a formulation indicator, specifying that the dye is precipitated onto an insoluble substrate. As per the guidelines, this does not change the identity of the parent substance and is not penalized. The user entity represents a specific formulation of the parent chemical defined by the ontology term.
-2025-07-30 13:13:19,171 - __main__ - INFO - main.main:98 - Closing pipeline resources.
-2025-07-30 13:13:19,171 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.close:215 - Whoosh searcher for 'foodon' closed.
-2025-07-30 13:13:19,174 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.close:215 - Whoosh searcher for 'chebi' closed.
-2025-07-30 13:13:19,174 - src.pipeline.base_pipeline - INFO - base_pipeline.close:181 - Pipeline resources closed.
+2025-08-01 08:34:26,507 - src.confidence_scorers.gemini_confidence_scorer - INFO - gemini_confidence_scorer._call_llm:25 - Sending confidence scoring request to Gemini...
+2025-08-01 08:34:26,507 - google_genai.models - INFO - models.generate_content:5969 - AFC is enabled with max remote calls: 10.
+2025-08-01 08:34:47,872 - google_genai.models - INFO - models.generate_content:5980 - AFC remote call 1 is done.
+2025-08-01 08:34:47,873 - src.pipeline.base_pipeline - INFO - base_pipeline.run:159 - Selection: 'indigo carmine' (ID: CHEBI:31695), Confidence against original query: 0.92, Explanation: High Match. The user entity 'blue 2 lake' refers to a specific formulation of the substance commonly known as 'FD&C Blue No. 2'. The chosen ontology term, 'indigo carmine', has 'FD&C Blue No. 2' as a direct synonym, confirming they share the same core chemical identity. The term 'lake' is a formulation indicator that specifies an insoluble pigment form of the dye, while the chosen term refers to the water-soluble sodium salt. As the parent substance ('Blue 2' / 'indigo carmine') is identical, and formulation differences do not indicate a different substance, this is a high-confidence match.
+2025-08-01 08:34:47,874 - __main__ - INFO - main.main:98 - Closing pipeline resources.
+2025-08-01 08:34:47,878 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.close:215 - Whoosh searcher for 'foodon' closed.
+2025-08-01 08:34:47,894 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.close:215 - Whoosh searcher for 'chebi' closed.
+2025-08-01 08:34:47,895 - src.pipeline.base_pipeline - INFO - base_pipeline.close:181 - Pipeline resources closed.

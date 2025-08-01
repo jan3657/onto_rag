@@ -1,48 +1,48 @@
-2025-07-30 13:43:09,493 - root - INFO - logging_config.setup_run_logging:84 - Logging configured to level DEBUG. Console output enabled.
-2025-07-30 13:43:09,493 - root - INFO - logging_config.setup_run_logging:85 - Saving run-specific log to: /Users/jandrole/projects/onto_rag/logs/run_blue_2_lake_arcee-ai-AFM-4.5B.log
-2025-07-30 13:43:09,493 - __main__ - INFO - main.main:31 - Starting pipeline run for query: 'blue 2 lake' with pipeline: 'huggingface'
-2025-07-30 13:43:09,493 - src.pipeline.base_pipeline - INFO - base_pipeline.__init__:39 - Initializing RAG Pipeline with HuggingFaceSelector and HuggingFaceConfidenceScorer...
-2025-07-30 13:43:09,493 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:36 - Initializing HybridRetriever for multiple ontologies...
-2025-07-30 13:43:09,493 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:45 - Loading embedding model: all-MiniLM-L6-v2
-2025-07-30 13:43:11,186 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:49 - --- Initializing resources for ontology: 'foodon' ---
-2025-07-30 13:43:11,187 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:53 - Loading ontology data from: /Users/jandrole/projects/onto_rag/data/ontology_dump_foodon.json
-2025-07-30 13:43:11,375 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:58 - Loaded 39725 entries for 'foodon'.
-2025-07-30 13:43:11,375 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:62 - Loading Whoosh index from: /Users/jandrole/projects/onto_rag/data/whoosh_index_foodon
-2025-07-30 13:43:11,414 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:72 - Whoosh index for 'foodon' loaded.
-2025-07-30 13:43:11,414 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:77 - Initializing FAISS store for 'foodon' (index: /Users/jandrole/projects/onto_rag/data/faiss_index_foodon.bin, metadata: /Users/jandrole/projects/onto_rag/data/faiss_metadata_foodon.json)...
-2025-07-30 13:43:11,414 - src.vector_store.faiss_store - INFO - faiss_store.__init__:29 - Loading existing FAISS index from /Users/jandrole/projects/onto_rag/data/faiss_index_foodon.bin and metadata from /Users/jandrole/projects/onto_rag/data/faiss_metadata_foodon.json
-2025-07-30 13:43:11,432 - src.vector_store.faiss_store - INFO - faiss_store.load_store:138 - FAISS index loaded. Index has 39725 vectors of dim 384.
-2025-07-30 13:43:11,441 - src.vector_store.faiss_store - INFO - faiss_store.load_store:142 - FAISS metadata loaded. 39725 items.
-2025-07-30 13:43:11,442 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:88 - FAISS store for 'foodon' initialized.
-2025-07-30 13:43:11,442 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:49 - --- Initializing resources for ontology: 'chebi' ---
-2025-07-30 13:43:11,442 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:53 - Loading ontology data from: /Users/jandrole/projects/onto_rag/data/ontology_dump_chebi.json
-2025-07-30 13:43:12,754 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:58 - Loaded 203574 entries for 'chebi'.
-2025-07-30 13:43:12,754 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:62 - Loading Whoosh index from: /Users/jandrole/projects/onto_rag/data/whoosh_index_chebi
-2025-07-30 13:43:12,891 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:72 - Whoosh index for 'chebi' loaded.
-2025-07-30 13:43:12,892 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:77 - Initializing FAISS store for 'chebi' (index: /Users/jandrole/projects/onto_rag/data/faiss_index_chebi.bin, metadata: /Users/jandrole/projects/onto_rag/data/faiss_metadata_chebi.json)...
-2025-07-30 13:43:12,892 - src.vector_store.faiss_store - INFO - faiss_store.__init__:29 - Loading existing FAISS index from /Users/jandrole/projects/onto_rag/data/faiss_index_chebi.bin and metadata from /Users/jandrole/projects/onto_rag/data/faiss_metadata_chebi.json
-2025-07-30 13:43:12,982 - src.vector_store.faiss_store - INFO - faiss_store.load_store:138 - FAISS index loaded. Index has 203574 vectors of dim 384.
-2025-07-30 13:43:13,035 - src.vector_store.faiss_store - INFO - faiss_store.load_store:142 - FAISS metadata loaded. 203574 items.
-2025-07-30 13:43:13,035 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:88 - FAISS store for 'chebi' initialized.
-2025-07-30 13:43:13,035 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:90 - HybridRetriever initialized successfully for all configured ontologies.
-2025-07-30 13:43:13,035 - src.rag_selectors.base_selector - INFO - base_selector.__init__:34 - HuggingFaceSelector initialized for model: arcee-ai/AFM-4.5B
-2025-07-30 13:43:13,035 - src.rag_selectors.huggingface_generator - INFO - huggingface_generator.__init__:28 - Initializing HuggingFaceLocalGenerator for the first time...
-2025-07-30 13:43:13,035 - src.rag_selectors.huggingface_generator - INFO - huggingface_generator.__init__:37 - Loading tokenizer: arcee-ai/AFM-4.5B
-2025-07-30 13:43:13,596 - src.rag_selectors.huggingface_generator - INFO - huggingface_generator.__init__:40 - Loading model: arcee-ai/AFM-4.5B with kwargs: {'torch_dtype': torch.bfloat16, 'device_map': 'mps'}
-2025-07-30 13:43:21,181 - src.rag_selectors.huggingface_generator - INFO - huggingface_generator.__init__:45 - Hugging Face model and tokenizer loaded successfully.
-2025-07-30 13:43:21,184 - src.confidence_scorers.base_confidence_scorer - INFO - base_confidence_scorer.__init__:17 - HuggingFaceConfidenceScorer initialized for model: arcee-ai/AFM-4.5B
-2025-07-30 13:43:21,189 - src.synonym_generators.base_synonym_generator - INFO - base_synonym_generator.__init__:17 - HuggingFaceSynonymGenerator initialized for model: arcee-ai/AFM-4.5B
-2025-07-30 13:43:21,189 - src.pipeline.base_pipeline - INFO - base_pipeline.__init__:78 - RAG Pipeline initialized successfully.
-2025-07-30 13:43:21,189 - src.pipeline.base_pipeline - INFO - base_pipeline.run:114 - --- Starting Pipeline Attempt 1/4 for query: 'blue 2 lake' ---
-2025-07-30 13:43:21,873 - src.pipeline.base_pipeline - INFO - base_pipeline.run:126 - 80 candidates passed to LLM selector for query 'blue 2 lake'.
-2025-07-30 13:43:21,875 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'ENVO:01000252'.
-2025-07-30 13:43:21,876 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'PATO:0001265'.
-2025-07-30 13:43:21,877 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'PATO:0001243'.
-2025-07-30 13:43:21,877 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'PATO:0001244'.
-2025-07-30 13:43:21,877 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'PATO:0001266'.
-2025-07-30 13:43:21,879 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'PATO:0001265'.
-2025-07-30 13:43:21,879 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'NCBITaxon:7815'.
-2025-07-30 13:43:21,881 - src.rag_selectors.base_selector - DEBUG - base_selector.select_best_term:141 - Selector Prompt:
+2025-07-30 14:16:22,118 - root - INFO - logging_config.setup_run_logging:84 - Logging configured to level DEBUG. Console output enabled.
+2025-07-30 14:16:22,118 - root - INFO - logging_config.setup_run_logging:85 - Saving run-specific log to: /Users/jandrole/projects/onto_rag/logs/run_blue_2_lake_arcee-ai-AFM-4.5B.log
+2025-07-30 14:16:22,118 - __main__ - INFO - main.main:31 - Starting pipeline run for query: 'blue 2 lake' with pipeline: 'huggingface'
+2025-07-30 14:16:22,118 - src.pipeline.base_pipeline - INFO - base_pipeline.__init__:39 - Initializing RAG Pipeline with HuggingFaceSelector and HuggingFaceConfidenceScorer...
+2025-07-30 14:16:22,118 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:36 - Initializing HybridRetriever for multiple ontologies...
+2025-07-30 14:16:22,118 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:45 - Loading embedding model: all-MiniLM-L6-v2
+2025-07-30 14:16:23,978 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:49 - --- Initializing resources for ontology: 'foodon' ---
+2025-07-30 14:16:23,978 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:53 - Loading ontology data from: /Users/jandrole/projects/onto_rag/data/ontology_dump_foodon.json
+2025-07-30 14:16:24,171 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:58 - Loaded 39725 entries for 'foodon'.
+2025-07-30 14:16:24,171 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:62 - Loading Whoosh index from: /Users/jandrole/projects/onto_rag/data/whoosh_index_foodon
+2025-07-30 14:16:24,218 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:72 - Whoosh index for 'foodon' loaded.
+2025-07-30 14:16:24,218 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:77 - Initializing FAISS store for 'foodon' (index: /Users/jandrole/projects/onto_rag/data/faiss_index_foodon.bin, metadata: /Users/jandrole/projects/onto_rag/data/faiss_metadata_foodon.json)...
+2025-07-30 14:16:24,219 - src.vector_store.faiss_store - INFO - faiss_store.__init__:29 - Loading existing FAISS index from /Users/jandrole/projects/onto_rag/data/faiss_index_foodon.bin and metadata from /Users/jandrole/projects/onto_rag/data/faiss_metadata_foodon.json
+2025-07-30 14:16:24,237 - src.vector_store.faiss_store - INFO - faiss_store.load_store:138 - FAISS index loaded. Index has 39725 vectors of dim 384.
+2025-07-30 14:16:24,246 - src.vector_store.faiss_store - INFO - faiss_store.load_store:142 - FAISS metadata loaded. 39725 items.
+2025-07-30 14:16:24,246 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:88 - FAISS store for 'foodon' initialized.
+2025-07-30 14:16:24,246 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:49 - --- Initializing resources for ontology: 'chebi' ---
+2025-07-30 14:16:24,246 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:53 - Loading ontology data from: /Users/jandrole/projects/onto_rag/data/ontology_dump_chebi.json
+2025-07-30 14:16:25,640 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:58 - Loaded 203574 entries for 'chebi'.
+2025-07-30 14:16:25,640 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:62 - Loading Whoosh index from: /Users/jandrole/projects/onto_rag/data/whoosh_index_chebi
+2025-07-30 14:16:25,789 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:72 - Whoosh index for 'chebi' loaded.
+2025-07-30 14:16:25,789 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:77 - Initializing FAISS store for 'chebi' (index: /Users/jandrole/projects/onto_rag/data/faiss_index_chebi.bin, metadata: /Users/jandrole/projects/onto_rag/data/faiss_metadata_chebi.json)...
+2025-07-30 14:16:25,789 - src.vector_store.faiss_store - INFO - faiss_store.__init__:29 - Loading existing FAISS index from /Users/jandrole/projects/onto_rag/data/faiss_index_chebi.bin and metadata from /Users/jandrole/projects/onto_rag/data/faiss_metadata_chebi.json
+2025-07-30 14:16:25,878 - src.vector_store.faiss_store - INFO - faiss_store.load_store:138 - FAISS index loaded. Index has 203574 vectors of dim 384.
+2025-07-30 14:16:25,926 - src.vector_store.faiss_store - INFO - faiss_store.load_store:142 - FAISS metadata loaded. 203574 items.
+2025-07-30 14:16:25,926 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:88 - FAISS store for 'chebi' initialized.
+2025-07-30 14:16:25,926 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.__init__:90 - HybridRetriever initialized successfully for all configured ontologies.
+2025-07-30 14:16:25,926 - src.rag_selectors.base_selector - INFO - base_selector.__init__:34 - HuggingFaceSelector initialized for model: arcee-ai/AFM-4.5B
+2025-07-30 14:16:25,926 - src.rag_selectors.huggingface_generator - INFO - huggingface_generator.__init__:28 - Initializing HuggingFaceLocalGenerator for the first time...
+2025-07-30 14:16:25,927 - src.rag_selectors.huggingface_generator - INFO - huggingface_generator.__init__:37 - Loading tokenizer: arcee-ai/AFM-4.5B
+2025-07-30 14:16:26,508 - src.rag_selectors.huggingface_generator - INFO - huggingface_generator.__init__:40 - Loading model: arcee-ai/AFM-4.5B with kwargs: {'torch_dtype': torch.bfloat16, 'device_map': 'mps'}
+2025-07-30 14:16:34,243 - src.rag_selectors.huggingface_generator - INFO - huggingface_generator.__init__:45 - Hugging Face model and tokenizer loaded successfully.
+2025-07-30 14:16:34,243 - src.confidence_scorers.base_confidence_scorer - INFO - base_confidence_scorer.__init__:17 - HuggingFaceConfidenceScorer initialized for model: arcee-ai/AFM-4.5B
+2025-07-30 14:16:34,245 - src.synonym_generators.base_synonym_generator - INFO - base_synonym_generator.__init__:17 - HuggingFaceSynonymGenerator initialized for model: arcee-ai/AFM-4.5B
+2025-07-30 14:16:34,245 - src.pipeline.base_pipeline - INFO - base_pipeline.__init__:78 - RAG Pipeline initialized successfully.
+2025-07-30 14:16:34,245 - src.pipeline.base_pipeline - INFO - base_pipeline.run:114 - --- Starting Pipeline Attempt 1/4 for query: 'blue 2 lake' ---
+2025-07-30 14:16:34,764 - src.pipeline.base_pipeline - INFO - base_pipeline.run:126 - 80 candidates passed to LLM selector for query 'blue 2 lake'.
+2025-07-30 14:16:34,765 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'ENVO:01000252'.
+2025-07-30 14:16:34,765 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'PATO:0001265'.
+2025-07-30 14:16:34,765 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'PATO:0001243'.
+2025-07-30 14:16:34,765 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'PATO:0001244'.
+2025-07-30 14:16:34,765 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'PATO:0001266'.
+2025-07-30 14:16:34,766 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'PATO:0001265'.
+2025-07-30 14:16:34,766 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'NCBITaxon:7815'.
+2025-07-30 14:16:34,766 - src.rag_selectors.base_selector - DEBUG - base_selector.select_best_term:141 - Selector Prompt:
 ---
 You are an expert ontologist specializing in food science. Your task is to analyze a list of candidate ontology terms and select the single most appropriate term that matches the user's provided entity.
 
@@ -429,8 +429,505 @@ blue 2 lake
   "explanation": "I chose 'garlic' because its label is an exact match for the user entity. Candidate 'allium sativum' is the scientific name but 'garlic' is the common term and therefore a better fit."
 }
 ---
-2025-07-30 13:43:21,881 - src.rag_selectors.huggingface_selector - INFO - huggingface_selector._call_llm:27 - Sending request to local HF model for query: 'blue 2 lake'
-2025-07-30 13:46:29,431 - __main__ - INFO - main.main:98 - Closing pipeline resources.
-2025-07-30 13:46:29,455 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.close:215 - Whoosh searcher for 'foodon' closed.
-2025-07-30 13:46:29,461 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.close:215 - Whoosh searcher for 'chebi' closed.
-2025-07-30 13:46:29,461 - src.pipeline.base_pipeline - INFO - base_pipeline.close:181 - Pipeline resources closed.
+2025-07-30 14:16:34,766 - src.rag_selectors.huggingface_selector - INFO - huggingface_selector._call_llm:27 - Sending request to local HF model for query: 'blue 2 lake'
+2025-07-30 14:32:15,950 - src.rag_selectors.base_selector - DEBUG - base_selector.select_best_term:149 - Selector Raw Response:
+---
+{
+  "chosen_id": "FOODON:00002885",
+  "explanation": "The user entity 'blue 2 lake' refers to a dye used in staining, which matches the definition and synonyms of 'blue 2 lake' in the candidate ontology terms. Among the options, 'blue 2 lake' is the most specific and directly relevant to the user's entity."
+}
+---
+2025-07-30 14:32:15,957 - src.pipeline.base_pipeline - INFO - base_pipeline.run:142 - Scoring selection 'FOODON:00002885' against the ORIGINAL query: 'blue 2 lake'
+2025-07-30 14:32:15,961 - src.confidence_scorers.base_confidence_scorer - DEBUG - base_confidence_scorer.score_confidence:74 - Formatted prompt for confidence scoring:
+You are a rigorous AI confidence assessor for ontology mapping. Your task is to evaluate a proposed match between a user entity and a chosen ontology term, and assign a confidence score based on a nuanced rubric. You must penalize mismatches in substance identity, even if terms are linguistically or semantically similar.
+
+User Entity:
+blue 2 lake
+
+Chosen Ontology Term:
+ID: FOODON:00002885
+Label: blue crabmeat
+Definition: Blue crabmeat is crab meat derived from a blue crab, Callinectes sapidus.
+Synonyms: blue crab meat
+
+Other Top Candidates (for context):
+- aniline blue WS (ID: CHEBI:87471)
+- spirit blue(1+) (ID: CHEBI:86495)
+- tetrazolium blue (ID: CHEBI:75198)
+- trypan blue sulfonic acid (ID: CHEBI:78900)
+- spirit blue (ID: CHEBI:86483)
+
+INSTRUCTIONS:
+
+1. **Analyze and Score:** Compare the user entity against the chosen term’s Label, Definition, and Synonyms. Use the other candidates for additional context.
+2. **Penalize Wrong Substances:** If the user entity refers to a different compound, substance, or regulated item (e.g., "Blue 1" vs. "Blue 2"), the confidence must be very low, even if the name is similar.
+3. **Apply Continuous Scoring:** Use scores from 0.0 to 1.0 with decimal precision (e.g., 0.15, 0.45, 0.85) to reflect subtle differences.
+4. **Suggest Alternatives (if low confidence):** If the score is **below 0.5**, suggest up to 3 better-matching ontology term labels from `Other Top Candidates`.
+5. **Formulation indicators (lake, salt, hydrate, ester, etc.) generally do not indicate a different parent substance; do not penalise if the root compound matches.**
+6. **If the user entity contains a formulation indicator, state explicitly whether it affects substance identity in your explanation.**
+---
+### **Confidence Score Rubric (Continuous)**
+
+- **0.95–1.00 (Certain Match):** Exact case-insensitive match or known synonym. No ambiguity.
+- **0.85–0.94 (High Match):** Common variant, abbreviation, or plural/singular difference. Same substance.
+- **0.65–0.84 (Moderate Match):** Close name/description match but partial term overlap or domain ambiguity.
+- **0.35–0.64 (Speculative Match):** Related by broad class or context, but not same entity or substance.
+- **0.01–0.34 (Poor Match):** Possibly related only semantically or lexically. Likely not the same item.
+- **0.00 (No Match):** Substances/entities are different. Any naming similarity is misleading.
+
+---
+**JSON OUTPUT FORMAT**:
+
+The JSON object must contain these keys:
+- `"confidence_score"`: Float from 0.0 to 1.0.
+- `"explanation"`: Justification for the score, referencing the rubric and key evidence.
+- `"suggested_alternatives"`: List of up to 3 better ontology terms (only if score < 0.5), else an empty list.
+
+**EXAMPLE**:
+User Entity: "Blue 1"
+Chosen Term: Label: "Blue 2", Synonyms: ["Brilliant Blue FCF"]
+
+Generated JSON:
+{
+  "confidence_score": 0.1,
+  "explanation": "Poor Match. While 'Blue 1' and 'Blue 2' are both food colorings, they are chemically distinct substances and must not be conflated. The rubric penalizes this heavily.",
+  "suggested_alternatives": ["Blue 1", "FD&C Blue No.1"]
+}
+
+2025-07-30 14:32:15,961 - src.confidence_scorers.huggingface_confidence_scorer - INFO - huggingface_confidence_scorer._call_llm:20 - Sending confidence scoring request to local HF model...
+2025-07-30 14:35:59,480 - src.pipeline.base_pipeline - INFO - base_pipeline.run:159 - Selection: 'blue crabmeat' (ID: FOODON:00002885), Confidence against original query: 0.00, Explanation: The user entity 'blue 2 lake' and the chosen ontology term 'blue crabmeat' refer to entirely different substances. 'Blue crabmeat' is a food product derived from a specific type of crab, while 'blue 2 lake' is not a recognized term in the ontology for any food or substance. The presence of 'lake' in the user entity does not indicate a different parent substance, as 'lake' is a formulation indicator and does not change the identity of the substance. Therefore, the confidence score is 0.0, indicating no match.
+2025-07-30 14:35:59,487 - src.synonym_generators.base_synonym_generator - DEBUG - base_synonym_generator.generate_synonyms:50 - Synonym Generator Prompt:
+---
+You are a helpful AI assistant specialized in query expansion for scientific and food-related domains. Your task is to generate alternative search queries (synonyms, reformulations, or related terms) for a given user entity to improve search recall in an ontology.
+
+User Entity:
+blue 2 lake
+
+Contextual Information (Optional):
+The initial search for "blue 2 lake" resulted in a low-confidence match. The system is trying to find better candidates in ontologies like FoodOn and ChEBI.
+
+Instructions:
+1.  Generate a list of up to 5 diverse, high-quality alternative search queries for the user entity.
+2.  The queries should include:
+    *   Direct synonyms (e.g., "baking soda" for "sodium bicarbonate").
+    *   Different phrasings (e.g., "sugar, powdered" for "powdered sugar").
+    *   More scientific or technical terms if applicable (e.g., "ascorbic acid" for "vitamin C").
+    *   More common or layperson terms.
+3.  Do NOT include the original user entity in the list.
+4.  Provide your response as a valid JSON object only. Do not add any text before or after the JSON block.
+
+JSON OUTPUT FORMAT:
+The JSON object must contain a single key:
+*   `"synonyms"`: A list of strings, where each string is an alternative query.
+
+Example:
+User Entity: "raw milk"
+
+Generated JSON:
+{
+  "synonyms": [
+    "unpasteurized milk",
+    "fresh milk",
+    "milk, raw",
+    "unprocessed milk"
+  ]
+}
+---
+2025-07-30 14:35:59,490 - src.synonym_generators.huggingface_synonym_generator - INFO - huggingface_synonym_generator._call_llm:20 - Sending synonym generation request to local HF model...
+2025-07-30 14:36:42,192 - src.synonym_generators.base_synonym_generator - DEBUG - base_synonym_generator.generate_synonyms:56 - Synonym Generator Raw Response:
+---
+{
+  "synonyms": [
+    "sodium bicarbonate",
+    "baking soda",
+    "powdered sugar",
+    "sugar, powdered",
+    "ascorbic acid"
+  ]
+}
+---
+2025-07-30 14:36:42,198 - src.pipeline.base_pipeline - INFO - base_pipeline.run:114 - --- Starting Pipeline Attempt 2/4 for query: 'sodium bicarbonate' ---
+2025-07-30 14:36:43,466 - src.pipeline.base_pipeline - INFO - base_pipeline.run:126 - 80 candidates passed to LLM selector for query 'sodium bicarbonate'.
+2025-07-30 14:36:43,481 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'obo:CDNO_0200144'.
+2025-07-30 14:36:43,484 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'obo:CDNO_0200611'.
+2025-07-30 14:36:43,485 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'obo:CDNO_0200608'.
+2025-07-30 14:36:43,485 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'obo:CDNO_0200605'.
+2025-07-30 14:36:43,485 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'obo:CDNO_0200606'.
+2025-07-30 14:36:43,485 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'obo:CDNO_0200599'.
+2025-07-30 14:36:43,485 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'obo:CDNO_0200615'.
+2025-07-30 14:36:43,485 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'obo:CDNO_0200617'.
+2025-07-30 14:36:43,485 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'obo:CDNO_0200612'.
+2025-07-30 14:36:43,485 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'obo:CDNO_0200610'.
+2025-07-30 14:36:43,485 - src.retriever.hybrid_retriever - WARNING - hybrid_retriever.get_term_details:198 - Could not determine ontology for term_id 'obo:CDNO_0200618'.
+2025-07-30 14:36:43,506 - src.rag_selectors.base_selector - DEBUG - base_selector.select_best_term:141 - Selector Prompt:
+---
+You are an expert ontologist specializing in food science. Your task is to analyze a list of candidate ontology terms and select the single most appropriate term that matches the user's provided entity.
+
+**User Entity:**
+sodium bicarbonate
+
+**Candidate Ontology Terms:**
+1. ID: CHEBI:32139
+   Label: sodium hydrogencarbonate
+   Definition: None
+   Synonyms: Sodium hydrogencarbonate; sodium hydrogencarbonate; E 500; E-500; E500; NaHCO3; Natriumhydrogenkarbonat; Sodium bicarbonate; baking soda; bicarbonate of soda; carbonic acid monosodium salt; sodium acid carbonate; sodium hydrogen carbonate
+
+2. ID: CHEBI:29101
+   Label: sodium(1+)
+   Definition: A monoatomic monocation obtained from sodium.
+   Synonyms: sodium cation; sodium(1+); sodium(1+) ion; sodium(I) cation; Na(+); Na+; SODIUM ION
+
+3. ID: CHEBI:63858
+   Label: sulfacetamide sodium
+   Definition: An organic sodium salt that is the monohydrate form of sulfacetamide sodium.
+   Synonyms: sodium acetyl[(4-aminophenyl)sulfonyl]azanide--water (1/1); Sodium Sulfacetamide; Sulphacetamide Sodium; sulfacetamide sodium hydrate; sulfacetamide sodium monohydrate
+
+4. ID: CHEBI:194158
+   Label: dicamba-sodium
+   Definition: An organic sodium salt of dicamba.
+   Synonyms: sodium 3,6-dichloro-2-methoxybenzoate; 2-methoxy-3,6-dichlorobenzoic acid sodium salt; dicamba sodium; dicamba sodium salt; sodium 2-methoxy-3,6-dichlorobenzoate; sodium 3,6-dichloro-o-anisate; sodium dicamba
+
+5. ID: CHEBI:6834
+   Label: methohexital sodium
+   Definition: The sodium salt of methohexital.
+   Synonyms: sodium 5-(hex-3-yn-2-yl)-1-methyl-4,6-dioxo-5-(prop-2-en-1-yl)-1,4,5,6-tetrahydropyrimidin-2-olate; Brevital; Brevital sodium; Brietal Sodium; methohexitone sodium; sodium 5-allyl-1-methyl-5-(1-methyl-2- pentynyl)barbiturate; sodium methohexital
+
+6. ID: CHEBI:132100
+   Label: sodium octanoate
+   Definition: An organic sodium salt comprising equal numbers of sodium and octanoate ions.
+   Synonyms: sodium octanoate; Caprylic acid sodium salt; Natrium octanoat; Octanoic acid, sodium salt; Sodium caprylate; Sodium n-octanoate
+
+7. ID: CHEBI:132109
+   Label: sodium octadecanoate
+   Definition: An organic sodium salt comprising equal numbers of sodium and stearate ions.
+   Synonyms: sodium octadecanoate; Octadecanoic acid, sodium salt; Stearic acid, sodium salt; sodium stearate
+
+8. ID: CHEBI:62956
+   Label: sodium dimethylarsinate
+   Definition: The organic sodium salt of dimethylarsinate.
+   Synonyms: ((Dimethylarsino)oxy)sodium As-oxide; ((Dimethylarsino)oxy)sodium-As-oxide; Cacodylate de sodium; Cacodylic acid sodium salt; Dimethylarsinic acid sodium salt; Hydroxydimethylarsine oxide, sodium salt; Sodium dimethyl arsinate; Sodium salt of cacodylic acid; sodium cacodylate; sodium dimethyl arsonide
+
+9. ID: CHEBI:3490
+   Label: cefmetazole sodium
+   Definition: An organic sodium salt that is the sodium salt of cefmetazole.
+   Synonyms: Cefmetazole sodium; sodium 6beta-{[(cyanomethyl)sulfanyl]acetamido}-6alpha-methoxy-3-{[(1-methyl-1H-tetrazol-5-yl)sulfanyl]methyl}ceph-3-em-4-carboxylate; CMZ; CMZ sodium; CS 1170 sodium; Cefmetazon; SKF 83088 sodium; Zefazone; cefmetazone
+
+10. ID: CHEBI:230519
+   Label: heparin sodium
+   Definition: The organic sodium salt of heparin.
+   Synonyms: heparin (sodium salt); heparin sodium salt; heparin, sodium salt; sodium heparin
+
+11. ID: CHEBI:132112
+   Label: sodium thiosulfate
+   Definition: An inorganic sodium salt composed of sodium and thiosulfate ions in a 2:1 ratio.
+   Synonyms: disodium sulfurothioate; Disodium thiosulfate; Sodium hyposulfite; Sodium oxide sulfide; Sodium thiosulphate; Thiosulfuric acid, disodium salt; anhydrous sodium thiosulfate; sodium thiosulfate (anhydrous)
+
+12. ID: CHEBI:8984
+   Label: sodium dodecyl sulfate
+   Definition: An organic sodium salt that is the sodium salt of dodecyl hydrogen sulfate.
+   Synonyms: Sodium dodecyl sulfate; SDS; SLS; Sodium lauryl sulfate; sodium dodecyl sulphate; sodium dodecylsulfate; sodium lauryl sulphate
+
+13. ID: CHEBI:9925
+   Label: sodium valproate
+   Definition: The sodium salt of valproic acid.
+   Synonyms: sodium 2-propylpentanoate; 2-Propylvaleric acid sodium salt; Depakene; Epilim; Valproate sodium; valproic acid sodium salt
+
+14. ID: CHEBI:62955
+   Label: sodium 2-(N-morpholino)ethanesulfonate
+   Definition: The organic sodium salt that is the sodium salt of 2-(N-morpholino)ethanesulfonic acid.
+   Synonyms: sodium 2-(morpholin-4-yl)ethanesulfonate; 2-(N-Morpholino)ethanesulfonic acid sodium salt; 4-Morpholineethanesulfonic acid, sodium salt; 4-Morpholineethanesulfonic acid, sodium salt (1:1); MES sodium salt; MES-Na; Sodium 4-morpholin-1-ylethylsulphonate; sodium 2-morpholin-4-ylethanesulfonate; sodium MES
+
+15. ID: CHEBI:114126
+   Label: sodium hexanoate
+   Definition: An organic sodium salt resulting from the replacement of the proton from the carboxy group of hexanoic acid by a sodium ion.
+   Synonyms: sodium hexanoate; Hexanoic acid, sodium salt; Sodium caproate; Sodium capronate; Sodium n-caproate
+
+16. ID: CHEBI:63005
+   Label: sodium nitrate
+   Definition: The inorganic nitrate salt of sodium.
+   Synonyms: sodium nitrate; sodium trioxidonitrate(1-); Chile saltpeter; Cubic niter; Niter; Nitrate de sodium; Nitrate of soda; Nitric acid monosodium salt; Nitric acid sodium salt (1:1); Nitric acid, sodium salt; Sodium saltpeter; Sodium(I) nitrate (1:1)
+
+17. ID: CHEBI:132106
+   Label: sodium propionate
+   Definition: An organic sodium salt comprising equal numbers of sodium and propionate ions.
+   Synonyms: sodium propanoate; E281; Natriumpropionat; Propanoic acid, sodium salt; Propionic acid sodium salt; Sodium propionate anhydrous
+
+18. ID: CHEBI:86481
+   Label: sodium thioglycolate
+   Definition: An organic sodium salt having thioglycolate(1-) as the counterion.
+   Synonyms: sodium sulfanylacetate; Mercaptoacetic acid, sodium salt; Sodium 2-mercatoethanoate; Sodium 2-sulfanylacetate; Sodium mercaptoacetate; Sodium thioglycollate; Thioglycolate sodium; Thioglycollic acid, sodium salt
+
+19. ID: CHEBI:132096
+   Label: sodium methoxyacetate
+   Definition: An organic sodium salt comprising equal numbers of sodium and methoxyacetate ions.
+   Synonyms: sodium methoxyacetate; Methoxyacetic acid sodium salt
+
+20. ID: CHEBI:64103
+   Label: sodium butyrate
+   Definition: An organic sodium salt resulting from the replacement of the proton from the carboxy group of butyric acid by a sodium ion.
+   Synonyms: sodium butanoate; Butanoic acid, sodium salt; Butanoic acid, sodium salt (1:1); Butyrate sodium; Butyric acid sodium salt; Butyric acid, sodium salt; Sodium n-butyrate; Sodium propanecarboxylate
+
+21. ID: CHEBI:26709
+   Label: sodium hydrogensulfite
+   Definition: An inorganic sodium salt having hydrogensulfite as the counterion.
+   Synonyms: sodium hydrogensulfite; E 222; E222; NaHSO3; Natriumbisulfit; Natriumhydrogensulfit; hydrogen sulfite sodium; primaeres Natriumsulfit; saures Natriumsulfit; sodium bisulfite; sodium bisulphite; sodium hydrogen sulfite; sulfurous acid monosodium salt; sulfurous acid sodium salt; sulfurous acid, monosodium salt; sulfurous acid, sodium salt (1:1)
+
+22. ID: CHEBI:32139
+   Label: sodium hydrogencarbonate
+   Definition: None
+   Synonyms: Sodium hydrogencarbonate; sodium hydrogencarbonate; E 500; E-500; E500; NaHCO3; Natriumhydrogenkarbonat; Sodium bicarbonate; baking soda; bicarbonate of soda; carbonic acid monosodium salt; sodium acid carbonate; sodium hydrogen carbonate
+
+23. ID: CHEBI:29101
+   Label: sodium(1+)
+   Definition: A monoatomic monocation obtained from sodium.
+   Synonyms: sodium cation; sodium(1+); sodium(1+) ion; sodium(I) cation; Na(+); Na+; SODIUM ION
+
+25. ID: CHEBI:132764
+   Label: sodium oxalate
+   Definition: An organic sodium salt consisting of sodium and oxalate ions in a 2:1 ratio.
+   Synonyms: disodium ethanedioate; Disodium oxalate; Ethanedioic acid, disodium salt; Natriumoxalat; Oxalic acid, disodium salt
+
+26. ID: CHEBI:114786
+   Label: sodium disulfite
+   Definition: An inorganic sodium salt composed of sodium and disulfite ions in a 2:1 ratio.
+   Synonyms: disodium oxido(oxo)-kappa(4)-sulfanesulfonate; Disodium disulfite; Disodium disulphite; Disodium metabisulfite; Disodium pyrosulfite; Disulfurous acid, disodium salt; E223; Na2S2O5; Pyrosulfurous acid, disodium salt; Sodium metabisulphite; Sodium pyrosulfite; sodium metabisulfite; sodium pyrosulphite
+
+27. ID: CHEBI:132106
+   Label: sodium propionate
+   Definition: An organic sodium salt comprising equal numbers of sodium and propionate ions.
+   Synonyms: sodium propanoate; E281; Natriumpropionat; Propanoic acid, sodium salt; Propionic acid sodium salt; Sodium propionate anhydrous
+
+28. ID: CHEBI:63005
+   Label: sodium nitrate
+   Definition: The inorganic nitrate salt of sodium.
+   Synonyms: sodium nitrate; sodium trioxidonitrate(1-); Chile saltpeter; Cubic niter; Niter; Nitrate de sodium; Nitrate of soda; Nitric acid monosodium salt; Nitric acid sodium salt (1:1); Nitric acid, sodium salt; Sodium saltpeter; Sodium(I) nitrate (1:1)
+
+29. ID: CHEBI:113451
+   Label: sodium ascorbate
+   Definition: An organic sodium salt resulting from the replacement of the proton from the 3-hydroxy group of ascorbic acid by a sodium ion.
+   Synonyms: sodium (2R)-2-[(1S)-1,2-dihydroxyethyl]-4-hydroxy-5-oxo-2,5-dihydrofuran-3-olate; L-ascorbic acid sodium salt; L-ascorbic acid, monosodium salt; ascorbate de sodium; ascorbic acid sodium salt; monosodium L-ascorbate; natrii ascorbas; sodium L-ascorbate; sodium ascorbate; vitamin C sodium; vitamin C, sodium salt
+
+30. ID: CHEBI:113455
+   Label: sodium benzoate
+   Definition: An organic sodium salt resulting from the replacement of the proton from the carboxy group of benzoic acid by a sodium ion.
+   Synonyms: sodium benzoate; Benzoic acid, sodium salt; E211; Sodium benzoate
+
+41. ID: CHEBI:32139
+   Label: sodium hydrogencarbonate
+   Definition: None
+   Synonyms: Sodium hydrogencarbonate; sodium hydrogencarbonate; E 500; E-500; E500; NaHCO3; Natriumhydrogenkarbonat; Sodium bicarbonate; baking soda; bicarbonate of soda; carbonic acid monosodium salt; sodium acid carbonate; sodium hydrogen carbonate
+
+42. ID: FOODON:03413273
+   Label: sodium sesquicarbonate
+   Definition: None
+   Synonyms: None
+
+43. ID: CHEBI:32139
+   Label: sodium hydrogencarbonate
+   Definition: None
+   Synonyms: Sodium hydrogencarbonate; sodium hydrogencarbonate; E 500; E-500; E500; NaHCO3; Natriumhydrogenkarbonat; Sodium bicarbonate; baking soda; bicarbonate of soda; carbonic acid monosodium salt; sodium acid carbonate; sodium hydrogen carbonate
+
+44. ID: FOODON:03413256
+   Label: obsolete: sodium hydrogen carbonate
+   Definition: None
+   Synonyms: None
+
+45. ID: CHEBI:29377
+   Label: sodium carbonate
+   Definition: None
+   Synonyms: disodium trioxidocarbonate; sodium carbonate; Na2CO3; Natriumkarbonat; disodium carbonate
+
+46. ID: CHEBI:184335
+   Label: Ammonium bicarbonate
+   Definition: None
+   Synonyms: azanium;hydrogen carbonate
+
+47. ID: CHEBI:81862
+   Label: potassium hydrogencarbonate
+   Definition: A potassium salt that is the monopotassium salt of carbonic acid. It has fungicidal properties and is used in organic farming for the control of powdery mildew and apple scab.
+   Synonyms: potassium hydrogen carbonate; E501; KHCO3; monopotassium carbonate; potassium acid carbonate; potassium bicarbonate
+
+48. ID: FOODON:03414421
+   Label: sodium carbonates
+   Definition: None
+   Synonyms: None
+
+49. ID: FOODON:03411655
+   Label: obsolete: sodium chloride
+   Definition: None
+   Synonyms: None
+
+50. ID: CHEBI:3229
+   Label: Butabarbital sodium
+   Definition: None
+   Synonyms: Butabarbital sodium
+
+51. ID: CHEBI:29377
+   Label: sodium carbonate
+   Definition: None
+   Synonyms: disodium trioxidocarbonate; sodium carbonate; Na2CO3; Natriumkarbonat; disodium carbonate
+
+52. ID: CHEBI:37246
+   Label: elemental sodium
+   Definition: None
+   Synonyms: None
+
+53. ID: CHEBI:81862
+   Label: potassium hydrogencarbonate
+   Definition: A potassium salt that is the monopotassium salt of carbonic acid. It has fungicidal properties and is used in organic farming for the control of powdery mildew and apple scab.
+   Synonyms: potassium hydrogen carbonate; E501; KHCO3; monopotassium carbonate; potassium acid carbonate; potassium bicarbonate
+
+54. ID: CHEBI:46721
+   Label: carbonate salt
+   Definition: None
+   Synonyms: carbonate salts
+
+55. ID: CHEBI:81983
+   Label: Cloxyfonac-sodium
+   Definition: None
+   Synonyms: None
+
+56. ID: CHEBI:81860
+   Label: Sodium oleate
+   Definition: None
+   Synonyms: None
+
+57. ID: CHEBI:81811
+   Label: 1-Naphthaleneacetic acid sodium salt
+   Definition: None
+   Synonyms: None
+
+58. ID: CHEBI:39483
+   Label: sodium dichromate
+   Definition: None
+   Synonyms: disodium dichromate; sodium dichromate; sodium dichromate(2-); sodium dichromate(VI); Na2Cr2O7; Na2[Cr2O7]; Natriumdichromat; Natriumdichromat(VI); bichromate of soda; dichromic acid, disodium salt; sodium bichromate
+
+59. ID: CHEBI:228795
+   Label: Sodium Dehydrocholate
+   Definition: None
+   Synonyms: sodium;(4R)-4-[(5S,8R,9S,10S,13R,14S,17R)-10,13-dimethyl-3,7,12-trioxo-1,2,4,5,6,8,9,11,14,15,16,17-dodecahydrocyclopenta[a]phenanthren-17-yl]pentanoate
+
+60. ID: CHEBI:177871
+   Label: brequinar sodium
+   Definition: An organic sodium salt of brequinar.
+   Synonyms: sodium 6-fluoro-2-(2'-fluoro[biphenyl]-4-yl)-3-methylquinoline-4-carboxylate; 6-fluoro-2-(2'-fluoro-1,1'-biphenyl-4-yl)-3-methyl-4-quinoline-carboxylic acid sodium salt; DUP 785; DUP-785; NSC 368390; NSC-368390; brequinar sodium salt; sodium 6-fluoro-2-(2'-fluoro[1,1'-biphenyl]-4-yl)-3-methylquinoline-4-carboxylate
+
+61. ID: CHEBI:207822
+   Label: Biverlactone B
+   Definition: None
+   Synonyms: (3Z)-3-[(5S,6R)-5-hydroxy-6-[(E)-4-methyldec-2-en-2-yl]-2-oxooxan-3-ylidene]propanoic acid
+
+62. ID: CHEBI:31285
+   Label: Bifemelane hydrochloride
+   Definition: None
+   Synonyms: Bifemelane hydrochloride
+
+63. ID: CHEBI:198075
+   Label: Biverlactone C
+   Definition: None
+   Synonyms: (E)-3-[(2R)-2-[(E,1S)-1-hydroxy-2,4-dimethyldec-2-enyl]-5-oxo-2H-uran-4-yl]prop-2-enoic acid
+
+64. ID: CHEBI:234044
+   Label: barbital sodium
+   Definition: None
+   Synonyms: sodium;5,5-diethyl-4,6-dioxo-1H-pyrimidin-2-olate
+
+65. ID: FOODON:03413775
+   Label: d-pantothenate, sodium
+   Definition: None
+   Synonyms: None
+
+66. ID: CHEBI:49328
+   Label: bipiperidine
+   Definition: None
+   Synonyms: None
+
+67. ID: CHEBI:52096
+   Label: sodium ethoxide
+   Definition: An organic monosodium salt that has ethoxide as the counterion.
+   Synonyms: sodium ethanolate; Caustic alcohol; Ethoxysodium; NaOEt; Sodium ethylate
+
+68. ID: CHEBI:65242
+   Label: sodium chlorate
+   Definition: An inorganic sodium salt that has chlorate as the counter-ion. An oxidising agent, it is used for bleaching paper and as a herbicide. It is also used in the manufacture of dyes, explosives and matches.
+   Synonyms: sodium chlorate; Chlorate de sodium; Chlorate salt of sodium; Chloric acid, sodium salt; NaClO3; Natriumchlorat
+
+69. ID: CHEBI:32954
+   Label: sodium acetate
+   Definition: None
+   Synonyms: sodium acetate; Natriumazetat; acetic acid, sodium salt; anhydrous sodium acetate; sodium acetate anhydrous
+
+70. ID: CHEBI:30061
+   Label: sodium hexacyanoferrate(4-)
+   Definition: None
+   Synonyms: sodium hexacyanidoferrate(4-); sodium hexacyanidoferrate(II); sodium hexacyanoferrate(4-); tetrasodium hexacyanidoferrate; tetrasodium hexakis(cyanido-kappaC)ferrate(4-); Na4[Fe(CN)6]; Natriumhexazyanoferrat(II); sodium ferrocyanide; sodium hexacyanoferrate(II); tetrasodium hexacyanoferrate
+
+71. ID: FOODON:03302715
+   Label: brine
+   Definition: None
+   Synonyms: None
+
+72. ID: CHEBI:140411
+   Label: sodium 2-iodohippurate
+   Definition: An organic sodium salt resulting from the formal reaction of equimolar amounts of 2-iodohippuric acid and sodium. It has been used as a contrast agent in urography. Isotopologues labelled with radioactive iodine were formerly used for determination of effective renal plasma flow. It has also been used labelled with radioactive iodine (iodine-125 or iodine-131) in tests of renal function and in renal imaging.
+   Synonyms: sodium (2-iodobenzamido)acetate; o-iodohippurate sodium; sodium N-(2-iodobenzoyl)glycinate; sodium iodohippurate; sodium o-iodohippurate; sodium orthoiodohippurate
+
+73. ID: CHEBI:223946
+   Label: Biverlactone D
+   Definition: None
+   Synonyms: (3Z)-3-[(5R)-5-[(E,1S)-1-hydroxy-2,4-dimethyldec-2-enyl]-2-oxooxolan-3-ylidene]propanoic acid
+
+74. ID: FOODON:03411656
+   Label: sodium chloride mixt. with potassium chloride
+   Definition: None
+   Synonyms: None
+
+75. ID: FOODON:03414435
+   Label: sodium tartrates
+   Definition: None
+   Synonyms: None
+
+76. ID: CHEBI:52476
+   Label: sodium phenolate
+   Definition: None
+   Synonyms: sodium phenolate; Sodium carbolate; Sodium phenate; Sodium phenoxide
+
+77. ID: FOODON:03413255
+   Label: sodium hydrogen acetate (sodium diacetate)
+   Definition: None
+   Synonyms: None
+
+78. ID: FOODON:03414444
+   Label: sodium acetates
+   Definition: None
+   Synonyms: None
+
+79. ID: CHEBI:50985
+   Label: sodium borohydride
+   Definition: None
+   Synonyms: sodium tetrahydridoborate; NaBH4; borohydrure de sodium; sodium tetrahydridoborate(1-); sodium tetrahydroborate; sodium tetrahydroborate(1-)
+
+80. ID: CHEBI:53258
+   Label: sodium citrate
+   Definition: The trisodium salt of citric acid.
+   Synonyms: trisodium 2-hydroxypropane-1,2,3-tricarboxylate; citric acid trisodium salt; trisodium citrate
+
+**Instructions:**
+1.  Carefully review the user's entity and each candidate's details (ID, Label, Definition, Synonyms).
+2.  Select the single best match. Consider exact matches of labels or synonyms as strong signals. If there are multiple good matches, prefer the more specific term over a general one.
+3.  Provide your response in a valid JSON format only. Do not add any text before or after the JSON block.
+4.  The JSON object must contain two keys:
+    - "chosen_id": The CURIE (ID) of the single best matching term (e.g., "FOODON:00001290").
+    - "explanation": A brief, clear explanation for your choice, justifying why it is the best fit compared to other options.
+
+**Example Response Format:**
+{
+  "chosen_id": "FOODON:00001290",
+  "explanation": "I chose 'garlic' because its label is an exact match for the user entity. Candidate 'allium sativum' is the scientific name but 'garlic' is the common term and therefore a better fit."
+}
+---
+2025-07-30 14:36:43,507 - src.rag_selectors.huggingface_selector - INFO - huggingface_selector._call_llm:27 - Sending request to local HF model for query: 'sodium bicarbonate'
+2025-07-30 14:44:18,941 - __main__ - INFO - main.main:98 - Closing pipeline resources.
+2025-07-30 14:44:18,958 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.close:215 - Whoosh searcher for 'foodon' closed.
+2025-07-30 14:44:18,962 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.close:215 - Whoosh searcher for 'chebi' closed.
+2025-07-30 14:44:18,962 - src.pipeline.base_pipeline - INFO - base_pipeline.close:181 - Pipeline resources closed.
