@@ -144,9 +144,8 @@ CURIE_PREFIX_MAP = {
 CONFIDENCE_THRESHOLD = 0.7  # If score is below this, try to generate synonyms
 MAX_PIPELINE_LOOPS = 4     # Max number of attempts (initial + retries)
 
-# LLM API Key (placeholders)
+
 GEMINI_API_KEY = getenv("GEMINI_API_KEY")
-#GEMINI_SELECTOR_MODEL_NAME = "gemini-1.5-flash-latest"
 GEMINI_SELECTOR_MODEL_NAME = "gemini-2.5-flash-lite-preview-06-17"
 GEMINI_SCORER_MODEL_NAME = "gemini-2.5-pro"
 GEMINI_SYNONYM_MODEL_NAME = "gemini-2.5-flash-lite-preview-06-17"
@@ -171,7 +170,7 @@ SELECTOR_PROMPT_TEMPLATE_PATH = PROJECT_ROOT / "prompts" /  "final_selection.tpl
 CONFIDENCE_PROMPT_TEMPLATE_PATH = PROJECT_ROOT / "prompts" / "confidence_assessment2.tpl" #"confidence_assessment.tpl"
 SYNONYM_PROMPT_TEMPLATE_PATH = PROJECT_ROOT / "prompts" / "synonym_generation.tpl"
 
-PIPELINE = "huggingface" # "gemini", "ollama", or "huggingface"
+PIPELINE = "gemini" # "gemini", "ollama", or "huggingface"
 
 # Logging configuration
 LOG_LEVEL = "DEBUG"
