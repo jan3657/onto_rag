@@ -2,7 +2,7 @@
 import logging
 from typing import Optional
 
-import ollama
+from ollama import AsyncClient, ResponseError
 
 from src.synonym_generators.base_synonym_generator import BaseSynonymGenerator
 from src import config
@@ -15,17 +15,21 @@ class OllamaSynonymGenerator(BaseSynonymGenerator):
     def __init__(self):
         model_name = config.OLLAMA_SYNONYM_MODEL_NAME
         super().__init__(model_name=model_name)
+        
+        self.client = AsyncClient()
+        
         try:
+            import ollama
             ollama.ps()
             logger.info("Ollama service is running for synonym generator.")
         except Exception as exc:
             logger.error("Ollama service not detected. Please ensure Ollama is running.")
             raise ConnectionError("Ollama service not available.") from exc
 
-    def _call_llm(self, prompt: str) -> Optional[str]:
+    async def _call_llm(self, prompt: str) -> Optional[str]:
         logger.info(f"Sending synonym generation request to Ollama with model '{self.model_name}'")
         try:
-            response = ollama.chat(
+            response = await self.client.chat(
                 model=self.model_name,
                 messages=[
                     {
@@ -34,10 +38,10 @@ class OllamaSynonymGenerator(BaseSynonymGenerator):
                     },
                 ],
                 format='json',
-                options={'temperature': 0.2} # A little creativity is fine here
+                options={'temperature': 0.2} 
             )
             return response['message']['content']
-        except ollama.ResponseError as e:
+        except ResponseError as e:
             logger.error(f"An error occurred with the Ollama API call for synonym generation: {e.status_code} - {e.error}")
             return None
         except Exception as e:
