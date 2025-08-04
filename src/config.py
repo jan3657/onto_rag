@@ -53,8 +53,8 @@ EMBEDDING_BATCH_SIZE = 32
 EMBEDDING_DEVICE = 'cpu'
 
 # --- Retrieval and Reranking Configuration ---
-DEFAULT_K_LEXICAL = 20
-DEFAULT_K_VECTOR = 20
+DEFAULT_K_LEXICAL = 10
+DEFAULT_K_VECTOR = 10
 DEFAULT_RERANK_K = DEFAULT_K_LEXICAL + DEFAULT_K_VECTOR
 
 # --- Namespace Configuration ---
@@ -141,14 +141,15 @@ CURIE_PREFIX_MAP = {
 }
 	
 # --- Pipeline Loop Configuration ---
-CONFIDENCE_THRESHOLD = 0.7  # If score is below this, try to generate synonyms
-MAX_PIPELINE_LOOPS = 4     # Max number of attempts (initial + retries)
+CONFIDENCE_THRESHOLD = 0.6  # If score is below this, try to generate synonyms
+MAX_PIPELINE_LOOPS = 3     # Max number of attempts (initial + retries)
+MAX_CONCURRENT_REQUESTS = 10  # Max number of concurrent LLM API calls for async processing
 
 
 GEMINI_API_KEY = getenv("GEMINI_API_KEY")
-GEMINI_SELECTOR_MODEL_NAME = "gemini-2.5-flash-lite-preview-06-17"
-GEMINI_SCORER_MODEL_NAME = "gemini-2.5-pro"
-GEMINI_SYNONYM_MODEL_NAME = "gemini-2.5-flash-lite-preview-06-17"
+GEMINI_SELECTOR_MODEL_NAME = "gemini-2.5-flash-lite"
+GEMINI_SCORER_MODEL_NAME = "gemini-2.5-flash-lite" #"gemini-2.5-pro"
+GEMINI_SYNONYM_MODEL_NAME = "gemini-2.5-flash-lite"
 
 OLLAMA_SELECTOR_MODEL_NAME = 'llama3.1:8b'
 OLLAMA_SCORER_MODEL_NAME = 'llama3.1:8b'

@@ -30,25 +30,23 @@ class GeminiSelector(BaseSelector):
         
         self.client = genai.Client(api_key=config.GEMINI_API_KEY)
 
-    def _call_llm(self, prompt: str, query: str) -> Optional[str]:
+    async def _call_llm(self, prompt: str, query: str) -> Optional[str]:
         """
         Makes the API call to the Gemini model.
         """
         logger.info(f"Sending request to Gemini for query: '{query}'")
         try:
-            generation_config = {'temperature': 0}
-            response = self.client.models.generate_content(
+            response = await self.client.aio.models.generate_content(
                 model=self.model_name,
                 contents=prompt,
-                config=generation_config
+                config={"temperature": 0.2}
             )
-
             feedback = getattr(response, 'prompt_feedback', None)
             if feedback and any(r.blocked for r in feedback.safety_ratings or []):
                 logger.warning(f"Request for query '{query}' was blocked by safety filters.")
                 return None
 
-            return response.text
+            return response.text.strip()
                 
         except exceptions.GoogleAPIError as e:
             logger.error(f"A Google API error occurred with the Gemini call: {e}", exc_info=True)
