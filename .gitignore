@@ -17,6 +17,7 @@ project_contents_for_llm.txt
 /data/
 /ontologies/
 /models/
+/outputs/
 
 # Log files
 *.log
