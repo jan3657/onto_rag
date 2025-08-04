@@ -3,6 +3,7 @@ import sys
 import logging
 from typing import List, Dict, Any, Optional, Type
 from pathlib import Path
+import asyncio
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -87,91 +88,101 @@ class BaseRAGPipeline:
 
     # In src/pipeline/base_pipeline.py
 
-    def run(self,
+    async def run(self,
             query: str,
             lexical_k: int = config.DEFAULT_K_LEXICAL,
-            vector_k: int = config.DEFAULT_K_VECTOR
+            vector_k: int = config.DEFAULT_K_VECTOR,
+            semaphore: Optional[asyncio.Semaphore] = None
             ) -> Optional[tuple[Dict[str, Any], List[Dict[str, Any]]]]:
         """
         Executes the pipeline with per-query validation, but scores
         confidence against the original user query for a final check.
         """
-        queries_to_try = [query]
-        queries_tried = set()
-        best_result_so_far = None
-        loop_count = 0
+        # ADDED: Acquire semaphore if provided
+        if semaphore:
+            await semaphore.acquire()
+        
+        try:
+            queries_to_try = [query]
+            queries_tried = set()
+            best_result_so_far = None
+            loop_count = 0
 
-        # The 'query' variable will always hold the original user query.
-        # The 'current_query' variable will change with each loop.
+            # The 'query' variable will always hold the original user query.
+            # The 'current_query' variable will change with each loop.
 
-        while queries_to_try and loop_count < config.MAX_PIPELINE_LOOPS:
-            current_query = queries_to_try.pop(0)
-            if current_query in queries_tried:
-                continue
-            
-            loop_count += 1
-            queries_tried.add(current_query)
-            logger.info(f"--- Starting Pipeline Attempt {loop_count}/{config.MAX_PIPELINE_LOOPS} for query: '{current_query}' ---")
+            while queries_to_try and loop_count < config.MAX_PIPELINE_LOOPS:
+                current_query = queries_to_try.pop(0)
+                if current_query in queries_tried:
+                    continue
+                
+                loop_count += 1
+                queries_tried.add(current_query)
+                logger.info(f"--- Starting Pipeline Attempt {loop_count}/{config.MAX_PIPELINE_LOOPS} for query: '{current_query}' ---")
 
-            # 1. Retrieve candidates for the CURRENT query (e.g., "Brilliant Blue FCF")
-            retriever_output = self.retriever.search(current_query, lexical_limit=lexical_k, vector_k=vector_k)
-            candidates = retriever_output.get("lexical_results", []) + retriever_output.get("vector_results", [])
+                # 1. Retrieve candidates for the CURRENT query (e.g., "Brilliant Blue FCF")
+                retriever_output = self.retriever.search(current_query, lexical_limit=lexical_k, vector_k=vector_k)
+                candidates = retriever_output.get("lexical_results", []) + retriever_output.get("vector_results", [])
 
-            if not candidates:
-                logger.warning(f"No candidates found for query '{current_query}'.")
-                continue
+                if not candidates:
+                    logger.warning(f"No candidates found for query '{current_query}'.")
+                    continue
 
-            # 2. Select the best term using the CURRENT query for context.
-            # This is the "Focused Selection" step.
-            logger.info(f"{len(candidates)} candidates passed to LLM selector for query '{current_query}'.")
-            selection = self.selector.select_best_term(current_query, candidates)
+                # 2. Select the best term using the CURRENT query for context.
+                # This is the "Focused Selection" step.
+                logger.info(f"{len(candidates)} candidates passed to LLM selector for query '{current_query}'.")
+                selection = await self.selector.select_best_term(current_query, candidates) # CHANGED: Added await
 
-            if not selection or selection['chosen_id'] in ('0', '-1'):
-                logger.warning(f"Selector failed for query '{current_query}'.")
-                continue
-            
-            chosen_id = selection['chosen_id']
-            chosen_term_details = self.retriever.get_term_details(chosen_id)
-            if not chosen_term_details:
-                logger.error(f"Selector chose ID '{chosen_id}', but its details could not be retrieved.")
-                continue
+                if not selection or selection['chosen_id'] in ('0', '-1'):
+                    logger.warning(f"Selector failed for query '{current_query}'.")
+                    continue
+                
+                chosen_id = selection['chosen_id']
+                chosen_term_details = self.retriever.get_term_details(chosen_id)
+                if not chosen_term_details:
+                    logger.error(f"Selector chose ID '{chosen_id}', but its details could not be retrieved.")
+                    continue
 
-            # --- THIS IS THE MODIFIED SECTION ---
-            # 3. Score confidence using the ORIGINAL query for context.
-            # This is the "Holistic Scoring" step.
-            logger.info(f"Scoring selection '{chosen_id}' against the ORIGINAL query: '{query}'")
+                # --- THIS IS THE MODIFIED SECTION ---
+                # 3. Score confidence using the ORIGINAL query for context.
+                # This is the "Holistic Scoring" step.
+                logger.info(f"Scoring selection '{chosen_id}' against the ORIGINAL query: '{query}'")
 
-            confidence_result = self.confidence_scorer.score_confidence(
-                query=query, # <-- CRUCIAL CHANGE: Use the original 'query' variable here
-                chosen_term_details=chosen_term_details,
-                all_candidates=candidates
-            )
-            # ------------------------------------
-            
-            current_result = chosen_term_details
-            if confidence_result:
-                current_result['confidence_score'] = confidence_result.get('confidence_score', 0.0)
-                current_result['explanation'] = confidence_result.get('explanation', selection.get('explanation'))
-            else:
-                current_result['confidence_score'] = 0.0
-                current_result['explanation'] = selection.get('explanation')
+                confidence_result = await self.confidence_scorer.score_confidence( # CHANGED: Added await
+                    query=query, # <-- CRUCIAL CHANGE: Use the original 'query' variable here
+                    chosen_term_details=chosen_term_details,
+                    all_candidates=candidates
+                )
+                # ------------------------------------
+                
+                current_result = chosen_term_details
+                if confidence_result:
+                    current_result['confidence_score'] = confidence_result.get('confidence_score', 0.0)
+                    current_result['explanation'] = confidence_result.get('explanation', selection.get('explanation'))
+                else:
+                    current_result['confidence_score'] = 0.0
+                    current_result['explanation'] = selection.get('explanation')
 
-            logger.info(f"Selection: '{current_result.get('label')}' (ID: {chosen_id}), Confidence against original query: {current_result['confidence_score']:.2f}, Explanation: {current_result['explanation']}")
+                logger.info(f"Selection: '{current_result.get('label')}' (ID: {chosen_id}), Confidence against original query: {current_result['confidence_score']:.2f}, Explanation: {current_result['explanation']}")
 
-            # ... (Rest of the loop: update best result, check threshold, generate synonyms) ...
-            if best_result_so_far is None or current_result['confidence_score'] > best_result_so_far.get('confidence_score', 0.0):
-                best_result_so_far = current_result
+                # ... (Rest of the loop: update best result, check threshold, generate synonyms) ...
+                if best_result_so_far is None or current_result['confidence_score'] > best_result_so_far.get('confidence_score', 0.0):
+                    best_result_so_far = current_result
 
-            if best_result_so_far['confidence_score'] >= config.CONFIDENCE_THRESHOLD:
-                return best_result_so_far, candidates
+                if best_result_so_far and best_result_so_far.get('confidence_score', 0.0) >= config.CONFIDENCE_THRESHOLD:
+                    return best_result_so_far, candidates
 
-            if self.synonym_generator and current_query == query and not queries_to_try:
-                synonyms = self.synonym_generator.generate_synonyms(query)
-                if synonyms:
-                    queries_to_try.extend(synonyms)
+                if self.synonym_generator and current_query == query and not queries_to_try:
+                    synonyms = await self.synonym_generator.generate_synonyms(query) # CHANGED: Added await
+                    if synonyms:
+                        queries_to_try.extend(synonyms)
 
-        # ... (final return logic) ...
-        return best_result_so_far, []
+            return best_result_so_far, []
+
+        finally:
+            # ADDED: Release semaphore if provided
+            if semaphore:
+                semaphore.release()
 
 
     def close(self):

@@ -22,11 +22,11 @@ class GeminiSynonymGenerator(BaseSynonymGenerator):
 
         self.client = genai.Client(api_key=config.GEMINI_API_KEY)
 
-    def _call_llm(self, prompt: str) -> Optional[str]:
+    async def _call_llm(self, prompt: str) -> Optional[str]:
         logger.info(f"Sending synonym generation request to Gemini...")
         try:
-            generation_config = {'temperature': 0.2} # Slight creativity is okay
-            response = self.client.models.generate_content(
+            generation_config = {'temperature': 0.5, 'max_output_tokens': 32}
+            response = await self.client.models.generate_content(
                 model=self.model_name,
                 contents=prompt,
                 config=generation_config

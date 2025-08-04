@@ -105,7 +105,7 @@ class BaseSelector(ABC):
             return None
 
     @abstractmethod
-    def _call_llm(self, prompt: str, query: str) -> Optional[str]:
+    async def _call_llm(self, prompt: str, query: str) -> Optional[str]:
         """
         Makes the actual API call to the specific LLM provider.
 
@@ -121,7 +121,7 @@ class BaseSelector(ABC):
         """
         pass
 
-    def select_best_term(self, query: str, candidates: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    async def select_best_term(self, query: str, candidates: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
         """
         Selects the best term by executing the full selection logic.
 
@@ -141,7 +141,7 @@ class BaseSelector(ABC):
         logger.debug(f"Selector Prompt:\n---\n{prompt}\n---")
 
         # Delegate the provider-specific call to the subclass
-        response_text = self._call_llm(prompt, query)
+        response_text = await self._call_llm(prompt, query)
         
         if response_text is None:
             return None

@@ -11,25 +11,27 @@ to an output JSON file. The final mapping result is simplified to improve readab
 import sys
 import json
 import logging
-from tqdm import tqdm
+import asyncio
+from tqdm.asyncio import tqdm as asyncio_tqdm
 from pathlib import Path
-from src.pipeline.pipeline_factory import get_pipeline
+
 
 # --- Add project root to sys.path ---
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
-
+    
+from src.pipeline.pipeline_factory import get_pipeline
 from src import config
 
 # --- Configuration ---
 LOGGING_LEVEL = logging.INFO
-PRODUCT_LIMIT = 100
+PRODUCT_LIMIT = 2 # Increased for a better demo
 
 # --- Paths Configuration (using pathlib) ---
 DATA_DIR = PROJECT_ROOT / 'data' / 'outputs'
 INPUT_FILE = DATA_DIR / 'parsed_ingredients_output.json'
-OUTPUT_FILE = DATA_DIR / 'mapped_ingredients_output.json'
+OUTPUT_FILE = DATA_DIR / 'mapped_ingredients_output_2_samples.json'
 
 
 # --- Setup Logging ---
@@ -53,11 +55,11 @@ def simplify_mapping_result(result):
     return simplified_dict
 
 
-def main():
+async def main():
     """
     Main function to run the batch ingredient mapping process.
     """
-    logger.info("Starting batch ontology mapping process...")
+    logger.info("Starting BATCH ontology mapping process...")
     logger.info(f"Using pipeline: {config.PIPELINE}")
 
     OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
@@ -72,7 +74,6 @@ def main():
             return
 
         with INPUT_FILE.open('r', encoding='utf-8') as f:
-            ## MODIFIED ##: Renamed variable to reflect new data structure
             all_product_data = json.load(f)
 
         # --- 2. Initialize RAG Pipeline ---
@@ -80,53 +81,31 @@ def main():
         pipeline = get_pipeline(config.PIPELINE)
         logger.info("RAG pipeline initialized successfully.")
 
-        # --- 3. Process Ingredients ---
+        # --- 3. Process Ingredients Concurrently ---
         all_mappings = {}
-
-        ## MODIFIED ##: Use the new data variable
+        
+        # Create a semaphore to limit concurrency
+        semaphore = asyncio.Semaphore(config.MAX_CONCURRENT_REQUESTS)
+        
         items_to_process = list(all_product_data.items())
         if PRODUCT_LIMIT is not None:
             items_to_process = items_to_process[:PRODUCT_LIMIT]
             logger.warning(f"Processing a limited set of {PRODUCT_LIMIT} products.")
 
-        ## MODIFIED ##: Loop now unpacks the product data dictionary
-        for product_id, product_data in tqdm(items_to_process, desc="Processing Products"):
-            logger.debug(f"--- Processing Product ID: {product_id} ---")
+        # Create a list of tasks for all products
+        product_tasks = []
+        for product_id, product_data in items_to_process:
+            product_tasks.append(
+                process_single_product(pipeline, product_id, product_data, semaphore)
+            )
 
-            ## ADDED ##: Extract original and parsed ingredients from the product data
-            original_ingredients_text = product_data.get("original_ingredients", "")
-            parsed_ingredients = product_data.get("parsed_ingredients", [])
+        # Execute all product processing tasks concurrently with a progress bar
+        results = await asyncio_tqdm.gather(*product_tasks, desc="Processing Products")
 
-            mapped_ingredients = [] # Will store the list of mapping results for this product
-            
-            # Continue to process only unique ingredients to avoid redundant work
-            unique_ingredients = sorted(list(set(parsed_ingredients)))
-
-            for ingredient_query in unique_ingredients:
-                logger.debug(f"Querying for: '{ingredient_query}'")
-
-                result_tuple = pipeline.run(query=ingredient_query)
-                mapping_result, candidates = (None, []) if not result_tuple else result_tuple
-
-                simplified_mapping = simplify_mapping_result(mapping_result)
-
-                if mapping_result:
-                    logger.info(f"Query: '{ingredient_query}' -> Mapped to: '{mapping_result.get('label')}' (ID: {mapping_result.get('id')})")
-                else:
-                    logger.warning(f"Query: '{ingredient_query}' -> No mapping found")
-
-                # Store the simplified result and candidates in the final JSON structure
-                mapped_ingredients.append({
-                    "original_ingredient": ingredient_query,
-                    "mapping_result": simplified_mapping if simplified_mapping else "No mapping found",
-                    "candidates": candidates if candidates else []
-                })
-
-            ## MODIFIED ##: Structure the output to include original ingredients text
-            all_mappings[product_id] = {
-                "original_ingredients": original_ingredients_text,
-                "mapped_ingredients": mapped_ingredients
-            }
+        # Collate results
+        for product_id, product_result in results:
+            if product_result:
+                all_mappings[product_id] = product_result
 
         # --- 4. Save Results ---
         logger.info(f"Saving mapped results to: {OUTPUT_FILE}")
@@ -136,12 +115,53 @@ def main():
         logger.info("Mapping process completed successfully!")
 
     except Exception as e:
-        logger.error(f"An unexpected error occurred during the mapping process: {e}", exc_info=True)
+        logger.error(f"An unexpected error occurred: {e}", exc_info=True)
     finally:
         # --- 5. Clean up ---
         if pipeline:
             logger.info("Closing pipeline resources.")
             pipeline.close()
 
+async def process_single_product(pipeline, product_id, product_data, semaphore):
+    """
+    Asynchronously processes all ingredients for a single product.
+    """
+    original_ingredients_text = product_data.get("original_ingredients", "")
+    parsed_ingredients = product_data.get("parsed_ingredients", [])
+    unique_ingredients = sorted(list(set(parsed_ingredients)))
+
+    ingredient_tasks = []
+    for ingredient_query in unique_ingredients:
+        # Create a task for each ingredient, passing the semaphore
+        task = pipeline.run(query=ingredient_query, semaphore=semaphore)
+        ingredient_tasks.append(asyncio.create_task(task))
+
+    # Wait for all ingredients of this product to be mapped
+    results = await asyncio.gather(*ingredient_tasks)
+
+    mapped_ingredients = []
+    for i, ingredient_query in enumerate(unique_ingredients):
+        result_tuple = results[i]
+        mapping_result, candidates = (None, []) if not result_tuple else result_tuple
+        simplified_mapping = simplify_mapping_result(mapping_result)
+
+        if mapping_result:
+            logger.info(f"Product {product_id}: Query '{ingredient_query}' -> Mapped to '{simplified_mapping.get('label')}'")
+        else:
+            logger.warning(f"Product {product_id}: Query '{ingredient_query}' -> No mapping found")
+            
+        mapped_ingredients.append({
+            "original_ingredient": ingredient_query,
+            "mapping_result": simplified_mapping if simplified_mapping else "No mapping found",
+            "candidates": candidates if candidates else []
+        })
+
+    product_output = {
+        "original_ingredients": original_ingredients_text,
+        "mapped_ingredients": mapped_ingredients
+    }
+    return product_id, product_output
+
+
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

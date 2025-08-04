@@ -39,17 +39,17 @@ class BaseSynonymGenerator(ABC):
             return []
 
     @abstractmethod
-    def _call_llm(self, prompt: str) -> Optional[str]:
+    async def _call_llm(self, prompt: str) -> Optional[str]:
         """Makes the actual API call to the specific LLM provider."""
         pass
 
-    def generate_synonyms(self, query: str) -> List[str]:
+    async def generate_synonyms(self, query: str) -> List[str]:
         """Formats the prompt, calls the LLM, and parses the response to get synonyms."""
         prompt = self.prompt_template.replace("[USER_ENTITY]", query)
         
         logger.debug(f"Synonym Generator Prompt:\n---\n{prompt}\n---") # <-- ADD THIS
 
-        response_text = self._call_llm(prompt)
+        response_text = await self._call_llm(prompt)
         if response_text is None:
             return []
             

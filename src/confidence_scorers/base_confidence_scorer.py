@@ -59,11 +59,11 @@ class BaseConfidenceScorer(ABC):
             return None
 
     @abstractmethod
-    def _call_llm(self, prompt: str) -> Optional[str]:
+    async def _call_llm(self, prompt: str) -> Optional[str]:
         """Makes the actual API call to the specific LLM provider."""
         pass
     
-    def score_confidence(self, query: str, chosen_term_details: Dict[str, Any], all_candidates: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    async def score_confidence(self, query: str, chosen_term_details: Dict[str, Any], all_candidates: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
         """Formats the prompt, calls the LLM, and parses the response for confidence scoring."""
         chosen_details_str = self._format_term_details(chosen_term_details)
         other_candidates_str = self._format_other_candidates(all_candidates, chosen_term_details.get('id', ''))
@@ -73,7 +73,7 @@ class BaseConfidenceScorer(ABC):
         prompt = prompt.replace("[OTHER_CANDIDATES]", other_candidates_str)
         logger.debug(f"Formatted prompt for confidence scoring:\n{prompt}")
 
-        response_text = self._call_llm(prompt)
+        response_text = await self._call_llm(prompt)
         if response_text is None:
             return None
         

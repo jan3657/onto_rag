@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 class GeminiConfidenceScorer(BaseConfidenceScorer):
     """Uses Google Gemini to assess the confidence of an ontology mapping."""
     def __init__(self):
-        model_name = config.GEMINI_SCORER_MODEL_NAME # Use the same model for now
+        model_name = config.GEMINI_SCORER_MODEL_NAME
         super().__init__(model_name=model_name)
         
         if not config.GEMINI_API_KEY:
@@ -21,11 +21,17 @@ class GeminiConfidenceScorer(BaseConfidenceScorer):
         
         self.client = genai.Client(api_key=config.GEMINI_API_KEY)
 
-    def _call_llm(self, prompt: str) -> Optional[str]:
+    async def _call_llm(self, prompt: str) -> Optional[str]:
+        """
+        Makes a standard asynchronous API call to the Gemini model.
+        """
         logger.info(f"Sending confidence scoring request to Gemini...")
         try:
-            generation_config = {'temperature': 0}
-            response = self.client.models.generate_content(
+            generation_config = {
+                'temperature': 0.2, 
+                'max_output_tokens': 256
+            }
+            response = await self.client.aio.models.generate_content(
                 model=self.model_name,
                 contents=prompt,
                 config=generation_config
@@ -33,10 +39,19 @@ class GeminiConfidenceScorer(BaseConfidenceScorer):
 
             feedback = getattr(response, 'prompt_feedback', None)
             if feedback and any(r.blocked for r in feedback.safety_ratings or []):
-                logger.warning(f"Confidence scoring request was blocked by safety filters.")
+                logger.warning("Confidence scoring request was blocked by safety filters.")
                 return None
 
+            # Check if the response was cut short
+            finish_reason = getattr(response.candidates[0], 'finish_reason', None)
+            if finish_reason and finish_reason.name == 'MAX_TOKENS':
+                logger.warning(
+                    f"Gemini response was truncated due to max_output_tokens limit ({generation_config['max_output_tokens']}). "
+                    "The output may be incomplete or invalid JSON."
+                )
+
             return response.text
+
         except exceptions.GoogleAPIError as e:
             logger.error(f"A Google API error occurred with the Gemini call for confidence scoring: {e}", exc_info=True)
             return None
