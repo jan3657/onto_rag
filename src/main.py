@@ -4,6 +4,7 @@ import json
 import sys
 from pathlib import Path
 import logging
+import asyncio
 
 # Get a logger instance for this module
 logger = logging.getLogger(__name__)
@@ -17,7 +18,7 @@ from src.pipeline.pipeline_factory import get_pipeline
 from src.config import DEFAULT_K_LEXICAL, DEFAULT_K_VECTOR, PIPELINE
 from src.utils.logging_config import setup_run_logging
 
-def main():
+async def main():
     parser = argparse.ArgumentParser(description="Run the Onto-RAG pipeline with LLM selection.")
     parser.add_argument("query", type=str, help="The entity or text to search for (e.g., 'raw milk').")
     parser.add_argument("--lexical_k", type=int, default=DEFAULT_K_LEXICAL, help=f"Initial candidates from lexical search (default: {DEFAULT_K_LEXICAL}).")
@@ -34,7 +35,7 @@ def main():
     try:
         pipeline = get_pipeline(PIPELINE)
         
-        result_tuple = pipeline.run(
+        result_tuple = await pipeline.run(
             query=args.query,
             lexical_k=args.lexical_k,
             vector_k=args.vector_k
@@ -99,4 +100,4 @@ def main():
             pipeline.close()
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
