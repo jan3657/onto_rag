@@ -2,7 +2,8 @@
 import logging
 from typing import Optional
 
-import ollama
+# CORRECTED: Import AsyncClient
+from ollama import AsyncClient, ResponseError
 
 from src.rag_selectors.base_selector import BaseSelector
 from src.retriever.hybrid_retriever import HybridRetriever
@@ -17,27 +18,27 @@ class OllamaSelector(BaseSelector):
     def __init__(self, retriever: HybridRetriever):
         """
         Initializes the OllamaSelector.
-
-        Args:
-            retriever (HybridRetriever): An initialized retriever instance.
         """
         model_name = config.OLLAMA_SELECTOR_MODEL_NAME
         super().__init__(retriever=retriever, model_name=model_name)
         
+        self.client = AsyncClient()
+        
         try:
+            import ollama
             ollama.ps()
             logger.info("Ollama service is running.")
         except Exception as exc:
             logger.error("Ollama service not detected. Please ensure Ollama is running.")
             raise ConnectionError("Ollama service not available.") from exc
 
-    def _call_llm(self, prompt: str, query: str) -> Optional[str]:
+    async def _call_llm(self, prompt: str, query: str) -> Optional[str]:
         """
-        Makes the API call to the Ollama service.
+        Makes the asynchronous API call to the Ollama service using AsyncClient.
         """
         logger.info(f"Sending request to Ollama for query: '{query}' with model '{self.model_name}'")
         try:
-            response = ollama.chat(
+            response = await self.client.chat(
                 model=self.model_name,
                 messages=[
                     {
@@ -46,18 +47,14 @@ class OllamaSelector(BaseSelector):
                     },
                 ],
                 format='json',
-                # Add the options dictionary to control model parameters
                 options={
                     'temperature': 0.0
                 }
             )
             return response['message']['content']
                 
-        except ollama.ResponseError as e:
+        except ResponseError as e:
             logger.error(f"An error occurred with the Ollama API call: {e.status_code} - {e.error}")
-            return None
-        except (ConnectionError, TimeoutError) as e:
-            logger.error(f"Network error during the Ollama call: {e}", exc_info=True)
             return None
         except Exception as e:
             logger.error(f"An unexpected error occurred during the Ollama call: {e}", exc_info=True)
