@@ -1,10 +1,11 @@
 # src/confidence_scorers/base_confidence_scorer.py
 import logging
 from abc import ABC, abstractmethod
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 import json
 
 from src import config
+from src.utils.token_tracker import token_tracker
 
 logger = logging.getLogger(__name__)
 
@@ -59,8 +60,13 @@ class BaseConfidenceScorer(ABC):
             return None
 
     @abstractmethod
-    async def _call_llm(self, prompt: str) -> Optional[str]:
-        """Makes the actual API call to the specific LLM provider."""
+    async def _call_llm(self, prompt: str) -> Optional[Tuple[Optional[str], Optional[Dict[str, int]]]]:
+        """
+        Makes the actual API call to the specific LLM provider.
+
+        Returns:
+            A tuple containing (response_text, token_usage_dict)
+        """
         pass
     
     async def score_confidence(self, query: str, chosen_term_details: Dict[str, Any], all_candidates: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
@@ -73,7 +79,16 @@ class BaseConfidenceScorer(ABC):
         prompt = prompt.replace("[OTHER_CANDIDATES]", other_candidates_str)
         logger.debug(f"Formatted prompt for confidence scoring:\n{prompt}")
 
-        response_text = await self._call_llm(prompt)
+        response_text, token_usage = await self._call_llm(prompt)
+
+        if token_usage:
+            token_tracker.record_usage(
+                model_name=self.model_name,
+                prompt_tokens=token_usage.get('prompt_tokens', 0),
+                completion_tokens=token_usage.get('completion_tokens', 0),
+                call_type='scorer'
+            )
+
         if response_text is None:
             return None
         

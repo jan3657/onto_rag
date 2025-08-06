@@ -17,6 +17,7 @@ if str(PROJECT_ROOT) not in sys.path:
 from src.pipeline.pipeline_factory import get_pipeline
 from src.config import DEFAULT_K_LEXICAL, DEFAULT_K_VECTOR, PIPELINE
 from src.utils.logging_config import setup_run_logging
+from src.utils.token_tracker import token_tracker
 
 async def main():
     parser = argparse.ArgumentParser(description="Run the Onto-RAG pipeline with LLM selection.")
@@ -98,6 +99,8 @@ async def main():
         if pipeline:
             logger.info("Closing pipeline resources.")
             pipeline.close()
+            
+        print(token_tracker.report_usage())
 
 if __name__ == "__main__":
     asyncio.run(main())
