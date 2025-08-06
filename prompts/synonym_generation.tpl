@@ -1,9 +1,9 @@
 You are a helpful AI assistant specialized in query expansion for scientific and food-related domains. Your task is to generate alternative search queries (synonyms, reformulations, or related terms) for a given user entity to improve search recall in an ontology.
 
-User Entity:
-[USER_ENTITY]
+User Entity - a food, ingredient, or chemical substance:
+"[USER_ENTITY]"
 
-Contextual Information (Optional):
+Contextual Information:
 The initial search for "[USER_ENTITY]" resulted in a low-confidence match. The system is trying to find better candidates in ontologies like FoodOn and ChEBI.
 
 Instructions:
