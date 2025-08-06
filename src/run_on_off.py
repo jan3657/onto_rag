@@ -5,7 +5,7 @@ from an input file (e.g., parsed Open Food Facts data).
 
 It processes each product's ingredients, links them to ontology terms, and
 saves the detailed structured results, including candidates considered by the LLM,
-to an output JSON file. The final mapping result is simplified to improve readability.
+to an output JSON file. It now uses a persistent cache to avoid re-processing ingredients.
 """
 
 import sys
@@ -23,6 +23,9 @@ if str(PROJECT_ROOT) not in sys.path:
     
 from src.pipeline.pipeline_factory import get_pipeline
 from src import config
+# --- NEW: Import cache utilities ---
+from src.utils.cache import load_cache, save_cache
+# -----------------------------------
 
 # --- Configuration ---
 LOGGING_LEVEL = logging.INFO
@@ -65,6 +68,9 @@ async def main():
     OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
 
     pipeline = None
+    # --- NEW: Load the cache at the start ---
+    cache = load_cache(config.PIPELINE_CACHE_PATH)
+    # -----------------------------------------
     try:
         # --- 1. Load Input Data ---
         logger.info(f"Loading ingredients from: {INPUT_FILE}")
@@ -84,7 +90,6 @@ async def main():
         # --- 3. Process Ingredients Concurrently ---
         all_mappings = {}
         
-        # Create a semaphore to limit concurrency
         semaphore = asyncio.Semaphore(config.MAX_CONCURRENT_REQUESTS)
         
         items_to_process = list(all_product_data.items())
@@ -92,17 +97,16 @@ async def main():
             items_to_process = items_to_process[:PRODUCT_LIMIT]
             logger.warning(f"Processing a limited set of {PRODUCT_LIMIT} products.")
 
-        # Create a list of tasks for all products
         product_tasks = []
         for product_id, product_data in items_to_process:
+            # --- NEW: Pass the cache to the processing function ---
             product_tasks.append(
-                process_single_product(pipeline, product_id, product_data, semaphore)
+                process_single_product(pipeline, product_id, product_data, semaphore, cache)
             )
+            # ----------------------------------------------------
 
-        # Execute all product processing tasks concurrently with a progress bar
         results = await asyncio_tqdm.gather(*product_tasks, desc="Processing Products")
 
-        # Collate results
         for product_id, product_result in results:
             if product_result:
                 all_mappings[product_id] = product_result
@@ -117,31 +121,57 @@ async def main():
     except Exception as e:
         logger.error(f"An unexpected error occurred: {e}", exc_info=True)
     finally:
-        # --- 5. Clean up ---
+        # --- 5. Clean up and Save Cache ---
         if pipeline:
             logger.info("Closing pipeline resources.")
             pipeline.close()
+        # --- NEW: Save the updated cache at the end ---
+        save_cache(config.PIPELINE_CACHE_PATH, cache)
+        # --------------------------------------------
 
-async def process_single_product(pipeline, product_id, product_data, semaphore):
+async def process_single_product(pipeline, product_id, product_data, semaphore, cache):
     """
-    Asynchronously processes all ingredients for a single product.
+    Asynchronously processes all ingredients for a single product, using a cache.
     """
     original_ingredients_text = product_data.get("original_ingredients", "")
     parsed_ingredients = product_data.get("parsed_ingredients", [])
     unique_ingredients = sorted(list(set(parsed_ingredients)))
 
-    ingredient_tasks = []
+    # --- NEW CACHING LOGIC ---
+    tasks_to_run = []
+    queries_for_tasks = []
+    # This dictionary will hold all results, whether from cache or a new run.
+    all_ingredient_results = {}
+
+    # 1. First, check the cache for each ingredient
     for ingredient_query in unique_ingredients:
-        # Create a task for each ingredient, passing the semaphore
-        task = pipeline.run(query=ingredient_query, semaphore=semaphore)
-        ingredient_tasks.append(asyncio.create_task(task))
+        if ingredient_query in cache:
+            logger.info(f"CACHE HIT for query: '{ingredient_query}' in Product {product_id}")
+            all_ingredient_results[ingredient_query] = cache[ingredient_query]
+        else:
+            logger.info(f"CACHE MISS for query: '{ingredient_query}' in Product {product_id}. Scheduling pipeline run.")
+            # This query needs to be run by the pipeline.
+            task = pipeline.run(query=ingredient_query, semaphore=semaphore)
+            tasks_to_run.append(task)
+            queries_for_tasks.append(ingredient_query)
 
-    # Wait for all ingredients of this product to be mapped
-    results = await asyncio.gather(*ingredient_tasks)
+    # 2. Run the pipeline concurrently for all cache misses
+    if tasks_to_run:
+        logger.info(f"Executing pipeline for {len(tasks_to_run)} cache misses in Product {product_id}.")
+        pipeline_results = await asyncio.gather(*tasks_to_run)
+        
+        # 3. Process new results and update both the local results and the main cache
+        for i, result_tuple in enumerate(pipeline_results):
+            query = queries_for_tasks[i]
+            all_ingredient_results[query] = result_tuple
+            # Only cache successful runs to avoid populating with failures
+            if result_tuple and result_tuple[0]:
+                cache[query] = result_tuple
 
+    # 4. Build the final output for the product using all results (cached and new)
     mapped_ingredients = []
-    for i, ingredient_query in enumerate(unique_ingredients):
-        result_tuple = results[i]
+    for ingredient_query in unique_ingredients: # Iterate in original order
+        result_tuple = all_ingredient_results.get(ingredient_query)
         mapping_result, candidates = (None, []) if not result_tuple else result_tuple
         simplified_mapping = simplify_mapping_result(mapping_result)
 

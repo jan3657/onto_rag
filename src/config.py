@@ -17,6 +17,9 @@ load_dotenv(PROJECT_ROOT / ".env")
 # Data Directory (for ontology dump, indexes, etc.)
 DATA_DIR = PROJECT_ROOT / "data"
 
+# Cache Path
+PIPELINE_CACHE_PATH = DATA_DIR / "pipeline_cache.json"
+
 # Ontologies Directory
 ONTOLOGIES_DIR = PROJECT_ROOT / "ontologies"
 
