@@ -1,6 +1,6 @@
 # src/synonym_generators/huggingface_synonym_generator.py
 import logging
-from typing import Optional
+from typing import Optional, Tuple, Dict
 
 from src.synonym_generators.base_synonym_generator import BaseSynonymGenerator
 from src.rag_selectors.huggingface_generator import HuggingFaceLocalGenerator
@@ -16,7 +16,9 @@ class HuggingFaceSynonymGenerator(BaseSynonymGenerator):
         super().__init__(model_name=model_name)
         self.generator = HuggingFaceLocalGenerator()
 
-    def _call_llm(self, prompt: str) -> Optional[str]:
+    async def _call_llm(self, prompt: str) -> Optional[Tuple[Optional[str], Optional[Dict[str, int]]]]:
         logger.info(f"Sending synonym generation request to local HF model...")
         # A bit of creativity is good for synonyms
-        return self.generator.generate(prompt, generation_kwargs={'temperature': 0.4})
+        response_text = self.generator.generate(prompt, generation_kwargs={'temperature': 0.4})
+        # Local models don't have token cost, so we return None for usage.
+        return response_text, None

@@ -1,6 +1,6 @@
 # src/rag_selectors/huggingface_selector.py
 import logging
-from typing import Optional
+from typing import Optional, Tuple, Dict
 
 from src.rag_selectors.base_selector import BaseSelector
 from src.retriever.hybrid_retriever import HybridRetriever
@@ -20,11 +20,13 @@ class HuggingFaceSelector(BaseSelector):
         # This will create or get the singleton instance of our generator
         self.generator = HuggingFaceLocalGenerator()
 
-    def _call_llm(self, prompt: str, query: str) -> Optional[str]:
+    async def _call_llm(self, prompt: str, query: str) -> Tuple[Optional[str], Optional[Dict[str, int]]]:
         """
         Makes the call to the local Hugging Face model.
         """
         logger.info(f"Sending request to local HF model for query: '{query}'")
         
         # The prompt is already formatted by the base class. We just pass it.
-        return self.generator.generate(prompt)
+        response_text = self.generator.generate(prompt)
+        # Local models don't have token cost, so we return None for usage.
+        return response_text, None

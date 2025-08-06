@@ -168,7 +168,7 @@ HF_GENERATION_KWARGS = {
 
 # Path to the prompt template for the selector
 SELECTOR_PROMPT_TEMPLATE_PATH = PROJECT_ROOT / "prompts" /  "final_selection.tpl" #"strict_selection_minimal.tpl"
-CONFIDENCE_PROMPT_TEMPLATE_PATH = PROJECT_ROOT / "prompts" / "confidence_assessment2.tpl" #"confidence_assessment.tpl"
+CONFIDENCE_PROMPT_TEMPLATE_PATH = PROJECT_ROOT / "prompts" / "confidence_assessment3.tpl" #"confidence_assessment.tpl"
 SYNONYM_PROMPT_TEMPLATE_PATH = PROJECT_ROOT / "prompts" / "synonym_generation.tpl"
 
 PIPELINE = "gemini" # "gemini", "ollama", or "huggingface"

@@ -2,9 +2,10 @@
 import logging
 import json
 from abc import ABC, abstractmethod
-from typing import List, Optional
+from typing import List, Optional, Tuple, Dict
 
 from src import config
+from src.utils.token_tracker import token_tracker
 
 logger = logging.getLogger(__name__)
 
@@ -39,8 +40,13 @@ class BaseSynonymGenerator(ABC):
             return []
 
     @abstractmethod
-    async def _call_llm(self, prompt: str) -> Optional[str]:
-        """Makes the actual API call to the specific LLM provider."""
+    async def _call_llm(self, prompt: str) -> Optional[Tuple[Optional[str], Optional[Dict[str, int]]]]:
+        """
+        Makes the actual API call to the specific LLM provider.
+
+        Returns:
+            A tuple containing (response_text, token_usage_dict)
+        """
         pass
 
     async def generate_synonyms(self, query: str) -> List[str]:
@@ -49,7 +55,16 @@ class BaseSynonymGenerator(ABC):
         
         logger.debug(f"Synonym Generator Prompt:\n---\n{prompt}\n---") # <-- ADD THIS
 
-        response_text = await self._call_llm(prompt)
+        response_text, token_usage = await self._call_llm(prompt)
+        
+        if token_usage:
+            token_tracker.record_usage(
+                model_name=self.model_name,
+                prompt_tokens=token_usage.get('prompt_tokens', 0),
+                completion_tokens=token_usage.get('completion_tokens', 0),
+                call_type='synonym_generator'
+            )
+
         if response_text is None:
             return []
             

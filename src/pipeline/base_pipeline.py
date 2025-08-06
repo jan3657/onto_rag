@@ -163,7 +163,13 @@ class BaseRAGPipeline:
                     current_result['confidence_score'] = 0.0
                     current_result['explanation'] = selection.get('explanation')
 
-                logger.info(f"Selection: '{current_result.get('label')}' (ID: {chosen_id}), Confidence against original query: {current_result['confidence_score']:.2f}, Explanation: {current_result['explanation']}")
+                logger.info(f"""Selection Details:
+                    Label: '{current_result.get('label')}'
+                    ID: {chosen_id}
+                    Confidence: {current_result['confidence_score']:.2f}
+                    Explanation: {current_result['explanation']}
+                    Candidates: {current_result.get('candidates', [])}""")
+
 
                 # ... (Rest of the loop: update best result, check threshold, generate synonyms) ...
                 if best_result_so_far is None or current_result['confidence_score'] > best_result_so_far.get('confidence_score', 0.0):

@@ -2,11 +2,12 @@
 import logging
 import json
 from abc import ABC, abstractmethod
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 from pathlib import Path
 
 from src.retriever.hybrid_retriever import HybridRetriever
 from src import config
+from src.utils.token_tracker import token_tracker
 
 logger = logging.getLogger(__name__)
 
@@ -105,19 +106,19 @@ class BaseSelector(ABC):
             return None
 
     @abstractmethod
-    async def _call_llm(self, prompt: str, query: str) -> Optional[str]:
+    async def _call_llm(self, prompt: str, query: str) -> Tuple[Optional[str], Optional[Dict[str, int]]]:
         """
         Makes the actual API call to the specific LLM provider.
 
         This method must be implemented by subclasses. It should handle
         provider-specific API calls, authentication, and error handling.
-
+ 
         Args:
             prompt (str): The fully formatted prompt to send to the LLM.
             query (str): The original user query, for logging purposes.
 
         Returns:
-            The raw string content of the LLM's response, or None on failure.
+            A tuple containing (response_text, token_usage_dict)
         """
         pass
 
@@ -141,7 +142,15 @@ class BaseSelector(ABC):
         logger.debug(f"Selector Prompt:\n---\n{prompt}\n---")
 
         # Delegate the provider-specific call to the subclass
-        response_text = await self._call_llm(prompt, query)
+        response_text, token_usage = await self._call_llm(prompt, query)
+        
+        if token_usage:
+            token_tracker.record_usage(
+                model_name=self.model_name,
+                prompt_tokens=token_usage.get('prompt_tokens', 0),
+                completion_tokens=token_usage.get('completion_tokens', 0),
+                call_type='selector'
+            )
         
         if response_text is None:
             return None
