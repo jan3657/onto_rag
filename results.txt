@@ -21,3 +21,48 @@ gemini:
 2025-06-16 10:43:04,962 - INFO - Accuracy: 0.6329 (600/948)
 2025-06-16 10:43:04,962 - INFO - Saving 348 incorrect selections to /Users/jandrole/projects/onto_rag/evaluation_results.json
 2025-06-16 10:43:04,975 - INFO - Evaluation finished.
+
+Approach with a seperate scorer and reloping until high confidence:
+llama:
+2025-08-06 15:26:28,181 - __main__ - INFO - evaluate_pipeline.main:176 - --- Evaluation Complete ---
+2025-08-06 15:26:28,181 - __main__ - INFO - evaluate_pipeline.main:177 - Total entities evaluated: 948
+2025-08-06 15:26:28,181 - __main__ - INFO - evaluate_pipeline.main:178 - Cache Hits: 0
+2025-08-06 15:26:28,181 - __main__ - INFO - evaluate_pipeline.main:179 - Pipeline Runs (Cache Misses): 948
+2025-08-06 15:26:28,181 - __main__ - INFO - evaluate_pipeline.main:180 - Pipeline Failures (errors or no result): 5
+2025-08-06 15:26:28,181 - __main__ - INFO - evaluate_pipeline.main:181 - ---------------------------
+2025-08-06 15:26:28,181 - __main__ - INFO - evaluate_pipeline.main:184 - Valid attempts for selector: 943
+2025-08-06 15:26:28,181 - __main__ - INFO - evaluate_pipeline.main:185 - Correct selections (Hits): 412
+2025-08-06 15:26:28,181 - __main__ - INFO - evaluate_pipeline.main:188 - Accuracy: 0.4369 (412/943)
+2025-08-06 15:26:28,182 - __main__ - INFO - evaluate_pipeline.main:192 - Saving 531 incorrect selections to /Users/jandrole/projects/onto_rag/evaluation_results_ollama.json
+2025-08-06 15:26:28,191 - __main__ - INFO - evaluate_pipeline.main:196 - Evaluation finished.
+2025-08-06 15:26:28,192 - __main__ - INFO - evaluate_pipeline.main:203 - --- Token Usage Report ---
+No LLM calls with token usage data were made.
+
+2025-08-06 15:26:28,192 - __main__ - INFO - evaluate_pipeline.main:207 - Closing pipeline resources...
+2025-08-06 15:26:28,196 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.close:215 - Whoosh searcher for 'foodon' closed.
+2025-08-06 15:26:28,200 - src.retriever.hybrid_retriever - INFO - hybrid_retriever.close:215 - Whoosh searcher for 'chebi' closed.
+2025-08-06 15:26:28,200 - src.pipeline.base_pipeline - INFO - base_pipeline.close:198 - Pipeline resources closed.
+2025-08-06 15:26:28,304 - src.utils.cache - INFO - cache.save_cache:49 - Successfully saved 606 items to cache at: /Users/jandrole/projects/onto_rag/data/pipeline_cache.json
+
+gemini:
+2025-08-06 12:05:41,714 - __main__ - INFO - evaluate_pipeline.main:176 - --- Evaluation Complete ---
+2025-08-06 12:05:41,714 - __main__ - INFO - evaluate_pipeline.main:177 - Total entities evaluated: 948
+2025-08-06 12:05:41,715 - __main__ - INFO - evaluate_pipeline.main:178 - Cache Hits: 910
+2025-08-06 12:05:41,715 - __main__ - INFO - evaluate_pipeline.main:179 - Pipeline Runs (Cache Misses): 38
+2025-08-06 12:05:41,715 - __main__ - INFO - evaluate_pipeline.main:180 - Pipeline Failures (errors or no result): 38
+2025-08-06 12:05:41,715 - __main__ - INFO - evaluate_pipeline.main:181 - ---------------------------
+2025-08-06 12:05:41,715 - __main__ - INFO - evaluate_pipeline.main:184 - Valid attempts for selector: 910
+2025-08-06 12:05:41,715 - __main__ - INFO - evaluate_pipeline.main:185 - Correct selections (Hits): 631
+2025-08-06 12:05:41,715 - __main__ - INFO - evaluate_pipeline.main:188 - Accuracy: 0.6934 (631/910)
+2025-08-06 12:05:41,715 - __main__ - INFO - evaluate_pipeline.main:192 - Saving 279 incorrect selections to /Users/jandrole/projects/onto_rag/evaluation_results_gemini.json
+2025-08-06 12:05:41,722 - __main__ - INFO - evaluate_pipeline.main:196 - Evaluation finished.
+2025-08-06 12:05:41,722 - __main__ - INFO - evaluate_pipeline.main:203 - 
+--- Token Usage Report ---
+Overall Total: 112,050 tokens (Prompt: 108,485, Completion: 3,565)
+--------------------------
+Model: gemini-2.5-flash-lite
+  - Total:      112,050 tokens
+  - Prompt:     108,485 tokens
+  - Completion: 3,565 tokens
+  - API Calls:  selector: 38
+--------------------------

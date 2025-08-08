@@ -134,55 +134,64 @@ class BaseRAGPipeline:
                 selection = await self.selector.select_best_term(current_query, candidates) # CHANGED: Added await
 
                 if not selection or selection['chosen_id'] in ('0', '-1'):
-                    logger.warning(f"Selector failed for query '{current_query}'.")
-                    continue
-                
-                chosen_id = selection['chosen_id']
-                chosen_term_details = self.retriever.get_term_details(chosen_id)
-                if not chosen_term_details:
-                    logger.error(f"Selector chose ID '{chosen_id}', but its details could not be retrieved.")
-                    continue
-
-                # --- THIS IS THE MODIFIED SECTION ---
-                # 3. Score confidence using the ORIGINAL query for context.
-                # This is the "Holistic Scoring" step.
-                logger.info(f"Scoring selection '{chosen_id}' against the ORIGINAL query: '{query}'")
-
-                confidence_result = await self.confidence_scorer.score_confidence( # CHANGED: Added await
-                    query=query, # <-- CRUCIAL CHANGE: Use the original 'query' variable here
-                    chosen_term_details=chosen_term_details,
-                    all_candidates=candidates
-                )
-                # ------------------------------------
-                
-                current_result = chosen_term_details
-                if confidence_result:
-                    current_result['confidence_score'] = confidence_result.get('confidence_score', 0.0)
-                    current_result['explanation'] = confidence_result.get('explanation', selection.get('explanation'))
+                    # The selector found no suitable candidate. This is not an error.
+                    # We treat this as a result with zero confidence.
+                    logger.info(f"Selector found no suitable match for '{current_query}' among the candidates.")
+                    current_result = {
+                        'id': None,
+                        'confidence_score': 0.0,
+                        'explanation': selection.get('explanation') if selection else 'Selector returned no valid selection.'
+                    }
                 else:
-                    current_result['confidence_score'] = 0.0
-                    current_result['explanation'] = selection.get('explanation')
+                    # The selector made a choice. Now we score it.
+                    chosen_id = selection['chosen_id']
+                    chosen_term_details = self.retriever.get_term_details(chosen_id)
+                    if not chosen_term_details:
+                        logger.error(f"Selector chose ID '{chosen_id}', but its details could not be retrieved.")
+                        continue # This is a true failure, so we continue.
+
+                    logger.info(f"Scoring selection '{chosen_id}' against the ORIGINAL query: '{query}'")
+                    confidence_result = await self.confidence_scorer.score_confidence(
+                        query=query,
+                        chosen_term_details=chosen_term_details,
+                        all_candidates=candidates
+                    )
+
+                    current_result = chosen_term_details
+                    if confidence_result:
+                        current_result['confidence_score'] = confidence_result.get('confidence_score', 0.0)
+                        # Use the scorer's more detailed explanation
+                        current_result['explanation'] = confidence_result.get('explanation', selection.get('explanation'))
+                    else:
+                        # Fallback if the scorer fails
+                        current_result['confidence_score'] = 0.0
+                        current_result['explanation'] = selection.get('explanation')
 
                 logger.info(f"""Selection Details:
-                    Label: '{current_result.get('label')}'
-                    ID: {chosen_id}
-                    Confidence: {current_result['confidence_score']:.2f}
-                    Explanation: {current_result['explanation']}
-                    Candidates: {current_result.get('candidates', [])}""")
+                    Label: '{current_result.get('label', 'N/A')}'
+                    ID: {current_result.get('id', 'N/A')}
+                    Confidence: {current_result.get('confidence_score', 0.0):.2f}
+                    Explanation: {current_result.get('explanation')}
+                """)
 
-
-                # ... (Rest of the loop: update best result, check threshold, generate synonyms) ...
-                if best_result_so_far is None or current_result['confidence_score'] > best_result_so_far.get('confidence_score', 0.0):
+                # Update the best result found so far
+                if best_result_so_far is None or current_result.get('confidence_score', 0.0) > best_result_so_far.get('confidence_score', 0.0):
                     best_result_so_far = current_result
 
+                # If confidence is high enough, we can exit early.
                 if best_result_so_far and best_result_so_far.get('confidence_score', 0.0) >= config.CONFIDENCE_THRESHOLD:
+                    logger.info(f"High-confidence match found ({best_result_so_far.get('confidence_score'):.2f}). Ending loop.")
                     return best_result_so_far, candidates
 
+                # If we are on the first loop and confidence is low, generate synonyms
                 if self.synonym_generator and current_query == query and not queries_to_try:
-                    synonyms = await self.synonym_generator.generate_synonyms(query) # CHANGED: Added await
+                    logger.info(f"Confidence score ({best_result_so_far.get('confidence_score', 0.0):.2f}) is below threshold. Attempting to generate synonyms.")
+                    synonyms = await self.synonym_generator.generate_synonyms(query)
                     if synonyms:
+                        logger.info(f"Generated synonyms for retry: {synonyms}")
                         queries_to_try.extend(synonyms)
 
+            # Return the best result found after all loops
             return best_result_so_far, []
 
         finally:
