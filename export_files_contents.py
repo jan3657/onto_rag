@@ -35,13 +35,15 @@ EXCLUDE_ITEMS_EXACT = {
     "README.md",
     "project_contents_for_llm.yaml", # The output file itself
     "project_contents_for_llm.txt",  # Another potential output file name
+    "review_app_copy.py",
+    "review_app.py",  # Compiled Python file
     # Add other specific files or directories if needed
     # e.g. "some_large_binary_asset.dat"
 }
 
 # File extensions to skip (typically binary or non-text files)
 EXCLUDE_EXTENSIONS = {
-    ".pyc", ".pyo", ".bin", ".exe", ".dll", ".so", ".o", ".a", ".lib",
+    ".json", ".pyc", ".pyo", ".bin", ".exe", ".dll", ".so", ".o", ".a", ".lib",
     ".jar", ".war", ".ear", ".class", ".swo", ".swp",
     # Image/Media files
     ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".webp",

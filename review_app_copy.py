@@ -5,7 +5,7 @@ from pathlib import Path
 # --- Configuration ---
 # Set the path to the human-readable evaluation results file.
 # This script assumes the file is in the 'data' subdirectory.
-EVALUATION_FILE_PATH = Path("data") / "readable_evaluation_results.json"
+EVALUATION_FILE_PATH = Path("data") / "readable_evaluation_results_gemini.json"
 
 # --- Helper Functions ---
 

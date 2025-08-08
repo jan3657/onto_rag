@@ -132,7 +132,7 @@ CURIE_PREFIX_MAP = {
     "http://www.w3.org/2002/07/owl#": "owl",
     "http://www.w3.org/2004/02/skos/core#": "skos",
     "http://www.geneontology.org/formats/oboInOwl#": "oboInOwl",
-    "http://purl.obolibrary.org/obo/HANCESTRO_": "HANCESTRO",  
+    "http://purl.obolibrary.org/obo/HANCESTRO_": "HANCESTRO",
     "http://purl.obolibrary.org/obo/GAZ_": "GAZ",
     "http://purl.obolibrary.org/obo/CHEBI_": "CHEBI",
     "http://purl.obolibrary.org/obo/NCBITaxon_": "NCBITaxon",
@@ -142,16 +142,17 @@ CURIE_PREFIX_MAP = {
     "http://purl.obolibrary.org/obo/GO_": "GO",
     "http://purl.obolibrary.org/obo/": "obo",
 }
-	
+
 # --- Pipeline Loop Configuration ---
 CONFIDENCE_THRESHOLD = 0.6  # If score is below this, try to generate synonyms
 MAX_PIPELINE_LOOPS = 3     # Max number of attempts (initial + retries)
-MAX_CONCURRENT_REQUESTS = 10  # Max number of concurrent LLM API calls for async processing
+# Max number of concurrent LLM API calls for async processing
+MAX_CONCURRENT_REQUESTS = 10
 
 
 GEMINI_API_KEY = getenv("GEMINI_API_KEY")
 GEMINI_SELECTOR_MODEL_NAME = "gemini-2.5-flash-lite"
-GEMINI_SCORER_MODEL_NAME = "gemini-2.5-flash-lite" #"gemini-2.5-pro"
+GEMINI_SCORER_MODEL_NAME = "gemini-2.5-flash-lite"  # "gemini-2.5-pro"
 GEMINI_SYNONYM_MODEL_NAME = "gemini-2.5-flash-lite"
 
 OLLAMA_SELECTOR_MODEL_NAME = 'llama3.1:8b'
@@ -170,11 +171,14 @@ HF_GENERATION_KWARGS = {
 }
 
 # Path to the prompt template for the selector
-SELECTOR_PROMPT_TEMPLATE_PATH = PROJECT_ROOT / "prompts" /  "final_selection.tpl" #"strict_selection_minimal.tpl"
-CONFIDENCE_PROMPT_TEMPLATE_PATH = PROJECT_ROOT / "prompts" / "confidence_assessment3.tpl" #"confidence_assessment.tpl"
-SYNONYM_PROMPT_TEMPLATE_PATH = PROJECT_ROOT / "prompts" / "synonym_generation.tpl"
+SELECTOR_PROMPT_TEMPLATE_PATH = PROJECT_ROOT / "prompts" / \
+    "final_selection.tpl"  # "strict_selection_minimal.tpl"
+CONFIDENCE_PROMPT_TEMPLATE_PATH = PROJECT_ROOT / "prompts" / \
+    "confidence_assessment3.tpl"  # "confidence_assessment.tpl"
+SYNONYM_PROMPT_TEMPLATE_PATH = PROJECT_ROOT / \
+    "prompts" / "synonym_generation.tpl"
 
-PIPELINE = "gemini" # "gemini", "ollama", or "huggingface"
+PIPELINE = "gemini"  # "gemini", "ollama", or "huggingface"
 
 # Logging configuration
 LOG_LEVEL = "DEBUG"

@@ -100,19 +100,19 @@ def main():
     parser.add_argument(
         "--input-file",
         type=Path,
-        default=project_root / "evaluation_results_gemini_1.5-flash.json",
+        default=project_root / "evaluation_results_ollama.json",
         help="Path to the raw evaluation results JSON file."
     )
     parser.add_argument(
         "--output-file",
         type=Path,
-        default=project_root / "data" / "readable_evaluation_results.json",
+        default=project_root / "data" / "readable_evaluation_results_ollama.json",
         help="Path to save the enriched, human-readable JSON file."
     )
     parser.add_argument(
         "--ontology-dump",
         type=Path,
-        default=Path(config.ONTOLOGY_DUMP_JSON),
+        default=Path("./data/ontology_dump_foodon.json"),
         help="Path to the ontology_dump.json file."
     )
     args = parser.parse_args()
