@@ -47,8 +47,8 @@ class FAISSVectorStore:
         """Helper method to attempt building the store."""
         embeddings_data = self._load_embeddings_data()
         if embeddings_data:
-            # Use the correct field name 'vector' from your previous code
-            self.build_index_from_embeddings(embeddings_data, embedding_key='vector')
+            # Use the correct field name 'embedding' from your previous code
+            self.build_index_from_embeddings(embeddings_data, embedding_key='embedding')
             if self.index is not None and self.metadata:
                  self.save_store()
             else:
@@ -65,8 +65,8 @@ class FAISSVectorStore:
             # Use pathlib's open method
             with self.embeddings_file_path.open('r', encoding='utf-8') as f:
                 data = json.load(f)
-            # Your original script used 'embedding', but your previous script used 'vector'. Let's check for both for robustness.
-            key = 'vector' if data and 'vector' in data[0] else 'embedding'
+            # Your original script used 'embedding', but your previous script used 'embedding'. Let's check for both for robustness.
+            key = 'embedding' if data and 'embedding' in data[0] else 'embedding'
             if not isinstance(data, list) or not data:
                 logger.error(f"Embeddings file {self.embeddings_file_path} is empty or not a list.")
                 return None
