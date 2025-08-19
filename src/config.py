@@ -56,8 +56,8 @@ EMBEDDING_BATCH_SIZE = 32
 EMBEDDING_DEVICE = 'cpu'
 
 # --- Retrieval and Reranking Configuration ---
-DEFAULT_K_LEXICAL = 10
-DEFAULT_K_VECTOR = 10
+DEFAULT_K_LEXICAL = 15
+DEFAULT_K_VECTOR = 15
 DEFAULT_RERANK_K = DEFAULT_K_LEXICAL + DEFAULT_K_VECTOR
 
 # --- Namespace Configuration ---
@@ -145,9 +145,9 @@ CURIE_PREFIX_MAP = {
 
 # --- Pipeline Loop Configuration ---
 CONFIDENCE_THRESHOLD = 0.6  # If score is below this, try to generate synonyms
-MAX_PIPELINE_LOOPS = 3     # Max number of attempts (initial + retries)
+MAX_PIPELINE_LOOPS = 4     # Max number of attempts (initial + retries)
 # Max number of concurrent LLM API calls for async processing
-MAX_CONCURRENT_REQUESTS = 10
+MAX_CONCURRENT_REQUESTS = 30
 
 
 GEMINI_API_KEY = getenv("GEMINI_API_KEY")
@@ -172,14 +172,14 @@ HF_GENERATION_KWARGS = {
 
 # Path to the prompt template for the selector
 SELECTOR_PROMPT_TEMPLATE_PATH = PROJECT_ROOT / "prompts" / \
-    "final_selection.tpl"  # "strict_selection_minimal.tpl"
+    "chebi_selection.tpl" #"final_selection.tpl"  # "strict_selection_minimal.tpl"
 CONFIDENCE_PROMPT_TEMPLATE_PATH = PROJECT_ROOT / "prompts" / \
-    "confidence_assessment3.tpl"  # "confidence_assessment.tpl"
-SYNONYM_PROMPT_TEMPLATE_PATH = PROJECT_ROOT / \
-    "prompts" / "synonym_generation.tpl"
+    "chebi_confidence.tpl" #"confidence_assessment3.tpl"  # "confidence_assessment.tpl"
+SYNONYM_PROMPT_TEMPLATE_PATH = PROJECT_ROOT /"prompts" / \
+    "chebi_synonyms.tpl" #"synonym_generation.tpl"
 
 PIPELINE = "gemini"  # "gemini", "ollama", or "huggingface"
 
 # Logging configuration
-LOG_LEVEL = "DEBUG"
+LOG_LEVEL = "WARNING"  # Options: DEBUG, INFO, WARNING, ERROR, CRITICAL
 LOG_FILE = PROJECT_ROOT / "app.log"
