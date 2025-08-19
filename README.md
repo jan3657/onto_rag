@@ -6,9 +6,13 @@ A Retrieval Augmented Generation system for matching extracted entities to ontol
 
 ### Model Improvements
 
+- [] Do not call the scorer if there are no good candidates
 - [ ] Integrate scorer recommendations into the synonym generator
 - [ ] Merge the scorer and synonym generator into a unified model
 - [ ] Optimize and minimize prompt templates for better efficiency
+- [x] ±100-char context window
+- [ ] Add the scorer feedback to the loop for iterative improvement
+- [ ] If confidence is still low switch to a stronger model
 
 ### Performance & Infrastructure
 
