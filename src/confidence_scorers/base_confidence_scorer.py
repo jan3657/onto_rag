@@ -68,15 +68,17 @@ class BaseConfidenceScorer(ABC):
             A tuple containing (response_text, token_usage_dict)
         """
         pass
-    
-    async def score_confidence(self, query: str, chosen_term_details: Dict[str, Any], all_candidates: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+
+    async def score_confidence(self, query: str, chosen_term_details: Dict[str, Any], all_candidates: List[Dict[str, Any]], context: str = "") -> Optional[Dict[str, Any]]:
         """Formats the prompt, calls the LLM, and parses the response for confidence scoring."""
         chosen_details_str = self._format_term_details(chosen_term_details)
         other_candidates_str = self._format_other_candidates(all_candidates, chosen_term_details.get('id', ''))
 
-        prompt = self.prompt_template.replace("[USER_ENTITY]", query)
-        prompt = prompt.replace("[CHOSEN_TERM_DETAILS]", chosen_details_str)
-        prompt = prompt.replace("[OTHER_CANDIDATES]", other_candidates_str)
+        prompt = (self.prompt_template
+                  .replace("[USER_ENTITY]", query)
+                  .replace("[CHOSEN_TERM_DETAILS]", chosen_details_str)
+                  .replace("[OTHER_CANDIDATES]", other_candidates_str)
+                  .replace("[CONTEXT]", context or ""))
         logger.debug(f"Formatted prompt for confidence scoring:\n{prompt}")
 
         response_text, token_usage = await self._call_llm(prompt)

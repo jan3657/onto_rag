@@ -4,6 +4,7 @@ from typing import Optional, Tuple, Dict
 
 from google import genai
 from google.api_core import exceptions
+from google.genai.types import HttpOptions
 
 from src.synonym_generators.base_synonym_generator import BaseSynonymGenerator
 from src import config
@@ -20,7 +21,7 @@ class GeminiSynonymGenerator(BaseSynonymGenerator):
         if not config.GEMINI_API_KEY:
             raise ValueError("GEMINI_API_KEY not found in environment variables.")
 
-        self.client = genai.Client(api_key=config.GEMINI_API_KEY)
+        self.client = genai.Client(api_key=config.GEMINI_API_KEY, http_options=HttpOptions(timeout=60 * 1000))
 
     async def _call_llm(self, prompt: str) -> Optional[Tuple[Optional[str], Optional[Dict[str, int]]]]:
         logger.info(f"Sending synonym generation request to Gemini...")

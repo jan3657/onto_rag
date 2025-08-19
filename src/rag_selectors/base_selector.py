@@ -122,24 +122,22 @@ class BaseSelector(ABC):
         """
         pass
 
-    async def select_best_term(self, query: str, candidates: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
-        """
-        Selects the best term by executing the full selection logic.
-
-        Args:
-            query (str): The original user query.
-            candidates (List[Dict[str, Any]]): The list of candidate documents.
-
-        Returns:
-            A dictionary with the selection details, or None on failure.
-        """
+    async def select_best_term(self,
+                            query: str,
+                            candidates: List[Dict[str, Any]],
+                            context: str = "") -> Optional[Dict[str, Any]]:
         if not candidates:
             return None
 
         candidate_str = self._format_candidates_for_prompt(candidates)
-        prompt = self.prompt_template.replace("[USER_ENTITY]", query).replace("[CANDIDATE_LIST]", candidate_str)
-        
+        prompt = (self.prompt_template
+                    .replace("[USER_ENTITY]", query)
+                    .replace("[CANDIDATE_LIST]", candidate_str)
+                    .replace("[CONTEXT]", context or ""))  # new
+
         logger.debug(f"Selector Prompt:\n---\n{prompt}\n---")
+
+        response_text, token_usage = await self._call_llm(prompt, query)
 
         # Delegate the provider-specific call to the subclass
         response_text, token_usage = await self._call_llm(prompt, query)
