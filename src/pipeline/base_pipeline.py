@@ -88,17 +88,37 @@ class BaseRAGPipeline:
 
     # In src/pipeline/base_pipeline.py
 
-    async def run(self,
+    async def run(
+            self,
             query: str,
+            context: Optional[str] = None,
             lexical_k: int = config.DEFAULT_K_LEXICAL,
             vector_k: int = config.DEFAULT_K_VECTOR,
-            semaphore: Optional[asyncio.Semaphore] = None
-            ) -> Optional[tuple[Dict[str, Any], List[Dict[str, Any]]]]:
+            target_ontologies: Optional[List[str]] = None,
+            semaphore: Optional[asyncio.Semaphore] = None,
+    ) -> Optional[tuple[Dict[str, Any], List[Dict[str, Any]]]]:
         """
-        Executes the pipeline with per-query validation, but scores
-        confidence against the original user query for a final check.
+        Executes the pipeline with per-query validation while scoring confidence
+        against the original user query.
+
+        Parameters
+        ----------
+        query : str
+            Original user query (surface form).
+        lexical_k : int
+            Max lexical candidates per ontology.
+        vector_k : int
+            Max vector candidates per ontology.
+        target_ontologies : Optional[List[str]]
+            Restrict retrieval to these ontology keys (e.g., ["chebi"]).
+        semaphore : Optional[asyncio.Semaphore]
+            Concurrency limiter.
+
+        Returns
+        -------
+        Optional[tuple[Dict[str, Any], List[Dict[str, Any]]]]
+            (final_result, candidates) or None if nothing is found.
         """
-        # ADDED: Acquire semaphore if provided
         if semaphore:
             await semaphore.acquire()
         
@@ -121,7 +141,12 @@ class BaseRAGPipeline:
                 logger.info(f"--- Starting Pipeline Attempt {loop_count}/{config.MAX_PIPELINE_LOOPS} for query: '{current_query}' ---")
 
                 # 1. Retrieve candidates for the CURRENT query (e.g., "Brilliant Blue FCF")
-                retriever_output = self.retriever.search(current_query, lexical_limit=lexical_k, vector_k=vector_k)
+                retriever_output = self.retriever.search(
+                    current_query,
+                    lexical_limit=lexical_k,
+                    vector_k=vector_k,
+                    target_ontologies=target_ontologies,
+                )
                 candidates = retriever_output.get("lexical_results", []) + retriever_output.get("vector_results", [])
 
                 if not candidates:
@@ -131,7 +156,11 @@ class BaseRAGPipeline:
                 # 2. Select the best term using the CURRENT query for context.
                 # This is the "Focused Selection" step.
                 logger.info(f"{len(candidates)} candidates passed to LLM selector for query '{current_query}'.")
-                selection = await self.selector.select_best_term(current_query, candidates) # CHANGED: Added await
+                selection = await self.selector.select_best_term(
+                    current_query,
+                    candidates,
+                    context=context if 'context' in locals() else ""
+                )
 
                 if not selection or selection['chosen_id'] in ('0', '-1'):
                     # The selector found no suitable candidate. This is not an error.
@@ -154,7 +183,8 @@ class BaseRAGPipeline:
                     confidence_result = await self.confidence_scorer.score_confidence(
                         query=query,
                         chosen_term_details=chosen_term_details,
-                        all_candidates=candidates
+                        all_candidates=candidates,
+                        context=context if 'context' in locals() else ""
                     )
 
                     current_result = chosen_term_details
@@ -186,7 +216,7 @@ class BaseRAGPipeline:
                 # If we are on the first loop and confidence is low, generate synonyms
                 if self.synonym_generator and current_query == query and not queries_to_try:
                     logger.info(f"Confidence score ({best_result_so_far.get('confidence_score', 0.0):.2f}) is below threshold. Attempting to generate synonyms.")
-                    synonyms = await self.synonym_generator.generate_synonyms(query)
+                    synonyms = await self.synonym_generator.generate_synonyms(query, context=context if 'context' in locals() else "")
                     if synonyms:
                         logger.info(f"Generated synonyms for retry: {synonyms}")
                         queries_to_try.extend(synonyms)

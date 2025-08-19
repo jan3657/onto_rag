@@ -49,9 +49,11 @@ class BaseSynonymGenerator(ABC):
         """
         pass
 
-    async def generate_synonyms(self, query: str) -> List[str]:
+    async def generate_synonyms(self, query: str, context: str = "") -> List[str]:
         """Formats the prompt, calls the LLM, and parses the response to get synonyms."""
-        prompt = self.prompt_template.replace("[USER_ENTITY]", query)
+        prompt = (self.prompt_template
+                .replace("[USER_ENTITY]", query)
+                .replace("[CONTEXT]", context or ""))
         
         logger.debug(f"Synonym Generator Prompt:\n---\n{prompt}\n---") # <-- ADD THIS
 
