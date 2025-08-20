@@ -169,7 +169,8 @@ class BaseRAGPipeline:
                     current_result = {
                         'id': None,
                         'confidence_score': 0.0,
-                        'explanation': selection.get('explanation') if selection else 'Selector returned no valid selection.'
+                        'selector_explanation': selection.get('selector_explanation') if selection else 'Selector returned no valid selection.'
+                        ""
                     }
                 else:
                     # The selector made a choice. Now we score it.
@@ -188,14 +189,15 @@ class BaseRAGPipeline:
                     )
 
                     current_result = chosen_term_details
+                    current_result['selector_explanation'] = selection.get('selector_explanation', 'No explanation available.')
                     if confidence_result:
                         current_result['confidence_score'] = confidence_result.get('confidence_score', 0.0)
                         # Use the scorer's more detailed explanation
-                        current_result['explanation'] = confidence_result.get('explanation', selection.get('explanation'))
+                        current_result['scorer_explanation'] = confidence_result.get('scorer_explanation', 'No explanation available.')
                     else:
                         # Fallback if the scorer fails
                         current_result['confidence_score'] = 0.0
-                        current_result['explanation'] = selection.get('explanation')
+                        current_result['scorer_explanation'] = selection.get('scorer_explanation', 'No explanation available.')
 
                 logger.info(f"""Selection Details:
                     Label: '{current_result.get('label', 'N/A')}'
