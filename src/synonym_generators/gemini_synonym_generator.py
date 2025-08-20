@@ -1,6 +1,8 @@
 # src/synonym_generators/gemini_synonym_generator.py
 import logging
 from typing import Optional, Tuple, Dict
+import typing
+import typing_extensions
 
 from google import genai
 from google.api_core import exceptions
@@ -10,6 +12,9 @@ from src.synonym_generators.base_synonym_generator import BaseSynonymGenerator
 from src import config
 
 logger = logging.getLogger(__name__)
+
+class SynonymResponse(typing_extensions.TypedDict):
+    synonyms: list[str]
 
 class GeminiSynonymGenerator(BaseSynonymGenerator):
     """Uses Google Gemini to generate synonyms for a query."""
@@ -26,7 +31,12 @@ class GeminiSynonymGenerator(BaseSynonymGenerator):
     async def _call_llm(self, prompt: str) -> Optional[Tuple[Optional[str], Optional[Dict[str, int]]]]:
         logger.info(f"Sending synonym generation request to Gemini...")
         try:
-            generation_config = {'temperature': 0.5, 'max_output_tokens': 128}
+            generation_config = {
+                'temperature': 0.0, 
+                'max_output_tokens': 256,
+                'response_mime_type': 'application/json',
+                'response_schema': SynonymResponse,
+            }
             response = await self.client.aio.models.generate_content(
                 model=self.model_name,
                 contents=prompt,
