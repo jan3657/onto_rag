@@ -16,14 +16,10 @@ def uri_to_curie(uri: Union[str, URIRef], namespace_map: Dict[str, str] = CURIE_
     """
     uri_str = str(uri) # Ensure it's a string
 
-    # Iterate through the provided namespace_map (base_uri: prefix)
-    # Sort by length of base_uri descending to match longest first (more specific)
-    # This helps avoid issues where one base_uri is a prefix of another.
-    # e.g., "http://purl.obolibrary.org/obo/" and "http://purl.obolibrary.org/obo/FOODON_"
-    sorted_namespace_map_items = sorted(namespace_map.items(), key=lambda item: len(item[0]), reverse=True)
-
-    for base_uri, prefix in sorted_namespace_map_items:
+    # Sort prefixes by length desc to ensure most-specific wins
+    for base_uri in sorted(namespace_map.keys(), key=len, reverse=True):
         if uri_str.startswith(base_uri):
+            prefix = namespace_map[base_uri]
             return f"{prefix}:{uri_str[len(base_uri):]}"
 
     # Fallback for common RDF/RDFS/OWL/XSD prefixes if not found in the main map

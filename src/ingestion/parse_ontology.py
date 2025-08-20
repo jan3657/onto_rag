@@ -7,6 +7,8 @@ from typing import Dict, List, Any
 import json
 import traceback
 from pathlib import Path
+import re
+from rdflib import SKOS
 
 # --- Add project root to sys.path ---
 project_root = Path(__file__).resolve().parent.parent
@@ -33,6 +35,42 @@ logger = logging.getLogger(__name__)
 # Define commonly used namespaces (can still use these locally for convenience)
 IAO = Namespace(IAO_NS_STR)
 OBOINOWL = Namespace(OBOINOWL_NS_STR)
+
+def make_curie_validator(ontology_name: str):
+    pat = ONTOLOGIES_CONFIG[ontology_name].get('id_pattern')
+    if not pat:
+        # fallback: accept '<PREFIX>:<alnum>' if not configured
+        pref = ONTOLOGIES_CONFIG[ontology_name]['prefix']
+        return re.compile(rf'^{re.escape(pref)}[A-Za-z0-9_]+$').match
+    return re.compile(pat).match
+
+def is_valid_curie_for_ontology(curie: str, ontology_name: str) -> bool:
+    matcher = make_curie_validator(ontology_name)
+    return bool(matcher(curie))
+
+def get_valid_entities(g: Graph,
+                       include_skos_concepts: bool = True) -> set[URIRef]:
+    """
+    Returns the set of URIs that are 'terms' you want to index.
+    - Accepts owl:Class and (optionally) skos:Concept
+    - Excludes properties, ontology headers, individuals by default
+    """
+    classes = {s for s in g.subjects(RDF.type, OWL.Class) if isinstance(s, URIRef)}
+    skos_concepts = set()
+    if include_skos_concepts:
+        skos_concepts = {s for s in g.subjects(RDF.type, SKOS.Concept) if isinstance(s, URIRef)}
+
+    # known non-term types to exclude
+    excluded_types = {
+        OWL.ObjectProperty, OWL.AnnotationProperty, OWL.DatatypeProperty,
+        RDF.Property, OWL.Ontology, OWL.NamedIndividual  # add more if you bump into them
+    }
+    excluded_subjects = set()
+    for t in excluded_types:
+        excluded_subjects.update({s for s in g.subjects(RDF.type, t)})
+
+    valid = (classes | skos_concepts) - excluded_subjects
+    return valid
 
 
 def load_ontology(path: str) -> rdflib.Graph:
@@ -76,7 +114,7 @@ def get_ancestors(g: Graph, term_uri: URIRef, prefix_map: Dict[str, str], visite
     return list(ancestor_curies)
 
 
-def extract_labels_and_synonyms(g: Graph, prefix_map: Dict[str, str]) -> Dict[str, Dict[str, Any]]:
+def extract_labels_and_synonyms(g: Graph, prefix_map: Dict[str, str], valid_entities: set) -> Dict[str, Dict[str, Any]]:
     data = {}
     relevant_predicates = [
         RDFS.label,
@@ -84,54 +122,40 @@ def extract_labels_and_synonyms(g: Graph, prefix_map: Dict[str, str]) -> Dict[st
         OBOINOWL.hasNarrowSynonym, OBOINOWL.hasBroadSynonym
     ]
     
-    processed_subjects = set()
+    # Only process entities that are in the valid_entities gate
+    for s_uri in valid_entities:
+        curie = uri_to_curie(s_uri, prefix_map)
+        if not curie or curie == str(s_uri):
+            continue
 
-    for pred in relevant_predicates:
-        for s_uri in g.subjects(predicate=pred):
-            if not isinstance(s_uri, URIRef) or s_uri in processed_subjects:
-                continue
-            
-            # Pass the prefix_map explicitly
-            curie = uri_to_curie(s_uri, prefix_map)
-            if not curie or curie == str(s_uri): # Skip if not converted to a CURIE effectively
-                continue
+        data[curie] = {"label": None, "synonyms": []}
 
-            if curie not in data:
-                data[curie] = {"label": None, "synonyms": []}
+        # Label
+        label_val = g.value(subject=s_uri, predicate=RDFS.label)
+        if label_val and isinstance(label_val, rdflib.Literal):
+            data[curie]["label"] = str(label_val)
 
-            # Label
-            label_val = g.value(subject=s_uri, predicate=RDFS.label)
-            if label_val and isinstance(label_val, rdflib.Literal):
-                data[curie]["label"] = str(label_val)
-
-            # Synonyms
-            current_synonyms = []
-            for syn_prop in [OBOINOWL.hasExactSynonym, OBOINOWL.hasRelatedSynonym,
-                             OBOINOWL.hasNarrowSynonym, OBOINOWL.hasBroadSynonym]:
-                for syn_obj in g.objects(subject=s_uri, predicate=syn_prop):
-                    if isinstance(syn_obj, rdflib.Literal):
-                        current_synonyms.append(str(syn_obj))
-            
-            if "synonyms" not in data[curie] or data[curie]["synonyms"] is None:
-                data[curie]["synonyms"] = []
-            for s in current_synonyms:
-                if s not in data[curie]["synonyms"]:
-                    data[curie]["synonyms"].append(s)
-
-            processed_subjects.add(s_uri)
+        # Synonyms
+        current_synonyms = []
+        for syn_prop in [OBOINOWL.hasExactSynonym, OBOINOWL.hasRelatedSynonym,
+                         OBOINOWL.hasNarrowSynonym, OBOINOWL.hasBroadSynonym]:
+            for syn_obj in g.objects(subject=s_uri, predicate=syn_prop):
+                if isinstance(syn_obj, rdflib.Literal):
+                    current_synonyms.append(str(syn_obj))
+        
+        data[curie]["synonyms"] = current_synonyms
             
     final_data = {k: v for k, v in data.items() if v.get("label") or v.get("synonyms")}
     logger.info(f"Extracted labels and synonyms for {len(final_data)} terms.")
     return final_data
 
 
-def extract_definitions(g: Graph, prefix_map: Dict[str, str]) -> Dict[str, str]:
+def extract_definitions(g: Graph, prefix_map: Dict[str, str], valid_entities: set) -> Dict[str, str]:
     definitions = {}
     definition_prop_uri = IAO['0000115'] # IAO:0000115 is 'definition'
-    for s_uri in g.subjects(predicate=definition_prop_uri):
-        if not isinstance(s_uri, URIRef):
-            continue
-        
+    
+    # Only process entities that are in the valid_entities gate
+    for s_uri in valid_entities:
         curie = uri_to_curie(s_uri, prefix_map)
         if not curie or curie == str(s_uri):
             continue
@@ -143,14 +167,12 @@ def extract_definitions(g: Graph, prefix_map: Dict[str, str]) -> Dict[str, str]:
     logger.info(f"Extracted definitions for {len(definitions)} terms.")
     return definitions
 
-def extract_hierarchy(g: Graph, prefix_map: Dict[str, str]) -> Dict[str, Dict[str, List[str]]]:
+
+def extract_hierarchy(g: Graph, prefix_map: Dict[str, str], valid_entities: set) -> Dict[str, Dict[str, List[str]]]:
     hierarchy_data = {}
-    all_terms_in_hierarchy = set()
-    for s, p, o in g.triples((None, RDFS.subClassOf, None)):
-        if isinstance(s, URIRef): all_terms_in_hierarchy.add(s)
-        if isinstance(o, URIRef): all_terms_in_hierarchy.add(o)
     
-    for term_uri in all_terms_in_hierarchy:
+    # Only process entities that are in the valid_entities gate
+    for term_uri in valid_entities:
         if term_uri == OWL.Thing:
             continue
 
@@ -177,13 +199,11 @@ def extract_hierarchy(g: Graph, prefix_map: Dict[str, str]) -> Dict[str, Dict[st
     return hierarchy_data
 
 
-def extract_relations(g: Graph, props_to_extract: Dict[str, str], prefix_map: Dict[str, str]) -> Dict[str, Dict[str, List[str]]]:
+def extract_relations(g: Graph, props_to_extract: Dict[str, str], prefix_map: Dict[str, str], valid_entities: set) -> Dict[str, Dict[str, List[str]]]:
     relations_data = {}
     
-    for term_uri in g.subjects(unique=True):
-        if not isinstance(term_uri, URIRef):
-            continue
-
+    # Only process entities that are in the valid_entities gate
+    for term_uri in valid_entities:
         curie = uri_to_curie(term_uri, prefix_map)
         if not curie or curie == str(term_uri):
             continue
@@ -244,14 +264,18 @@ def main():
             # 1. Load the single ontology graph
             g = load_ontology(ontology_path)
 
-            # 2. Extract data FROM THIS GRAPH ONLY
-            logger.info(f"Extracting data for '{name}'...")
-            labels_synonyms = extract_labels_and_synonyms(g, CURIE_PREFIX_MAP)
-            definitions = extract_definitions(g, CURIE_PREFIX_MAP)
-            hierarchy = extract_hierarchy(g, CURIE_PREFIX_MAP)
-            relations = extract_relations(g, relation_properties_for_extraction, CURIE_PREFIX_MAP)
+            # 2. Get the valid entities gate for this ontology
+            valid_entities = get_valid_entities(g, include_skos_concepts=True)
+            logger.info(f"Found {len(valid_entities)} valid entities to process in '{name}'.")
 
-            # 3. Merge extracted data for this ontology
+            # 3. Extract data FROM THIS GRAPH ONLY using the valid entities gate
+            logger.info(f"Extracting data for '{name}'...")
+            labels_synonyms = extract_labels_and_synonyms(g, CURIE_PREFIX_MAP, valid_entities)
+            definitions = extract_definitions(g, CURIE_PREFIX_MAP, valid_entities)
+            hierarchy = extract_hierarchy(g, CURIE_PREFIX_MAP, valid_entities)
+            relations = extract_relations(g, relation_properties_for_extraction, CURIE_PREFIX_MAP, valid_entities)
+
+            # 4. Merge extracted data for this ontology
             logger.info("Merging extracted data...")
             ontology_specific_data = {}
             all_curies = set(labels_synonyms.keys()) | set(definitions.keys()) | set(hierarchy.keys()) | set(relations.keys())
@@ -266,9 +290,13 @@ def main():
                     "relations": relations.get(curie_key, {})
                 }
             
-            final_data = {k: v for k, v in ontology_specific_data.items() if any(v.values())}
-            
-            # 4. Save the dedicated dump file
+            ont_name = name  # loop variable
+            final_data = {
+                k: v for k, v in ontology_specific_data.items()
+                if is_valid_curie_for_ontology(k, ont_name) and any(v.values())
+            }
+                    
+            # 5. Save the dedicated dump file
             logger.info(f"Found {len(final_data)} entities with data in '{name}'.")
             logger.info(f"Writing data to {dump_path}")
             with open(dump_path, 'w', encoding='utf-8') as f:
