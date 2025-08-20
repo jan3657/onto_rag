@@ -1,15 +1,25 @@
 # src/confidence_scorers/gemini_confidence_scorer.py
 import logging
 from typing import Optional, Tuple, Dict
+import typing
+import typing_extensions
 
 from google import genai
 from google.api_core import exceptions
+from google.genai import types
 from google.genai.types import HttpOptions
 
 from src.confidence_scorers.base_confidence_scorer import BaseConfidenceScorer
 from src import config
 
 logger = logging.getLogger(__name__)
+
+class ConfidenceAssessment(typing_extensions.TypedDict):
+    confidence_score: int
+    explanation: str
+    suggested_alternatives: list[str]
+
+
 
 class GeminiConfidenceScorer(BaseConfidenceScorer):
     """Uses Google Gemini to assess the confidence of an ontology mapping."""
@@ -29,8 +39,10 @@ class GeminiConfidenceScorer(BaseConfidenceScorer):
         logger.info(f"Sending confidence scoring request to Gemini...")
         try:
             generation_config = {
-                'temperature': 0.2, 
-                'max_output_tokens': 256
+                'temperature': 0.0, 
+                'max_output_tokens': 256,
+                'response_mime_type': 'application/json',
+                'response_schema': ConfidenceAssessment,
             }
             response = await self.client.aio.models.generate_content(
                 model=self.model_name,
@@ -48,7 +60,7 @@ class GeminiConfidenceScorer(BaseConfidenceScorer):
             if finish_reason and finish_reason.name == 'MAX_TOKENS':
                 logger.warning(
                     f"Gemini response was truncated due to max_output_tokens limit ({generation_config['max_output_tokens']}). "
-                    "The output may be incomplete or invalid JSON."
+                    "The output may be incomplete or invalid JSON. Output: %s", response.text
                 )
 
             # Extract token usage if available
