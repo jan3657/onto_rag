@@ -28,6 +28,7 @@ ONTOLOGIES_CONFIG = {
     'foodon': {
         'path': ONTOLOGIES_DIR / "foodon.owl",
         'prefix': 'FOODON:',
+        'id_pattern': r'^FOODON:\d+$',
         'dump_json_path': DATA_DIR / "ontology_dump_foodon.json",
         'enriched_docs_path': DATA_DIR / "enriched_documents_foodon.json",
         'embeddings_path': DATA_DIR / "embeddings_foodon.json",
@@ -38,6 +39,7 @@ ONTOLOGIES_CONFIG = {
     'chebi': {
         'path': ONTOLOGIES_DIR / "chebi.owl",
         'prefix': 'CHEBI:',
+        'id_pattern': r'^CHEBI:\d+$',
         'dump_json_path': DATA_DIR / "ontology_dump_chebi.json",
         'enriched_docs_path': DATA_DIR / "enriched_documents_chebi.json",
         'embeddings_path': DATA_DIR / "embeddings_chebi.json",
@@ -147,7 +149,7 @@ CURIE_PREFIX_MAP = {
 CONFIDENCE_THRESHOLD = 0.6  # If score is below this, try to generate synonyms
 MAX_PIPELINE_LOOPS = 4     # Max number of attempts (initial + retries)
 # Max number of concurrent LLM API calls for async processing
-MAX_CONCURRENT_REQUESTS = 30
+MAX_CONCURRENT_REQUESTS = 50
 
 
 GEMINI_API_KEY = getenv("GEMINI_API_KEY")
