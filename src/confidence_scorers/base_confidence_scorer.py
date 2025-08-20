@@ -47,13 +47,16 @@ class BaseConfidenceScorer(ABC):
             cleaned_response = response_text.strip().lstrip("```json").rstrip("```").strip()
             result = json.loads(cleaned_response)
             
-            if 'confidence_score' not in result or 'explanation' not in result:
+            if 'confidence_score' not in result and 'explanation' not in result:
                 logger.error("Confidence scorer response missing required keys. Response: %s", result)
-                return None
-            
+                return {
+                    'confidence_score': -1.0,
+                    'scorer_explanation': None
+                }
+
             return {
                 'confidence_score': float(result['confidence_score']),
-                'explanation': str(result['explanation'])
+                'scorer_explanation': str(result['explanation'])
             }
         except (json.JSONDecodeError, ValueError, TypeError) as e:
             logger.error(f"Failed to decode or parse confidence scorer response: {response_text}. Error: {e}")

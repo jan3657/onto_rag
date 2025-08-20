@@ -344,7 +344,12 @@ async def evaluate_full_pipeline(
         else:
             chosen = pred_curie if pred_curie else None
             conf = float(final_result.get("confidence_score", 0.0)) if final_result else 0.0
-            expl = str(final_result.get("explanation", "N/A")) if final_result else "N/A"
+            
+            # Extract both selector and scorer explanations
+            selector_explanation = str(final_result.get("selector_explanation", "N/A")) if final_result else "N/A"
+            scorer_explanation = str(final_result.get("scorer_explanation", "N/A")) if final_result else "N/A"
+            
+            
             cand_ids: List[str] = []
             if cand_list:
                 for c in cand_list:
@@ -359,7 +364,8 @@ async def evaluate_full_pipeline(
                     "context": context[:500] if context else "",  # NEW: Include context in miss analysis
                     "chosen_curie": chosen,
                     "true_curies": list(true_ids),
-                    "explanation": expl,
+                    "selector_explanation": selector_explanation,
+                    "scorer_explanation": scorer_explanation, 
                     "confidence_score": conf,
                     "candidates_provided": cand_ids,
                 }

@@ -94,10 +94,10 @@ class BaseSelector(ABC):
             validated_result = {'chosen_id': str(result['chosen_id'])}
 
             if 'explanation' in result:
-                validated_result['explanation'] = result['explanation']
+                validated_result['selector_explanation'] = result['explanation']
             else:
                 logger.warning("LLM response missing 'explanation' key. Using default value.")
-                validated_result['explanation'] = 'No explanation provided.'
+                validated_result['selector_explanation'] = 'No explanation provided.'
 
             return validated_result
             
