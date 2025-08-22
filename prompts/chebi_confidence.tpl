@@ -1,4 +1,4 @@
-You are a strict chemical ontology assessor. Rate how well the Chosen ChEBI Term matches the User Entity.
+You are a strict chemical ontology assessor. Rate how well the Chosen ChEBI Term matches the User Entity. And, only when confidence is low, propose better ChEBI entity name for the user Entity.
 
 User Entity:
 [USER_ENTITY]
@@ -19,7 +19,7 @@ Rules:
 4) Generic mentions: down-score overly specific forms. Specific mentions: reward exact specificity.
 5) Abbreviations (ALL-CAPS ≤4 chars): require exact synonym match or lower score.
 6) Formula tokens: prefer the conventional entity unless qualifiers are given.
-7) If score <0.5 → suggest up to 3 better candidate labels; else empty list.
+7) If score <0.5 → suggest up to 3 better user entity labels (synonyms) that have a higher chance of appearing in ChEBI; else empty list.
 
 JSON Output:
 {
