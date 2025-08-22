@@ -343,12 +343,12 @@ async def evaluate_full_pipeline(
             hits += 1
         else:
             chosen = pred_curie if pred_curie else None
-            conf = float(final_result.get("confidence_score", 0.0)) if final_result else 0.0
-            
+            conf = float(final_result.get("confidence_score", -1.0)) if final_result else "N/A"
+
             # Extract both selector and scorer explanations
             selector_explanation = str(final_result.get("selector_explanation", "N/A")) if final_result else "N/A"
             scorer_explanation = str(final_result.get("scorer_explanation", "N/A")) if final_result else "N/A"
-            
+            suggested_alternatives = final_result.get("suggested_alternatives", []) if final_result else []
             
             cand_ids: List[str] = []
             if cand_list:
@@ -365,7 +365,8 @@ async def evaluate_full_pipeline(
                     "chosen_curie": chosen,
                     "true_curies": list(true_ids),
                     "selector_explanation": selector_explanation,
-                    "scorer_explanation": scorer_explanation, 
+                    "scorer_explanation": scorer_explanation,
+                    "suggested_alternatives": suggested_alternatives,
                     "confidence_score": conf,
                     "candidates_provided": cand_ids,
                 }
