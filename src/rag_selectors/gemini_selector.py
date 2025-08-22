@@ -1,12 +1,15 @@
 # src/rag_selectors/gemini_selector.py
 import asyncio
 import logging
+import random
 from typing import Optional, Tuple, Dict
 import typing_extensions
 
 from google import genai
 from google.api_core import exceptions
 from google.genai.types import HttpOptions
+from google.genai import errors as genai_errors
+from google.genai import types
 
 from src.rag_selectors.base_selector import BaseSelector
 from src.retriever.hybrid_retriever import HybridRetriever
@@ -40,49 +43,75 @@ class GeminiSelector(BaseSelector):
 
     async def _call_llm(self, prompt: str, query: str) -> Tuple[Optional[str], Optional[Dict[str, int]]]:
         """
-        Makes the API call to the Gemini model.
+        Returns (response_text, token_usage) or (None, None) on failure.
+        Never raises upstream.
         """
-        logger.info(f"Sending request to Gemini for query: '{query}'")
-        try:
-            generation_config = {
-                'temperature': 0.0,
-                'max_output_tokens': 512,
-                'response_mime_type': 'application/json',
-                'response_schema': SelectionResponse,
-            }
-            
-            response = await asyncio.wait_for(self.client.aio.models.generate_content(
+        async def _once(max_out_tokens: int):
+            cfg = types.GenerateContentConfig(
+                temperature=0.0,
+                max_output_tokens=max_out_tokens,
+                response_mime_type='application/json',
+                response_schema=SelectionResponse,
+            )
+            return await self.client.aio.models.generate_content(
                 model=self.model_name,
                 contents=prompt,
-                config=generation_config,
-            ), timeout=40)
+                config=cfg
+            )
 
-            feedback = getattr(response, 'prompt_feedback', None)
-            if feedback and any(r.blocked for r in feedback.safety_ratings or []):
-                logger.warning(f"Request for query '{query}' was blocked by safety filters.")
-                return None, None
+        # --- retry loop for transient server errors ---
+        max_retries = 3
+        backoff = 0.5
+        last_exc = None
 
-            # Check if the response was cut short
-            finish_reason = getattr(response.candidates[0], 'finish_reason', None)
-            if finish_reason and finish_reason.name == 'MAX_TOKENS':
-                logger.warning(
-                    f"Gemini response was truncated due to max_output_tokens limit ({generation_config['max_output_tokens']}). "
-                    "The output may be incomplete or invalid JSON."
-                )
+        for attempt in range(1, max_retries + 1):
+            try:
+                response = await _once(max_out_tokens=512)
 
-            # Extract token usage if available
-            token_usage = None
-            if hasattr(response, 'usage_metadata') and response.usage_metadata:
-                token_usage = {
-                    'prompt_tokens': getattr(response.usage_metadata, 'prompt_token_count', 0),
-                    'completion_tokens': getattr(response.usage_metadata, 'candidates_token_count', 0)
-                }
+                # handle truncation (MAX_TOKENS) by a single enlarge retry
+                try:
+                    fr = response.candidates[0].finish_reason
+                    fr = fr.name if hasattr(fr, "name") else fr
+                except Exception:
+                    fr = None
 
-            return response.text.strip(), token_usage
-                
-        except exceptions.GoogleAPIError as e:
-            logger.error(f"A Google API error occurred with the Gemini call: {e}", exc_info=True)
-            return None, None
-        except Exception as e:
-            logger.error(f"An unexpected error occurred with the Gemini API call: {e}", exc_info=True)
-            return None, None
+                if fr == "MAX_TOKENS":
+                    logger.warning("Gemini response may be truncated/empty (finish_reason=MAX_TOKENS) for query %r. Retrying with higher token limit.", query)
+                    response = await _once(max_out_tokens=1024)
+
+                # token usage (best effort)
+                token_usage = None
+                if getattr(response, "usage_metadata", None):
+                    token_usage = {
+                        "prompt_tokens": getattr(response.usage_metadata, "prompt_token_count", 0),
+                        "completion_tokens": getattr(response.usage_metadata, "candidates_token_count", 0),
+                    }
+
+                # prefer .text; fallback to parts
+                text = getattr(response, "text", None)
+                if not text:
+                    try:
+                        for p in response.candidates[0].content.parts or []:
+                            if getattr(p, "text", None):
+                                text = p.text
+                                break
+                    except Exception:
+                        pass
+
+                return text, token_usage
+
+            except genai_errors.ServerError as e:
+                last_exc = e
+                logger.error("Gemini selector server error (attempt %d/%d): %s", attempt, max_retries, e)
+            except Exception as e:
+                last_exc = e
+                logger.error("Unexpected Gemini selector error (attempt %d/%d): %s", attempt, max_retries, e, exc_info=True)
+
+            # backoff before next attempt
+            if attempt < max_retries:
+                await asyncio.sleep(backoff + random.random() * 0.25)
+                backoff *= 2
+
+        # after retries exhausted
+        logger.error("Gemini selector failed after retries: %s", last_exc)
+        return None, None
