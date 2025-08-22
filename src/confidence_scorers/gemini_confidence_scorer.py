@@ -56,7 +56,7 @@ class GeminiConfidenceScorer(BaseConfidenceScorer):
         logger.info("Sending confidence scoring request to Gemini...")
         try:
             # First attempt: reasonable budgets for Pro
-            response = await _once(max_out_tokens=1024, thinking_budget=256)
+            response = await _once(max_out_tokens=1024, thinking_budget=512)
 
             # Extract token usage (if available)
             token_usage = None
@@ -112,7 +112,7 @@ class GeminiConfidenceScorer(BaseConfidenceScorer):
                     "Gemini response may be truncated/empty (finish_reason=%s). "
                     "Retrying with higher limits.", finish_reason
                 )
-                response = await _once(max_out_tokens=2048, thinking_budget=384)
+                response = await _once(max_out_tokens=2048, thinking_budget=512)
 
                 if getattr(response, "usage_metadata", None):
                     token_usage = {
