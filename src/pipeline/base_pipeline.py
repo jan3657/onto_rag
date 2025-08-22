@@ -1,6 +1,7 @@
 # src/pipeline/base_pipeline.py
 import sys
 import logging
+import json
 from typing import List, Dict, Any, Optional, Type
 from pathlib import Path
 import asyncio
@@ -126,6 +127,7 @@ class BaseRAGPipeline:
             queries_to_try = [query]
             queries_tried = set()
             best_result_so_far = None
+            best_candidates_so_far: list[dict] = []
             loop_count = 0
 
             # The 'query' variable will always hold the original user query.
@@ -156,6 +158,11 @@ class BaseRAGPipeline:
                 # 2. Select the best term using the CURRENT query for context.
                 # This is the "Focused Selection" step.
                 logger.info(f"{len(candidates)} candidates passed to LLM selector for query '{current_query}'.")
+                
+                # Initialize variables to avoid UnboundLocalError
+                score = None
+                confidence_result = None
+                
                 selection = await self.selector.select_best_term(
                     current_query,
                     candidates,
@@ -172,6 +179,7 @@ class BaseRAGPipeline:
                         'selector_explanation': selection.get('selector_explanation') if selection else 'Selector returned no valid selection.'
                         ""
                     }
+                    score = 0.0  # Set score for no-match case
                 else:
                     # The selector made a choice. Now we score it.
                     chosen_id = selection['chosen_id']
@@ -181,23 +189,34 @@ class BaseRAGPipeline:
                         continue # This is a true failure, so we continue.
 
                     logger.info(f"Scoring selection '{chosen_id}' against the ORIGINAL query: '{query}'")
-                    confidence_result = await self.confidence_scorer.score_confidence(
-                        query=query,
-                        chosen_term_details=chosen_term_details,
-                        all_candidates=candidates,
-                        context=context if 'context' in locals() else ""
-                    )
+
+                    # --- call the scorer safely ---
+                    try:
+                        confidence_result = await self.confidence_scorer.score_confidence(
+                            query=query,
+                            chosen_term_details=chosen_term_details,
+                            all_candidates=candidates,
+                            context=context or ""
+                        )
+                    except Exception as e:
+                        logger.error("Confidence scorer failed: %s", e, exc_info=True)
+                        confidence_result = None
 
                     current_result = chosen_term_details
                     current_result['selector_explanation'] = selection.get('selector_explanation', 'No explanation available.')
-                    if confidence_result:
-                        current_result['confidence_score'] = confidence_result.get('confidence_score', 0.0)
-                        # Use the scorer's more detailed explanation
+                    
+                    # read score safely
+                    if confidence_result is not None:
+                        score = confidence_result.get('confidence_score', None)
+                        current_result['confidence_score'] = score
                         current_result['scorer_explanation'] = confidence_result.get('scorer_explanation', 'No explanation available.')
+                        current_result['suggested_alternatives'] = confidence_result.get('suggested_alternatives', [])
                     else:
                         # Fallback if the scorer fails
-                        current_result['confidence_score'] = 0.0
-                        current_result['scorer_explanation'] = selection.get('scorer_explanation', 'No explanation available.')
+                        score = -1.0
+                        current_result['confidence_score'] = score
+                        current_result['scorer_explanation'] = 'Scorer failed to provide explanation.'
+                        current_result['suggested_alternatives'] = []
 
                 logger.info(f"""Selection Details:
                     Label: '{current_result.get('label', 'N/A')}'
@@ -209,22 +228,50 @@ class BaseRAGPipeline:
                 # Update the best result found so far
                 if best_result_so_far is None or current_result.get('confidence_score', 0.0) > best_result_so_far.get('confidence_score', 0.0):
                     best_result_so_far = current_result
+                    best_candidates_so_far = candidates  # <- keep the candidates that produced this best result
 
-                # If confidence is high enough, we can exit early.
-                if best_result_so_far and best_result_so_far.get('confidence_score', 0.0) >= config.CONFIDENCE_THRESHOLD:
-                    logger.info(f"High-confidence match found ({best_result_so_far.get('confidence_score'):.2f}). Ending loop.")
-                    return best_result_so_far, candidates
+                # stop early if confidently correct
+                if score is not None and score >= config.CONFIDENCE_THRESHOLD:
+                    logger.info("Confidence above threshold; stopping.")
+                    return current_result, candidates
 
-                # If we are on the first loop and confidence is low, generate synonyms
-                if self.synonym_generator and current_query == query and not queries_to_try:
-                    logger.info(f"Confidence score ({best_result_so_far.get('confidence_score', 0.0):.2f}) is below threshold. Attempting to generate synonyms.")
-                    synonyms = await self.synonym_generator.generate_synonyms(query, context=context if 'context' in locals() else "")
-                    if synonyms:
-                        logger.info(f"Generated synonyms for retry: {synonyms}")
-                        queries_to_try.extend(synonyms)
+                # --- use scorer suggestions BEFORE synonyms ---
+                suggestions = []
+                if confidence_result:
+                    raw = confidence_result.get('suggested_alternatives') or []
+                    if isinstance(raw, str):
+                        # ultra-defensive: accept stringified lists
+                        try:
+                            parsed = json.loads(raw)
+                            raw = parsed if isinstance(parsed, list) else [raw]
+                        except Exception:
+                            raw = [s.strip() for s in raw.strip('[]').split(',') if s.strip()]
+                    suggestions = [s for s in raw if isinstance(s, str) and s.strip()]
+
+                # dedupe & enqueue scorer suggestions first
+                if suggestions:
+                    already = set(queries_tried) | set(queries_to_try)
+                    to_add = [s for s in suggestions if s not in already and s != query]
+                    if to_add:
+                        logger.info("Scorer suggested alternatives (pre-synonyms): %s", to_add)
+                        # Put at the front so they're tried next
+                        queries_to_try = to_add + queries_to_try
+
+                # Only if no scorer suggestions queued, consider synonyms
+                if self.synonym_generator and not suggestions and not queries_to_try:
+                    try:
+                        syns = await self.synonym_generator.generate_synonyms(query=query, context=context or "")
+                        if syns:
+                            already = set(queries_tried) | set(queries_to_try)
+                            syns = [s for s in syns if s and s not in already and s != query]
+                            if syns:
+                                logger.info("Generated synonyms for retry: %s", syns)
+                                queries_to_try.extend(syns)
+                    except Exception as e:
+                        logger.error("Synonym generator failed: %s", e, exc_info=True)
 
             # Return the best result found after all loops
-            return best_result_so_far, []
+            return best_result_so_far, best_candidates_so_far
 
         finally:
             # ADDED: Release semaphore if provided
