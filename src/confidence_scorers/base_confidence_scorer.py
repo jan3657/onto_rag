@@ -46,21 +46,42 @@ class BaseConfidenceScorer(ABC):
         try:
             cleaned_response = response_text.strip().lstrip("```json").rstrip("```").strip()
             result = json.loads(cleaned_response)
-            
+
             if 'confidence_score' not in result and 'explanation' not in result:
                 logger.error("Confidence scorer response missing required keys. Response: %s", result)
                 return {
                     'confidence_score': -1.0,
-                    'scorer_explanation': None
+                    'scorer_explanation': None,
+                    'suggested_alternatives': []
                 }
+
+            # Normalize suggested_alternatives to a list[str]
+            suggestions = result.get('suggested_alternatives', [])
+            if isinstance(suggestions, str):
+                # try to parse a JSON string; if that fails, split on commas
+                try:
+                    parsed = json.loads(suggestions)
+                    if isinstance(parsed, list):
+                        suggestions = parsed
+                    else:
+                        suggestions = [str(parsed)]
+                except Exception:
+                    suggestions = [s.strip() for s in suggestions.strip('[]').split(',') if s.strip()]
+            elif not isinstance(suggestions, list):
+                suggestions = [str(suggestions)]
+
+            # Ensure clean strings
+            suggestions = [str(s) for s in suggestions if s is not None]
 
             return {
                 'confidence_score': float(result['confidence_score']),
-                'scorer_explanation': str(result['explanation'])
+                'scorer_explanation': str(result['explanation']),
+                'suggested_alternatives': suggestions,
             }
         except (json.JSONDecodeError, ValueError, TypeError) as e:
             logger.error(f"Failed to decode or parse confidence scorer response: {response_text}. Error: {e}")
             return None
+
 
     @abstractmethod
     async def _call_llm(self, prompt: str) -> Optional[Tuple[Optional[str], Optional[Dict[str, int]]]]:
