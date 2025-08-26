@@ -2,28 +2,13 @@
 import json
 import logging
 from typing import Dict, Any, List, Optional
-import sys
 
 from pathlib import Path
-_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+from src.utils.logging_config import setup_run_logging
 
-# Add the project root to sys.path if it's not already there
-if _PROJECT_ROOT not in sys.path:
-    sys.path.insert(0, str(_PROJECT_ROOT))  # Insert at the beginning
+from src.config import ONTOLOGIES_CONFIG, RELATION_CONFIG
 
-try:
-    # Changed: Import specific configs needed
-    from src.config import ONTOLOGIES_CONFIG, RELATION_CONFIG
-except ModuleNotFoundError as e:
-    print(f"CRITICAL ERROR: Could not import project modules. Exception: {e}")
-    print(f"This script expects to be run in a way that the 'src' package is discoverable.")
-    print(f"Attempted to add project root '{_PROJECT_ROOT}' to sys.path.")
-    print(f"Current sys.path: {sys.path}")
-    print("Please ensure you are running this script from the project's root directory ('onto_rag/'), for example:")
-    print("  python src/ingestion/enrich_documents.py")
-    sys.exit(1)
-
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+setup_run_logging()
 
 def get_label_for_curie(curie: str, ontology_data: Dict[str, Dict[str, Any]], default_value: Optional[str] = None) -> Optional[str]:
     """

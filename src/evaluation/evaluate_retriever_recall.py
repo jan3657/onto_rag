@@ -2,15 +2,13 @@
 
 import xml.etree.ElementTree as ET
 import os
-import sys
 import logging
 from collections import defaultdict
 
-# Add project root to Python path to allow direct imports from src
-PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-sys.path.append(PROJECT_ROOT)
+from src.utils.logging_config import setup_run_logging
+from src.infrastructure.retrieval.hybrid_retriever import HybridRetriever
 
-from src.retriever.hybrid_retriever import HybridRetriever
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 from src.config import (
     ONTOLOGY_DUMP_JSON,
     WHOOSH_INDEX_DIR,
@@ -32,7 +30,7 @@ RECALL_AT_K = DEFAULT_RERANK_K # How many retrieved items to check for a match
 
 # --- Logging Setup ---
 # Stays with basicConfig as src.utils.logging.get_logger is "to be developed"
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+setup_run_logging()
 logger = logging.getLogger(__name__)
 
 def parse_evaluation_xml(xml_file_path: str) -> list:

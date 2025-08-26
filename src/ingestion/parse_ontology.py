@@ -1,6 +1,5 @@
 # src/ingestion/parse_ontology.py
-import sys
-import logging # Import logging
+import logging
 import rdflib
 from rdflib import Graph, Namespace, URIRef, RDFS, OWL, RDF
 from typing import Dict, List, Any
@@ -10,11 +9,7 @@ from pathlib import Path
 import re
 from rdflib import SKOS
 
-# --- Add project root to sys.path ---
-project_root = Path(__file__).resolve().parent.parent
-if project_root not in sys.path:
-    sys.path.insert(0, str(project_root))
-# --- End sys.path modification ---
+from src.utils.logging_config import setup_run_logging
 
 # Now import using the 'src' package prefix
 from src.config import (
@@ -28,7 +23,7 @@ from src.config import (
 from src.utils.ontology_utils import uri_to_curie, curie_to_uri
 
 # --- Logging Setup ---
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(module)s - %(message)s')
+setup_run_logging()
 logger = logging.getLogger(__name__)
 
 

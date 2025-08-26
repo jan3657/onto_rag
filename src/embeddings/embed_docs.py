@@ -5,9 +5,7 @@ import logging
 import time
 from typing import List, Dict, Any
 
-# Ensure src is in path for imports if run directly
-import sys
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+from src.utils.logging_config import setup_run_logging
 
 try:
     from sentence_transformers import SentenceTransformer
@@ -19,7 +17,7 @@ except ModuleNotFoundError:
 # Changed: Use central config and specific constants
 from src.config import ONTOLOGIES_CONFIG, EMBEDDING_MODEL_NAME, EMBEDDING_BATCH_SIZE, EMBEDDING_DEVICE
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+setup_run_logging()
 
 def load_enriched_documents(file_path: str) -> List[Dict[str, Any]]:
     """Loads enriched documents from a JSON file."""

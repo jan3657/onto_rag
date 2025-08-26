@@ -1,6 +1,5 @@
 # src/evaluation/evaluate_pipeline.py
 import xml.etree.ElementTree as ET
-import sys
 import logging
 import json
 import asyncio
@@ -9,21 +8,15 @@ from typing import Tuple, List, Dict
 import os
 from tqdm.asyncio import tqdm_asyncio
 
-
-# Add project root to Python path to allow direct imports from src
-PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent  
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
-
-# --- MODIFIED IMPORTS ---
-from src.pipeline.pipeline_factory import get_pipeline
-from src.pipeline.base_pipeline import BaseRAGPipeline
+from src.adapters.pipeline_factory import create_pipeline
+from src.application.pipeline import BaseRAGPipeline
 from src import config
 from src.utils.ontology_utils import uri_to_curie
 from src.utils.cache import load_cache, save_cache
-# --- NEW IMPORTS FOR LOGGING AND TOKEN TRACKING ---
 from src.utils.logging_config import setup_run_logging
 from src.utils.token_tracker import token_tracker
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 # ----------------------------------------------------
 
 # --- Configuration using pathlib ---
@@ -160,7 +153,7 @@ async def main():
     
     try:
         logger.info(f"Initializing RAG pipeline: '{config.PIPELINE}'...")
-        pipeline = get_pipeline(config.PIPELINE)
+        pipeline = create_pipeline(config.PIPELINE)
         logger.info("Pipeline initialized successfully.")
 
         semaphore = asyncio.Semaphore(config.MAX_CONCURRENT_REQUESTS)
