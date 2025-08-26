@@ -1,16 +1,10 @@
 # src/ingestion/build_lexical_index.py
-import sys
 import json
 import whoosh.index
 from whoosh.index import create_in
 from whoosh.fields import Schema, ID, TEXT
 import traceback
-from pathlib import Path 
-
-# --- Add project root to sys.path ---
-project_root = Path(__file__).resolve().parent.parent
-if project_root not in sys.path:
-    sys.path.insert(0, str(project_root))
+from pathlib import Path
 
 from src.config import ONTOLOGIES_CONFIG
 
