@@ -4,19 +4,15 @@ import json
 import rdflib
 from rdflib import Graph
 
-# Adjust path to import modules from src
-import sys
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
-from ingestion.parse_ontology import (
+from src.ingestion.parse_ontology import (
     load_ontology,
     extract_labels_and_synonyms,
     extract_definitions,
     extract_hierarchy,
     extract_relations,
 )
-from config import TEST_ONTOLOGY_FILE, NAMESPACE_MAP, RELATION_PROPERTIES
-from utils.ontology_utils import uri_to_curie # Import if needed for assertions
+from src.config import TEST_ONTOLOGY_FILE, NAMESPACE_MAP, RELATION_PROPERTIES
+from src.utils.ontology_utils import uri_to_curie  # Import if needed for assertions
 
 # Define a fixture to load the test graph once for all tests
 @pytest.fixture(scope="module")

@@ -6,13 +6,9 @@ import shutil
 from whoosh.index import open_dir
 from whoosh.qparser import QueryParser
 
-# Adjust path to import modules from src
-import sys
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
-from ingestion.parse_ontology import main as parse_ontology_main # Need to run parsing first
-from ingestion.build_lexical_index import build_index
-import config # Need config to override paths
+from src.ingestion.parse_ontology import main as parse_ontology_main
+from src.ingestion.build_lexical_index import build_index
+import src.config as config
 
 # Define a known CURIE and search terms from the test snippet
 TEST_CURIE = "FOODON:00001100" # apple
