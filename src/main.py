@@ -1,20 +1,13 @@
 # src/main.py
 import argparse
 import json
-import sys
-from pathlib import Path
 import logging
 import asyncio
 
 # Get a logger instance for this module
 logger = logging.getLogger(__name__)
 
-# --- Add project root to sys.path ---
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
-
-from src.pipeline.pipeline_factory import get_pipeline
+from src.adapters.pipeline_factory import create_pipeline
 from src.config import DEFAULT_K_LEXICAL, DEFAULT_K_VECTOR, PIPELINE
 from src.utils.logging_config import setup_run_logging
 from src.utils.token_tracker import token_tracker
@@ -34,7 +27,7 @@ async def main():
     
     pipeline = None
     try:
-        pipeline = get_pipeline(PIPELINE)
+        pipeline = create_pipeline(PIPELINE)
         
         result_tuple = await pipeline.run(
             query=args.query,

@@ -8,27 +8,21 @@ saves the detailed structured results, including candidates considered by the LL
 to an output JSON file. It now uses a persistent cache to avoid re-processing ingredients.
 """
 
-import sys
 import json
 import logging
 import asyncio
 from tqdm.asyncio import tqdm as asyncio_tqdm
 from pathlib import Path
 
-
-# --- Add project root to sys.path ---
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
-    
-from src.pipeline.pipeline_factory import get_pipeline
+from src.utils.logging_config import setup_run_logging
+from src.adapters.pipeline_factory import create_pipeline
 from src import config
-# --- NEW: Import cache utilities ---
 from src.utils.cache import load_cache, save_cache
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
 # -----------------------------------
 
 # --- Configuration ---
-LOGGING_LEVEL = logging.INFO
 PRODUCT_LIMIT = 2 # Increased for a better demo
 
 # --- Paths Configuration (using pathlib) ---
@@ -38,7 +32,7 @@ OUTPUT_FILE = DATA_DIR / 'mapped_ingredients_output_2_samples.json'
 
 
 # --- Setup Logging ---
-logging.basicConfig(level=LOGGING_LEVEL, format='%(asctime)s - %(levelname)s - %(name)s - %(message)s')
+setup_run_logging()
 logger = logging.getLogger(__name__)
 
 
@@ -84,7 +78,7 @@ async def main():
 
         # --- 2. Initialize RAG Pipeline ---
         logger.info("Initializing RAG pipeline...")
-        pipeline = get_pipeline(config.PIPELINE)
+        pipeline = create_pipeline(config.PIPELINE)
         logger.info("RAG pipeline initialized successfully.")
 
         # --- 3. Process Ingredients Concurrently ---

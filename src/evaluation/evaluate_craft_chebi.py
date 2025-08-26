@@ -5,26 +5,21 @@ import json
 import logging
 import random
 import re
-import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 from tqdm.asyncio import tqdm_asyncio
 
-# Project path wiring
-PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
-
-# Internal imports
 from src import config
-from src.pipeline.base_pipeline import BaseRAGPipeline
-from src.pipeline.pipeline_factory import get_pipeline
+from src.application.pipeline import BaseRAGPipeline
+from src.adapters.pipeline_factory import create_pipeline
 from src.utils.cache import load_cache, save_cache
 from src.utils.logging_config import setup_run_logging
 from src.utils.ontology_utils import uri_to_curie
 from src.utils.token_tracker import token_tracker
 from src.utils.context_window import make_context_window
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -505,7 +500,7 @@ async def main() -> None:
         cache: Dict[str, Any] = {}
 
     try:
-        pipeline: BaseRAGPipeline = get_pipeline(config.PIPELINE)
+        pipeline: BaseRAGPipeline = create_pipeline(config.PIPELINE)
         semaphore = asyncio.Semaphore(max_conc)
 
         (
