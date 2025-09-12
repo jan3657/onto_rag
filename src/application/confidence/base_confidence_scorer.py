@@ -15,6 +15,9 @@ class BaseConfidenceScorer(ABC):
     def __init__(self, model_name: str):
         self.model_name = model_name
         self.prompt_template = self._load_prompt_template()
+        # Keep track of the most recent prompt and raw response for inspection
+        self.last_prompt: str = ""
+        self.last_raw_response: str = ""
         logger.info(f"{self.__class__.__name__} initialized for model: {self.model_name}")
 
     def _load_prompt_template(self) -> str:
@@ -104,8 +107,10 @@ class BaseConfidenceScorer(ABC):
                   .replace("[OTHER_CANDIDATES]", other_candidates_str)
                   .replace("[CONTEXT]", context or ""))
         logger.debug(f"Formatted prompt for confidence scoring:\n{prompt}")
+        self.last_prompt = prompt
 
         response_text, token_usage = await self._call_llm(prompt)
+        self.last_raw_response = response_text or ""
 
         if token_usage:
             token_tracker.record_usage(

@@ -30,6 +30,9 @@ class BaseSelector(ABC):
         self.retriever = retriever
         self.model_name = model_name
         self.prompt_template = self._load_prompt_template()
+        # Store the most recent prompt and raw LLM response for debugging/UX purposes
+        self.last_prompt: str = ""
+        self.last_raw_response: str = ""
         logger.info(f"{self.__class__.__name__} initialized for model: {self.model_name}")
 
     def _load_prompt_template(self) -> str:
@@ -235,9 +238,11 @@ class BaseSelector(ABC):
         )
 
         logger.debug(f"Selector Prompt:\n---\n{prompt}\n---")
+        self.last_prompt = prompt
 
         # single call to provider client
         response_text, token_usage = await self._call_llm(prompt, query)
+        self.last_raw_response = response_text or ""
         
         if token_usage:
             token_tracker.record_usage(
