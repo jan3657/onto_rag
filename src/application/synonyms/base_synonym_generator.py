@@ -15,6 +15,9 @@ class BaseSynonymGenerator(ABC):
     def __init__(self, model_name: str):
         self.model_name = model_name
         self.prompt_template = self._load_prompt_template()
+        # Track last prompt and response for external inspection
+        self.last_prompt: str = ""
+        self.last_raw_response: str = ""
         logger.info(f"{self.__class__.__name__} initialized for model: {self.model_name}")
 
     def _load_prompt_template(self) -> str:
@@ -67,10 +70,12 @@ class BaseSynonymGenerator(ABC):
                 .replace("[CONTEXT]", context or "")
                 .replace("[SCORER_FEEDBACK]", feedback or "")
         )
-        
+
         logger.debug(f"Synonym Generator Prompt:\n---\n{prompt}\n---") # <-- ADD THIS
+        self.last_prompt = prompt
 
         response_text, token_usage = await self._call_llm(prompt)
+        self.last_raw_response = response_text or ""
         
         if token_usage:
             token_tracker.record_usage(
