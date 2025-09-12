@@ -76,32 +76,114 @@ class BaseSelector(ABC):
         Returns:
             A validated dictionary or None if parsing or validation fails.
         """
-        try:
-            # Clean up potential markdown code blocks around the JSON
-            cleaned_response = response_text.strip().lstrip("```json").rstrip("```").strip()
-            result = json.loads(cleaned_response)
+        def _extract_first_json_object(text: str) -> Optional[str]:
+            s = text
+            # Try to pull out a fenced code block first (```...```)
+            try:
+                start = s.find("```")
+                if start != -1:
+                    end = s.find("```", start + 3)
+                    if end != -1:
+                        block = s[start + 3:end]
+                        # Drop optional language hint like 'json' at the start of the block
+                        block_stripped = block.lstrip()
+                        if block_stripped.lower().startswith("json"):
+                            # remove the 'json' word and an optional newline
+                            block = block_stripped[4:].lstrip("\n\r ")
+                        s = block
+            except Exception:
+                pass
 
-            # --- Centralized Validation Logic ---
-            if "chosen_id" not in result or result.get("chosen_id") is None:
-                logger.error(
-                    "LLM response is invalid: Missing the mandatory 'chosen_id' key. Response: %s",
-                    result
-                )
-                return None
-            
-            validated_result = {'chosen_id': str(result['chosen_id'])}
-
-            if 'explanation' in result:
-                validated_result['selector_explanation'] = result['explanation']
-            else:
-                logger.warning("LLM response missing 'explanation' key. Using default value.")
-                validated_result['selector_explanation'] = 'No explanation provided.'
-
-            return validated_result
-            
-        except json.JSONDecodeError:
-            logger.error(f"Failed to decode JSON from LLM response: {response_text}")
+            # Now try to extract the first balanced JSON object
+            start_brace = s.find("{")
+            while start_brace != -1:
+                depth = 0
+                in_string = False
+                escape = False
+                for i, ch in enumerate(s[start_brace:], start=start_brace):
+                    if in_string:
+                        if escape:
+                            escape = False
+                        elif ch == "\\":
+                            escape = True
+                        elif ch == '"':
+                            in_string = False
+                        continue
+                    else:
+                        if ch == '"':
+                            in_string = True
+                        elif ch == '{':
+                            depth += 1
+                        elif ch == '}':
+                            depth -= 1
+                            if depth == 0:
+                                return s[start_brace:i + 1]
+                # No balanced object found starting here; try the next '{'
+                start_brace = s.find("{", start_brace + 1)
             return None
+
+        def _wrap_no_selection() -> Dict[str, Any]:
+            return {
+                'chosen_id': '-1',
+                'selector_explanation': 'Model returned no selection (-1).'
+            }
+
+        raw = (response_text or "").strip()
+
+        # Fast-path: handle plain numeric/string sentinel like -1 / "-1"
+        if raw in {"-1", "0", '"-1"', '"0"'}:
+            return _wrap_no_selection()
+
+        # Try direct JSON parse first
+        try:
+            parsed = json.loads(raw)
+        except json.JSONDecodeError:
+            # Attempt to extract an embedded JSON object from mixed prose
+            embedded = _extract_first_json_object(raw)
+            if embedded:
+                try:
+                    parsed = json.loads(embedded)
+                except json.JSONDecodeError:
+                    logger.error(f"Failed to decode JSON from LLM response (embedded object parse failed): {response_text}")
+                    return None
+            else:
+                logger.error(f"Failed to decode JSON from LLM response: {response_text}")
+                return None
+
+        # Accept special cases where the model returned a bare number or string
+        if isinstance(parsed, (int, float)):
+            # Treat -1/0 as no selection; everything else is invalid
+            if int(parsed) in (-1, 0):
+                return _wrap_no_selection()
+            logger.error(f"Invalid numeric response from LLM: {parsed}")
+            return None
+        if isinstance(parsed, str):
+            t = parsed.strip()
+            if t in ("-1", "0"):
+                return _wrap_no_selection()
+            logger.error(f"Invalid string response from LLM: {parsed}")
+            return None
+
+        if not isinstance(parsed, dict):
+            logger.error(f"Invalid LLM response type (expected object): {type(parsed).__name__}")
+            return None
+
+        # --- Centralized Validation Logic ---
+        if "chosen_id" not in parsed or parsed.get("chosen_id") is None:
+            logger.error(
+                "LLM response is invalid: Missing the mandatory 'chosen_id' key. Response: %s",
+                parsed
+            )
+            return None
+
+        validated_result = {'chosen_id': str(parsed['chosen_id'])}
+        if 'explanation' in parsed:
+            validated_result['selector_explanation'] = parsed['explanation']
+        else:
+            logger.warning("LLM response missing 'explanation' key. Using default value.")
+            validated_result['selector_explanation'] = 'No explanation provided.'
+
+        return validated_result
 
     @abstractmethod
     async def _call_llm(self, prompt: str, query: str) -> Tuple[Optional[str], Optional[Dict[str, int]]]:
