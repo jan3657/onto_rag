@@ -154,7 +154,7 @@ MAX_CONCURRENT_REQUESTS = 50
 
 GEMINI_API_KEY = getenv("GEMINI_API_KEY")
 GEMINI_SELECTOR_MODEL_NAME = "gemini-2.5-flash-lite"
-GEMINI_SCORER_MODEL_NAME = "gemini-2.5-pro"  # "gemini-2.5-pro"
+GEMINI_SCORER_MODEL_NAME = "gemini-2.5-flash-lite"  # "gemini-2.5-pro"t
 GEMINI_SYNONYM_MODEL_NAME = "gemini-2.5-flash-lite"
 
 OLLAMA_SELECTOR_MODEL_NAME = 'llama3.1:8b'
