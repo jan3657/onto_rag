@@ -70,6 +70,7 @@ class BaseRAGPipeline:
             best_result_so_far = None
             best_candidates_so_far: list[dict] = []
             loop_count = 0
+            last_feedback = ""
 
             # The 'query' variable will always hold the original user query.
             # The 'current_query' variable will change with each loop.
@@ -107,7 +108,8 @@ class BaseRAGPipeline:
                 selection = await self.selector.select_best_term(
                     current_query,
                     candidates,
-                    context=context if 'context' in locals() else ""
+                    context=context if 'context' in locals() else "",
+                    feedback=last_feedback,
                 )
 
                 if not selection or selection['chosen_id'] in ('0', '-1'):
@@ -118,9 +120,9 @@ class BaseRAGPipeline:
                         'id': None,
                         'confidence_score': 0.0,
                         'selector_explanation': selection.get('selector_explanation') if selection else 'Selector returned no valid selection.'
-                        ""
                     }
                     score = 0.0  # Set score for no-match case
+                    last_feedback = current_result['selector_explanation']
                 else:
                     # The selector made a choice. Now we score it.
                     chosen_id = selection['chosen_id']
@@ -152,12 +154,14 @@ class BaseRAGPipeline:
                         current_result['confidence_score'] = score
                         current_result['scorer_explanation'] = confidence_result.get('scorer_explanation', 'No explanation available.')
                         current_result['suggested_alternatives'] = confidence_result.get('suggested_alternatives', [])
+                        last_feedback = current_result['scorer_explanation']
                     else:
                         # Fallback if the scorer fails
                         score = -1.0
                         current_result['confidence_score'] = score
                         current_result['scorer_explanation'] = 'Scorer failed to provide explanation.'
                         current_result['suggested_alternatives'] = []
+                        last_feedback = current_result['scorer_explanation']
 
                 logger.info(f"""Selection Details:
                     Label: '{current_result.get('label', 'N/A')}'
@@ -201,7 +205,11 @@ class BaseRAGPipeline:
                 # Only if no scorer suggestions queued, consider synonyms
                 if self.synonym_generator and not suggestions and not queries_to_try:
                     try:
-                        syns = await self.synonym_generator.generate_synonyms(query=query, context=context or "")
+                        syns = await self.synonym_generator.generate_synonyms(
+                            query=query,
+                            context=context or "",
+                            feedback=last_feedback,
+                        )
                         if syns:
                             already = set(queries_tried) | set(queries_to_try)
                             syns = [s for s in syns if s and s not in already and s != query]
