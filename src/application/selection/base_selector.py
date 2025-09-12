@@ -120,18 +120,37 @@ class BaseSelector(ABC):
         """
         pass
 
-    async def select_best_term(self,
-                            query: str,
-                            candidates: List[Dict[str, Any]],
-                            context: str = "") -> Optional[Dict[str, Any]]:
+    async def select_best_term(
+        self,
+        query: str,
+        candidates: List[Dict[str, Any]],
+        context: str = "",
+        feedback: str = "",
+    ) -> Optional[Dict[str, Any]]:
+        """Run the selector LLM to choose the best candidate.
+
+        Parameters
+        ----------
+        query : str
+            The query string for this iteration.
+        candidates : list[dict]
+            Retrieved candidate terms.
+        context : str, optional
+            Surrounding text window.
+        feedback : str, optional
+            Scorer feedback from the previous attempt to help focus selection.
+        """
         if not candidates:
             return None
 
         candidate_str = self._format_candidates_for_prompt(candidates)
-        prompt = (self.prompt_template
-                    .replace("[USER_ENTITY]", query)
-                    .replace("[CANDIDATE_LIST]", candidate_str)
-                    .replace("[CONTEXT]", context or ""))  # new
+        prompt = (
+            self.prompt_template
+                .replace("[USER_ENTITY]", query)
+                .replace("[CANDIDATE_LIST]", candidate_str)
+                .replace("[CONTEXT]", context or "")
+                .replace("[SCORER_FEEDBACK]", feedback or "")
+        )
 
         logger.debug(f"Selector Prompt:\n---\n{prompt}\n---")
 
