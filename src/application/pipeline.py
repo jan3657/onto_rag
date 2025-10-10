@@ -85,11 +85,13 @@ class BaseRAGPipeline:
                 logger.info(f"--- Starting Pipeline Attempt {loop_count}/{config.MAX_PIPELINE_LOOPS} for query: '{current_query}' ---")
 
                 # 1. Retrieve candidates for the CURRENT query (e.g., "Brilliant Blue FCF")
+                # If not explicitly provided, optionally restrict via config.RESTRICT_TARGET_ONTOLOGIES
+                effective_targets = target_ontologies if target_ontologies is not None else getattr(config, "RESTRICT_TARGET_ONTOLOGIES", None)
                 retriever_output = self.retriever.search(
                     current_query,
                     lexical_limit=lexical_k,
                     vector_k=vector_k,
-                    target_ontologies=target_ontologies,
+                    target_ontologies=effective_targets,
                 )
                 candidates = retriever_output.get("lexical_results", []) + retriever_output.get("vector_results", [])
 
@@ -167,7 +169,8 @@ class BaseRAGPipeline:
                     Label: '{current_result.get('label', 'N/A')}'
                     ID: {current_result.get('id', 'N/A')}
                     Confidence: {current_result.get('confidence_score', 0.0):.2f}
-                    Explanation: {current_result.get('explanation')}
+                    Selector Explanation: {current_result.get('selector_explanation', 'N/A')}
+                    Scorer Explanation: {current_result.get('scorer_explanation', 'N/A')}
                 """)
 
                 # Update the best result found so far

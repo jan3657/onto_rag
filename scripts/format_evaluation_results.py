@@ -82,7 +82,8 @@ def process_evaluation_file(
         enriched_item = {
             "query": query,
             "is_correct": is_correct,
-            "explanation": item.get("explanation"),
+            "selector_explanation": item.get("selector_explanation"),
+            "scorer_explanation": item.get("scorer_explanation"),
             "chosen_term": chosen_details,
             "ground_truth_terms": true_details,
             "candidate_terms_provided": candidates_details
@@ -100,19 +101,19 @@ def main():
     parser.add_argument(
         "--input-file",
         type=Path,
-        default=project_root / "evaluation_results_ollama.json",
+        default=project_root / "data" / "evaluation_results_CRAFT_CHEBI_gemini.json",
         help="Path to the raw evaluation results JSON file."
     )
     parser.add_argument(
         "--output-file",
         type=Path,
-        default=project_root / "data" / "readable_evaluation_results_ollama.json",
+        default=project_root / "data" / "evaluation_results_CRAFT_CHEBI_gemini_readable.json",
         help="Path to save the enriched, human-readable JSON file."
     )
     parser.add_argument(
         "--ontology-dump",
         type=Path,
-        default=Path("./data/ontology_dump_foodon.json"),
+        default=Path("./data/ontology_dump_chebi.json"),
         help="Path to the ontology_dump.json file."
     )
     args = parser.parse_args()

@@ -5,7 +5,7 @@ from pathlib import Path
 # --- Configuration ---
 # Set the path to the human-readable evaluation results file.
 # This script assumes the file is in the 'data' subdirectory.
-EVALUATION_FILE_PATH = Path("data") / "readable_evaluation_results_gemini.json"
+EVALUATION_FILE_PATH = Path("cafeteria_results") / "100_samples/formated.json"
 
 # --- Helper Functions ---
 
@@ -109,7 +109,7 @@ if data:
         display_term(item.get("chosen_term"), "🤖 Model's Choice")
         # Display the model's reasoning in an expandable section
         with st.expander("Show Model's Explanation"):
-            st.info(item.get("explanation", "No explanation provided."))
+            st.info(item.get("selector_explanation", "No explanation provided."))
 
     with right_col:
         # --- CHANGE 2: Display ALL ground truth terms with full details ---

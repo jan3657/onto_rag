@@ -149,7 +149,12 @@ CURIE_PREFIX_MAP = {
 CONFIDENCE_THRESHOLD = 0.6  # If score is below this, try to generate synonyms
 MAX_PIPELINE_LOOPS = 4     # Max number of attempts (initial + retries)
 # Max number of concurrent LLM API calls for async processing
-MAX_CONCURRENT_REQUESTS = 50
+MAX_CONCURRENT_REQUESTS = 20
+
+
+# Restrict retrieval to specific ontologies (keys in ONTOLOGIES_CONFIG), e.g. ["foodon"]
+# Set to None to allow all configured ontologies.
+RESTRICT_TARGET_ONTOLOGIES = ["foodon"]  # e.g., ["foodon"]
 
 
 GEMINI_API_KEY = getenv("GEMINI_API_KEY")
@@ -174,11 +179,11 @@ HF_GENERATION_KWARGS = {
 
 # Path to the prompt template for the selector
 SELECTOR_PROMPT_TEMPLATE_PATH = PROJECT_ROOT / "prompts" / \
-    "chebi_selection.tpl" #"final_selection.tpl"  # "strict_selection_minimal.tpl"
+    "strict_selection_minimal.tpl" #"chebi_selection.tpl" #"final_selection.tpl"  # "strict_selection_minimal.tpl"
 CONFIDENCE_PROMPT_TEMPLATE_PATH = PROJECT_ROOT / "prompts" / \
-    "chebi_confidence.tpl" #"confidence_assessment3.tpl"  # "confidence_assessment.tpl"
+    "confidence_assessment3.tpl" #"chebi_confidence.tpl" #"confidence_assessment3.tpl"  # "confidence_assessment.tpl"
 SYNONYM_PROMPT_TEMPLATE_PATH = PROJECT_ROOT /"prompts" / \
-    "chebi_synonyms.tpl" #"synonym_generation.tpl"
+    "synonym_generation.tpl" #"chebi_synonyms.tpl" #"synonym_generation.tpl"
 
 PIPELINE = "gemini"  # "gemini", "ollama", or "huggingface"
 
