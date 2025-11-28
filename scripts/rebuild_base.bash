@@ -38,7 +38,7 @@ python -m src.embeddings.embed_docs
 echo
 
 echo "④  Building all FAISS vector stores..."
-python -m src.vector_store.faiss_store
+python -m src.infrastructure.retrieval.faiss_store
 echo
 
 echo "⑤  Building all Whoosh lexical indexes..."

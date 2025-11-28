@@ -35,8 +35,7 @@ EXCLUDE_ITEMS_EXACT = {
     "README.md",
     "project_contents_for_llm.yaml", # The output file itself
     "project_contents_for_llm.txt",  # Another potential output file name
-    "review_app_copy.py",
-    "review_app.py",  # Compiled Python file
+    "review_app.py",  # Streamlit review UI
     # Add other specific files or directories if needed
     # e.g. "some_large_binary_asset.dat"
 }

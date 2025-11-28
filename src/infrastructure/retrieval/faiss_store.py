@@ -1,10 +1,13 @@
 # infrastructure/retrieval/faiss_store.py
-import faiss
 import json
-import numpy as np
 import logging
 from pathlib import Path
 from typing import Optional, List, Dict, Any, Union, Tuple
+
+import faiss
+import numpy as np
+
+from src.config import ONTOLOGIES_CONFIG
 
 logger = logging.getLogger(__name__)
 
@@ -168,3 +171,35 @@ class FAISSVectorStore:
             all_results_metadata.append(query_results_metadata)
         
         return (distances[0], faiss_indices[0], all_results_metadata[0]) if query_vector.shape[0] == 1 else (distances, faiss_indices, all_results_metadata)
+
+
+def build_stores_from_config():
+    """Builds or refreshes FAISS stores for every ontology defined in config."""
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    )
+
+    logger.info("--- Starting FAISS store builds for all configured ontologies ---")
+    for name, cfg in ONTOLOGIES_CONFIG.items():
+        index_path = Path(cfg["faiss_index_path"])
+        metadata_path = Path(cfg["faiss_metadata_path"])
+        embeddings_path = Path(cfg["embeddings_path"])
+
+        logger.info(f"[{name}] embeddings: {embeddings_path}")
+        store = FAISSVectorStore(
+            index_path=index_path,
+            metadata_path=metadata_path,
+            embeddings_file_path=embeddings_path,
+        )
+
+        if store.index is None or not store.metadata:
+            logger.warning(f"[{name}] FAISS store not built (missing embeddings or load failure).")
+        else:
+            logger.info(f"[{name}] FAISS store ready: index -> {index_path}, metadata -> {metadata_path}")
+
+    logger.info("--- FAISS store build complete ---")
+
+
+if __name__ == "__main__":
+    build_stores_from_config()
