@@ -188,5 +188,5 @@ SYNONYM_PROMPT_TEMPLATE_PATH = PROJECT_ROOT /"prompts" / \
 PIPELINE = "gemini"  # "gemini", "ollama", or "huggingface"
 
 # Logging configuration
-LOG_LEVEL = "WARNING"  # Options: DEBUG, INFO, WARNING, ERROR, CRITICAL
+LOG_LEVEL = "DEBUG"  # Options: DEBUG, INFO, WARNING, ERROR, CRITICAL
 LOG_FILE = PROJECT_ROOT / "app.log"

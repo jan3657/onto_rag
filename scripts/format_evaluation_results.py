@@ -113,7 +113,7 @@ def main():
     parser.add_argument(
         "--ontology-dump",
         type=Path,
-        default=Path("./data/ontology_dump_chebi.json"),
+        default=Path("./data/ontology_dump.json"),
         help="Path to the ontology_dump.json file."
     )
     args = parser.parse_args()
