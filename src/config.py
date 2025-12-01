@@ -46,7 +46,19 @@ ONTOLOGIES_CONFIG = {
         'whoosh_index_dir': DATA_DIR / "whoosh_index_chebi",
         'faiss_index_path': DATA_DIR / "faiss_index_chebi.bin",
         'faiss_metadata_path': DATA_DIR / "faiss_metadata_chebi.json",
-    }
+    },
+    # USDA catalogue treated as a first-class "ontology" for AU->US mapping
+    'usda': {
+        'path': PROJECT_ROOT / "USA_AU_data" / "USDA_complete.xlsx",
+        'prefix': 'USDA:',
+        'id_pattern': r'^USDA:\d+$',
+        'dump_json_path': PROJECT_ROOT / "USA_AU_data" / "processed" / "usda_dump.json",
+        'enriched_docs_path': PROJECT_ROOT / "USA_AU_data" / "processed" / "usda_enriched.json",
+        'embeddings_path': PROJECT_ROOT / "USA_AU_data" / "processed" / "usda_embeddings.json",
+        'whoosh_index_dir': PROJECT_ROOT / "USA_AU_data" / "processed" / "whoosh_index_usda",
+        'faiss_index_path': PROJECT_ROOT / "USA_AU_data" / "processed" / "faiss_index_usda.bin",
+        'faiss_metadata_path': PROJECT_ROOT / "USA_AU_data" / "processed" / "faiss_metadata_usda.json",
+    },
 }
 # NOTE: The loop that created Whoosh directories has been removed.
 # The script responsible for building the Whoosh index should create its own directory.
@@ -154,7 +166,7 @@ MAX_CONCURRENT_REQUESTS = 20
 
 # Restrict retrieval to specific ontologies (keys in ONTOLOGIES_CONFIG), e.g. ["foodon"]
 # Set to None to allow all configured ontologies.
-RESTRICT_TARGET_ONTOLOGIES = ["foodon"]  # e.g., ["foodon"]
+RESTRICT_TARGET_ONTOLOGIES = ["usda"]
 
 
 GEMINI_API_KEY = getenv("GEMINI_API_KEY")
@@ -178,12 +190,9 @@ HF_GENERATION_KWARGS = {
 }
 
 # Path to the prompt template for the selector
-SELECTOR_PROMPT_TEMPLATE_PATH = PROJECT_ROOT / "prompts" / \
-    "strict_selection_minimal.tpl" #"chebi_selection.tpl" #"final_selection.tpl"  # "strict_selection_minimal.tpl"
-CONFIDENCE_PROMPT_TEMPLATE_PATH = PROJECT_ROOT / "prompts" / \
-    "confidence_assessment3.tpl" #"chebi_confidence.tpl" #"confidence_assessment3.tpl"  # "confidence_assessment.tpl"
-SYNONYM_PROMPT_TEMPLATE_PATH = PROJECT_ROOT /"prompts" / \
-    "synonym_generation.tpl" #"chebi_synonyms.tpl" #"synonym_generation.tpl"
+SELECTOR_PROMPT_TEMPLATE_PATH = PROJECT_ROOT / "prompts" / "usda_selection.tpl"
+CONFIDENCE_PROMPT_TEMPLATE_PATH = PROJECT_ROOT / "prompts" / "usda_confidence.tpl"
+SYNONYM_PROMPT_TEMPLATE_PATH = PROJECT_ROOT /"prompts" / "synonym_generation.tpl"
 
 PIPELINE = "gemini"  # "gemini", "ollama", or "huggingface"
 
