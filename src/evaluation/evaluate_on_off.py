@@ -49,6 +49,8 @@ def simplify_mapping_result(result):
     Removes verbose keys from a mapping result dictionary to keep the output clean.
     Returns the simplified dictionary or the original input if it's not a dict.
     """
+    if isinstance(result, list):
+        return [simplify_mapping_result(r) for r in result]
     if not isinstance(result, dict):
         # Keep non-dicts unchanged; caller will handle logging safely.
         return result
@@ -182,6 +184,8 @@ async def process_single_product(pipeline, product_id, product_data, semaphore, 
             # Persist only compact, high-confidence cache entries for consistency
             if (not no_cache) and result_tuple and result_tuple[0]:
                 mapping_result, _candidates = result_tuple
+                if isinstance(mapping_result, list):
+                    mapping_result = mapping_result[0] if mapping_result else None
                 try:
                     score = mapping_result.get('confidence_score', 0.0) if isinstance(mapping_result, dict) else 0.0
                     if score >= config.CONFIDENCE_THRESHOLD and isinstance(mapping_result, dict):
@@ -200,7 +204,7 @@ async def process_single_product(pipeline, product_id, product_data, semaphore, 
         raw_result = all_ingredient_results.get(ingredient_query)
 
         # Unpack results from either cache schema:
-        # - Tuple: (mapping_result: dict|None, candidates: list)
+        # - Tuple: (mapping_result: dict|list|None, candidates: list)
         # - Dict: minimal cached entry {id,label}
         # - Anything else: treat as no result
         if isinstance(raw_result, tuple) and len(raw_result) == 2:
@@ -210,11 +214,18 @@ async def process_single_product(pipeline, product_id, product_data, semaphore, 
         else:
             mapping_result, candidates = None, []
 
+        best_mapping = mapping_result
+        if isinstance(mapping_result, list):
+            best_mapping = mapping_result[0] if mapping_result else None
+
         simplified_mapping = simplify_mapping_result(mapping_result)
 
-        if mapping_result:
+        if best_mapping:
             if isinstance(simplified_mapping, dict):
                 mapped_label = simplified_mapping.get('label', 'N/A')
+            elif isinstance(simplified_mapping, list) and simplified_mapping:
+                first = simplified_mapping[0]
+                mapped_label = first.get('label', 'N/A') if isinstance(first, dict) else str(first)
             else:
                 mapped_label = str(simplified_mapping)
             logger.info(f"Product {product_id}: Query '{ingredient_query}' -> Mapped to '{mapped_label}'")

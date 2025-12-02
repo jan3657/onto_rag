@@ -29,6 +29,9 @@ streamlit-aggrid
 # Testing (optional, but good for development)
 pytest>=6.2.0
 
+# Visualization for AU→US comparison plots
+matplotlib>=3.8.0
+
 # Local LLM / Hugging Face (optional; excluded on Python 3.13+ for compatibility)
 transformers>=4.39.0; python_version < "3.13"
 torch>=2.1.0; python_version < "3.13"

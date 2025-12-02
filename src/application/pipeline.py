@@ -38,7 +38,7 @@ class BaseRAGPipeline:
             vector_k: int = config.DEFAULT_K_VECTOR,
             target_ontologies: Optional[List[str]] = None,
             semaphore: Optional[asyncio.Semaphore] = None,
-    ) -> Optional[tuple[Dict[str, Any], List[Dict[str, Any]]]]:
+    ) -> Optional[tuple[List[Dict[str, Any]], List[Dict[str, Any]]]]:
         """
         Executes the pipeline with per-query validation while scoring confidence
         against the original user query.
@@ -58,8 +58,8 @@ class BaseRAGPipeline:
 
         Returns
         -------
-        Optional[tuple[Dict[str, Any], List[Dict[str, Any]]]]
-            (final_result, candidates) or None if nothing is found.
+        Optional[tuple[List[Dict[str, Any]], List[Dict[str, Any]]]]
+            (ranked_results, candidates) or None if nothing is found.
         """
         if semaphore:
             await semaphore.acquire()
@@ -67,7 +67,7 @@ class BaseRAGPipeline:
         try:
             queries_to_try = [query]
             queries_tried = set()
-            best_result_so_far = None
+            best_results_so_far: List[Dict[str, Any]] = []
             best_candidates_so_far: list[dict] = []
             loop_count = 0
             last_feedback = ""
@@ -103,10 +103,6 @@ class BaseRAGPipeline:
                 # This is the "Focused Selection" step.
                 logger.info(f"{len(candidates)} candidates passed to LLM selector for query '{current_query}'.")
                 
-                # Initialize variables to avoid UnboundLocalError
-                score = None
-                confidence_result = None
-                
                 selection = await self.selector.select_best_term(
                     current_query,
                     candidates,
@@ -114,28 +110,21 @@ class BaseRAGPipeline:
                     feedback=last_feedback,
                 )
 
-                if not selection or selection['chosen_id'] in ('0', '-1'):
-                    # The selector found no suitable candidate. This is not an error.
-                    # We treat this as a result with zero confidence.
+                choices = selection.get("choices") if selection else []
+                if not choices:
                     logger.info(f"Selector found no suitable match for '{current_query}' among the candidates.")
-                    current_result = {
-                        'id': None,
-                        'confidence_score': 0.0,
-                        'selector_explanation': selection.get('selector_explanation') if selection else 'Selector returned no valid selection.'
-                    }
-                    score = 0.0  # Set score for no-match case
-                    last_feedback = current_result['selector_explanation']
-                else:
-                    # The selector made a choice. Now we score it.
-                    chosen_id = selection['chosen_id']
+                    last_feedback = selection.get("selector_explanation") if selection else "Selector returned no valid selection."
+                    continue
+
+                scored_results: List[Dict[str, Any]] = []
+                for choice in choices[:3]:
+                    chosen_id = choice.get("id")
                     chosen_term_details = self.retriever.get_term_details(chosen_id)
                     if not chosen_term_details:
                         logger.error(f"Selector chose ID '{chosen_id}', but its details could not be retrieved.")
-                        continue # This is a true failure, so we continue.
+                        continue
 
                     logger.info(f"Scoring selection '{chosen_id}' against the ORIGINAL query: '{query}'")
-
-                    # --- call the scorer safely ---
                     try:
                         confidence_result = await self.confidence_scorer.score_confidence(
                             query=query,
@@ -147,54 +136,51 @@ class BaseRAGPipeline:
                         logger.error("Confidence scorer failed: %s", e, exc_info=True)
                         confidence_result = None
 
-                    current_result = chosen_term_details
-                    current_result['selector_explanation'] = selection.get('selector_explanation', 'No explanation available.')
-                    
-                    # read score safely
+                    current_result = dict(chosen_term_details)
+                    current_result['selector_explanation'] = choice.get('selector_explanation', 'No explanation available.')
+                    current_result['selector_confidence'] = choice.get('selector_confidence', None)
+
                     if confidence_result is not None:
                         score = confidence_result.get('confidence_score', None)
                         current_result['confidence_score'] = score
                         current_result['scorer_explanation'] = confidence_result.get('scorer_explanation', 'No explanation available.')
                         current_result['suggested_alternatives'] = confidence_result.get('suggested_alternatives', [])
-                        last_feedback = current_result['scorer_explanation']
                     else:
-                        # Fallback if the scorer fails
-                        score = -1.0
-                        current_result['confidence_score'] = score
+                        current_result['confidence_score'] = -1.0
                         current_result['scorer_explanation'] = 'Scorer failed to provide explanation.'
                         current_result['suggested_alternatives'] = []
-                        last_feedback = current_result['scorer_explanation']
 
-                logger.info(f"""Selection Details:
-                    Label: '{current_result.get('label', 'N/A')}'
-                    ID: {current_result.get('id', 'N/A')}
-                    Confidence: {current_result.get('confidence_score', 0.0):.2f}
-                    Selector Explanation: {current_result.get('selector_explanation', 'N/A')}
-                    Scorer Explanation: {current_result.get('scorer_explanation', 'N/A')}
-                """)
+                    scored_results.append(current_result)
 
-                # Update the best result found so far
-                if best_result_so_far is None or current_result.get('confidence_score', 0.0) > best_result_so_far.get('confidence_score', 0.0):
-                    best_result_so_far = current_result
+                if not scored_results:
+                    continue
+
+                # sort for clarity
+                scored_results.sort(key=lambda r: r.get("confidence_score", -1), reverse=True)
+                last_feedback = scored_results[0].get("scorer_explanation", "")
+
+                logger.info("Top selection after scoring: %s (%.2f)", scored_results[0].get("id"), scored_results[0].get("confidence_score", 0.0))
+
+                # Update the best results found so far
+                best_score_so_far = best_results_so_far[0].get("confidence_score", -1) if best_results_so_far else -1
+                if scored_results[0].get("confidence_score", -1) > best_score_so_far:
+                    best_results_so_far = scored_results
                     best_candidates_so_far = candidates  # <- keep the candidates that produced this best result
 
                 # stop early if confidently correct
-                if score is not None and score >= config.CONFIDENCE_THRESHOLD:
+                if scored_results[0].get("confidence_score", 0.0) >= config.CONFIDENCE_THRESHOLD:
                     logger.info("Confidence above threshold; stopping.")
-                    return current_result, candidates
+                    return best_results_so_far, best_candidates_so_far
 
-                # --- use scorer suggestions BEFORE synonyms ---
-                suggestions = []
-                if confidence_result:
-                    raw = confidence_result.get('suggested_alternatives') or []
-                    if isinstance(raw, str):
-                        # ultra-defensive: accept stringified lists
-                        try:
-                            parsed = json.loads(raw)
-                            raw = parsed if isinstance(parsed, list) else [raw]
-                        except Exception:
-                            raw = [s.strip() for s in raw.strip('[]').split(',') if s.strip()]
-                    suggestions = [s for s in raw if isinstance(s, str) and s.strip()]
+                # --- use scorer suggestions BEFORE synonyms (from top result) ---
+                raw = scored_results[0].get('suggested_alternatives') or []
+                if isinstance(raw, str):
+                    try:
+                        parsed = json.loads(raw)
+                        raw = parsed if isinstance(parsed, list) else [raw]
+                    except Exception:
+                        raw = [s.strip() for s in raw.strip('[]').split(',') if s.strip()]
+                suggestions = [s for s in raw if isinstance(s, str) and s.strip()]
 
                 # dedupe & enqueue scorer suggestions first
                 if suggestions:
@@ -222,8 +208,8 @@ class BaseRAGPipeline:
                     except Exception as e:
                         logger.error("Synonym generator failed: %s", e, exc_info=True)
 
-            # Return the best result found after all loops
-            return best_result_so_far, best_candidates_so_far
+            # Return the best results found after all loops
+            return best_results_so_far, best_candidates_so_far
 
         finally:
             # ADDED: Release semaphore if provided

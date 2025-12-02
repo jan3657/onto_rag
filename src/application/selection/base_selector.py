@@ -127,8 +127,35 @@ class BaseSelector(ABC):
 
         def _wrap_no_selection() -> Dict[str, Any]:
             return {
-                'chosen_id': '-1',
-                'selector_explanation': 'Model returned no selection (-1).'
+                'choices': []
+            }
+
+        def _normalize_choice(raw_choice: Any) -> Optional[Dict[str, Any]]:
+            if raw_choice is None:
+                return None
+            if isinstance(raw_choice, str):
+                cid = raw_choice.strip()
+                if cid in {"-1", "0", ""}:
+                    return None
+                return {"id": cid, "selector_explanation": "No explanation provided.", "selector_confidence": None}
+            if not isinstance(raw_choice, dict):
+                return None
+            cid = raw_choice.get("id") or raw_choice.get("chosen_id") or raw_choice.get("candidate_id")
+            if cid is None:
+                return None
+            cid = str(cid).strip()
+            if cid in {"-1", "0", ""}:
+                return None
+            expl = raw_choice.get("explanation") or raw_choice.get("selector_explanation") or "No explanation provided."
+            try:
+                conf = raw_choice.get("confidence_score")
+                conf = float(conf) if conf is not None else None
+            except (TypeError, ValueError):
+                conf = None
+            return {
+                "id": cid,
+                "selector_explanation": expl,
+                "selector_confidence": conf,
             }
 
         raw = (response_text or "").strip()
@@ -167,25 +194,43 @@ class BaseSelector(ABC):
             logger.error(f"Invalid string response from LLM: {parsed}")
             return None
 
-        if not isinstance(parsed, dict):
-            logger.error(f"Invalid LLM response type (expected object): {type(parsed).__name__}")
-            return None
-
-        # --- Centralized Validation Logic ---
-        if "chosen_id" not in parsed or parsed.get("chosen_id") is None:
-            logger.error(
-                "LLM response is invalid: Missing the mandatory 'chosen_id' key. Response: %s",
-                parsed
-            )
-            return None
-
-        validated_result = {'chosen_id': str(parsed['chosen_id'])}
-        if 'explanation' in parsed:
-            validated_result['selector_explanation'] = parsed['explanation']
+        choices: List[Dict[str, Any]] = []
+        if isinstance(parsed, dict):
+            if "choices" in parsed and isinstance(parsed["choices"], list):
+                for ch in parsed["choices"]:
+                    norm = _normalize_choice(ch)
+                    if norm:
+                        choices.append(norm)
+            elif "chosen_ids" in parsed and isinstance(parsed["chosen_ids"], list):
+                for ch in parsed["chosen_ids"]:
+                    norm = _normalize_choice(ch)
+                    if norm:
+                        choices.append(norm)
+            elif "chosen_id" in parsed:
+                norm = _normalize_choice(parsed.get("chosen_id"))
+                if norm:
+                    # carry explanation if present at top level
+                    if parsed.get("explanation"):
+                        norm["selector_explanation"] = parsed["explanation"]
+                    choices.append(norm)
+        elif isinstance(parsed, list):
+            for ch in parsed:
+                norm = _normalize_choice(ch)
+                if norm:
+                    choices.append(norm)
         else:
-            logger.warning("LLM response missing 'explanation' key. Using default value.")
-            validated_result['selector_explanation'] = 'No explanation provided.'
+            logger.error(f"Invalid LLM response type (expected object or list): {type(parsed).__name__}")
+            return None
 
+        # Default choice explanations if missing
+        for c in choices:
+            c.setdefault("selector_explanation", "No explanation provided.")
+
+        validated_result = {
+            "choices": choices,
+        }
+        if choices:
+            validated_result["chosen_id"] = choices[0]["id"]
         return validated_result
 
     @abstractmethod

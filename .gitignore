@@ -2,22 +2,32 @@
 __pycache__/
 *.py[cod]
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
 
 # Environment & secrets
 .env
 api_key.json
 project_contents_for_llm.yaml
 project_contents_for_llm.txt
+.venv/
 
 # VSCode, macOS
 .vscode/
 .DS_Store
+.idea/
 
 # Large generated data and ontology files
 /data/
 /ontologies/
 /models/
 /outputs/
+logs/
+
+# Generated AU/US mapping artifacts (regenerate via scripts)
+USA_AU_data/processed/
+USA_AU_data/au_us_plots/
 
 # Log files
 *.log

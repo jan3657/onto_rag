@@ -145,6 +145,7 @@ async def evaluate_full_pipeline(
             final_result, candidates, history = triple
             # Cache only the tuple (final_result, candidates) for compatibility
             cache[query] = (final_result, candidates)
+            best_result = final_result[0] if isinstance(final_result, list) and final_result else final_result
             
             # Metrics from verbose run
             attempted += 1
@@ -157,18 +158,20 @@ async def evaluate_full_pipeline(
 
             first_id = None
             if history and isinstance(history[0], dict):
-                first_res = history[0].get('result') or {}
+                first_res = history[0].get('results') or history[0].get('result') or {}
+                if isinstance(first_res, list):
+                    first_res = first_res[0] if first_res else {}
                 first_id = first_res.get('id')
 
             true_curies = set(next(item['true_curies'] for item in gold_standard_data if item['text'] == query))
             is_first_hit = bool(first_id and (first_id in true_curies))
-            is_final_hit = bool(final_result and final_result.get('id') in true_curies)
+            is_final_hit = bool(best_result and best_result.get('id') in true_curies)
             if is_first_hit:
                 first_hits += 1
             if is_final_hit:
                 final_hits += 1
 
-            conf = float(final_result.get('confidence_score', 0.0)) if final_result else 0.0
+            conf = float(best_result.get('confidence_score', 0.0)) if best_result else 0.0
             conf_correct_pairs.append((conf, 1 if is_final_hit else 0))
 
     for item in gold_standard_data:
@@ -182,7 +185,8 @@ async def evaluate_full_pipeline(
             continue
 
         final_result, candidates = result_tuple
-        chosen_curie = final_result.get('id')
+        best_result = final_result[0] if isinstance(final_result, list) and final_result else final_result
+        chosen_curie = best_result.get('id') if best_result else None
 
         if chosen_curie in true_curies:
             hits += 1
@@ -193,9 +197,9 @@ async def evaluate_full_pipeline(
                 "chosen_curie": chosen_curie,
                 "true_curies": list(true_curies),
                 # Capture both selector and scorer explanations from the pipeline
-                "selector_explanation": final_result.get("selector_explanation", "N/A"),
-                "scorer_explanation": final_result.get("scorer_explanation", "N/A"),
-                "confidence_score": final_result.get("confidence_score", 0.0),
+                "selector_explanation": best_result.get("selector_explanation", "N/A") if best_result else "N/A",
+                "scorer_explanation": best_result.get("scorer_explanation", "N/A") if best_result else "N/A",
+                "confidence_score": best_result.get("confidence_score", 0.0) if best_result else 0.0,
                 "candidates_provided": [c.get('id') for c in candidates if c.get('id')]
             })
 

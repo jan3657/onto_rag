@@ -35,38 +35,43 @@ async def main():
             vector_k=args.vector_k
         )
         
+        results: list[dict] = []
+        candidates = []
         if not result_tuple:
-            final_result, candidates = None, []
             logger.warning("Pipeline did not return a result.")
         else:
-            final_result, candidates = result_tuple
+            results, candidates = result_tuple
 
         # Use print() for the final, user-facing output. This is the script's "result".
         print("\n--- Final LLM Selection ---")
-        if not final_result:
+        if not results:
             print("Could not determine a matching ontology term.")
         else:
             print(f"Query: '{args.query}'")
             print("---------------------------")
-            print(f"Chosen Term ID: {final_result.get('id', 'N/A')}")
-            print(f"Label:          {final_result.get('label', 'N/A')}")
-            print(f"Confidence:     {final_result.get('confidence_score', 0.0):.1%}")
-            print(f"Definition:     {final_result.get('definition', 'N/A')}")
-            print(f"Synonyms:       {'; '.join(final_result.get('synonyms', [])) or 'None'}")
-            print("\nLLM Explanation:")
-            print(f"  > {final_result.get('explanation', 'No explanation provided.')}")
+            for idx, final_result in enumerate(results[:3], start=1):
+                print(f"Rank {idx}")
+                print(f"  Term ID:      {final_result.get('id', 'N/A')}")
+                print(f"  Label:        {final_result.get('label', 'N/A')}")
+                print(f"  Confidence:   {final_result.get('confidence_score', 0.0):.1%}")
+                print(f"  Selector conf:{final_result.get('selector_confidence', 'n/a')}")
+                print(f"  Definition:   {final_result.get('definition', 'N/A')}")
+                print(f"  Synonyms:     {'; '.join(final_result.get('synonyms', [])) or 'None'}")
+                print(f"  Selector expl:{final_result.get('selector_explanation', 'No explanation provided.')}")
+                print(f"  Scorer expl:  {final_result.get('scorer_explanation', 'No explanation provided.')}")
+                print("")
         print("---------------------------\n")
 
         if args.show_candidates and candidates:
             # Also use print() here as this is user-requested output via a command-line flag.
             print(f"--- Top {len(candidates)} Candidates Provided to LLM ---")
-            chosen_id = final_result.get('id') if final_result else None
+            chosen_ids = {r.get('id') for r in results}
             
             for i, candidate in enumerate(candidates):
                 details = pipeline.retriever.get_term_details(candidate.get('id'))
                 if not details: continue
 
-                marker = "⭐️" if details.get('id') == chosen_id else "  "
+                marker = "⭐️" if details.get('id') in chosen_ids else "  "
                 rerank_score = candidate.get('rerank_score')
                 score_str = f"(Score: {rerank_score:.4f})" if rerank_score is not None else ""
 

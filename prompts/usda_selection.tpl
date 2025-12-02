@@ -12,7 +12,7 @@ Candidate USDA Foods:
 Instructions & Rubric
 - Compare names first: exact/near-lexical matches outrank broad categories.
 - Use nutrient agreement: protein/fat/sugar/fiber/sodium/energy should broadly align. Large divergences (e.g., sugary vs savory) lower confidence even if names look close.
-- If nothing is ≥0.4 confidence, return no match.
+- Return your top 3 choices (or fewer if fewer are plausible), sorted best→worst. If nothing is ≥0.4 confidence, return an empty list.
 
 Scoring guideline (float 0.0–1.0):
 1.0 Exact: Same food name or clear synonym; nutrients align.
@@ -23,7 +23,21 @@ Scoring guideline (float 0.0–1.0):
 
 Output JSON ONLY:
 {
-  "chosen_id": "string",        // "-1" if no match
-  "confidence_score": 0.0-1.0,
-  "explanation": "string"
+  "choices": [
+    {
+      "id": "USDA:170924",
+      "confidence_score": 0.95,
+      "explanation": "short rationale on name + nutrient alignment"
+    },
+    {
+      "id": "USDA:170926",
+      "confidence_score": 0.70,
+      "explanation": "why this is a plausible alternative"
+    },
+    {
+      "id": "USDA:173000",
+      "confidence_score": 0.45,
+      "explanation": "why this is lower-ranked but still considered"
+    }
+  ]
 }

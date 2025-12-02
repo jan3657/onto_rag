@@ -14,19 +14,19 @@ async def run_pipeline_verbose(
     lexical_k: int = config.DEFAULT_K_LEXICAL,
     vector_k: int = config.DEFAULT_K_VECTOR,
     target_ontologies: Optional[List[str]] = None,
-) -> Tuple[Optional[Dict[str, Any]], List[Dict[str, Any]], List[Dict[str, Any]]]:
+) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], List[Dict[str, Any]]]:
     """Run the pipeline and return rich debugging information for each step.
 
     Returns
     -------
     Tuple containing:
-        - final result dict or None
+        - ranked results (list, possibly empty)
         - candidates list corresponding to best result
         - history list with per-iteration details
     """
     queries_to_try = [query]
     queries_tried = set()
-    best_result_so_far: Optional[Dict[str, Any]] = None
+    best_results_so_far: List[Dict[str, Any]] = []
     best_candidates_so_far: List[Dict[str, Any]] = []
     loop_count = 0
     last_feedback = ""
@@ -62,23 +62,16 @@ async def run_pipeline_verbose(
         step["selector_raw_response"] = getattr(pipeline.selector, "last_raw_response", "")
         step["selection"] = selection
 
-        score = None
-        confidence_result = None
+        choices = selection.get("choices") if selection else []
+        step["choices"] = choices
 
-        if not selection or selection.get("chosen_id") in ("0", "-1"):
-            current_result = {
-                "id": None,
-                "confidence_score": 0.0,
-                "selector_explanation": selection.get("selector_explanation") if selection else "Selector returned no valid selection.",
-            }
-            score = 0.0
-            last_feedback = current_result["selector_explanation"]
-        else:
-            chosen_id = selection["chosen_id"]
+        scored_results: List[Dict[str, Any]] = []
+        scorer_suggestions: List[str] = []
+
+        for choice in choices[:3]:
+            chosen_id = choice.get("id")
             chosen_term_details = pipeline.retriever.get_term_details(chosen_id)
             if not chosen_term_details:
-                step["error"] = f"Details not found for ID {chosen_id}"
-                history.append(step)
                 continue
             try:
                 confidence_result = await pipeline.confidence_scorer.score_confidence(
@@ -91,52 +84,55 @@ async def run_pipeline_verbose(
                 logger.error("Confidence scorer failed: %s", e, exc_info=True)
                 confidence_result = None
 
-            step["scorer_prompt"] = getattr(pipeline.confidence_scorer, "last_prompt", "")
-            step["scorer_raw_response"] = getattr(pipeline.confidence_scorer, "last_raw_response", "")
-            step["scorer_result"] = confidence_result
+            step.setdefault("scorer_prompt", getattr(pipeline.confidence_scorer, "last_prompt", ""))
+            step.setdefault("scorer_raw_response", getattr(pipeline.confidence_scorer, "last_raw_response", ""))
 
-            current_result = chosen_term_details
-            current_result["selector_explanation"] = selection.get("selector_explanation", "No explanation available.")
+            current_result = dict(chosen_term_details)
+            current_result["selector_explanation"] = choice.get("selector_explanation", "No explanation available.")
+            current_result["selector_confidence"] = choice.get("selector_confidence", None)
 
             if confidence_result is not None:
                 score = confidence_result.get("confidence_score")
                 current_result["confidence_score"] = score
                 current_result["scorer_explanation"] = confidence_result.get("scorer_explanation", "No explanation available.")
                 current_result["suggested_alternatives"] = confidence_result.get("suggested_alternatives", [])
-                last_feedback = current_result["scorer_explanation"]
+
+                raw = confidence_result.get("suggested_alternatives") or []
+                if isinstance(raw, str):
+                    try:
+                        parsed = json.loads(raw)
+                        raw = parsed if isinstance(parsed, list) else [raw]
+                    except Exception:
+                        raw = [s.strip() for s in raw.strip("[]").split(",") if s.strip()]
+                scorer_suggestions.extend([s for s in raw if isinstance(s, str) and s.strip()])
             else:
-                score = -1.0
-                current_result["confidence_score"] = score
+                current_result["confidence_score"] = -1.0
                 current_result["scorer_explanation"] = "Scorer failed to provide explanation."
                 current_result["suggested_alternatives"] = []
-                last_feedback = current_result["scorer_explanation"]
 
-        step["result"] = current_result
+            scored_results.append(current_result)
 
-        if best_result_so_far is None or current_result.get("confidence_score", 0.0) > best_result_so_far.get("confidence_score", 0.0):
-            best_result_so_far = current_result
-            best_candidates_so_far = candidates
+        if scored_results:
+            scored_results.sort(key=lambda r: r.get("confidence_score", -1), reverse=True)
+            step["results"] = scored_results
+            step["result"] = scored_results[0]  # backward-compatible single best
+            last_feedback = scored_results[0].get("scorer_explanation", "")
 
-        suggestions: List[str] = []
-        if confidence_result:
-            raw = confidence_result.get("suggested_alternatives") or []
-            if isinstance(raw, str):
-                try:
-                    parsed = json.loads(raw)
-                    raw = parsed if isinstance(parsed, list) else [raw]
-                except Exception:
-                    raw = [s.strip() for s in raw.strip("[]").split(",") if s.strip()]
-            suggestions = [s for s in raw if isinstance(s, str) and s.strip()]
-        if suggestions:
-            step["scorer_suggestions"] = suggestions
-            already = set(queries_tried) | set(queries_to_try)
-            to_add = [s for s in suggestions if s not in already and s != query]
-            if to_add:
-                queries_to_try = to_add + queries_to_try
+            best_score_so_far = best_results_so_far[0].get("confidence_score", -1) if best_results_so_far else -1
+            if scored_results[0].get("confidence_score", -1) > best_score_so_far:
+                best_results_so_far = scored_results
+                best_candidates_so_far = candidates
 
-        if score is not None and score >= config.CONFIDENCE_THRESHOLD:
-            history.append(step)
-            return best_result_so_far, best_candidates_so_far, history
+            if scorer_suggestions:
+                step["scorer_suggestions"] = scorer_suggestions
+                already = set(queries_tried) | set(queries_to_try)
+                to_add = [s for s in scorer_suggestions if s not in already and s != query]
+                if to_add:
+                    queries_to_try = to_add + queries_to_try
+
+            if scored_results[0].get("confidence_score", 0.0) >= config.CONFIDENCE_THRESHOLD:
+                history.append(step)
+                return best_results_so_far, best_candidates_so_far, history
 
         if pipeline.synonym_generator and not suggestions and not queries_to_try:
             try:
@@ -159,4 +155,4 @@ async def run_pipeline_verbose(
 
         history.append(step)
 
-    return best_result_so_far, best_candidates_so_far, history
+    return best_results_so_far, best_candidates_so_far, history

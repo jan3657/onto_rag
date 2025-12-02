@@ -128,6 +128,9 @@ async def process_product(product_id: str,
         results = await asyncio.gather(*tasks)
         for query, res in zip(queries_for_tasks, results):
             mapping_result, _candidates = res if res else (None, None)
+            # handle list of ranked results
+            if isinstance(mapping_result, list):
+                mapping_result = mapping_result[0] if mapping_result else None
             
             # --- CHANGED LOGIC ---
             # Only cache matches that are high-confidence.

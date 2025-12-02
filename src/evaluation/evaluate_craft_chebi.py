@@ -68,6 +68,8 @@ def _unpack_result(obj: Any) -> Tuple[Optional[Dict[str, Any]], List[Dict[str, A
         if not obj:
             return None, []
         first = obj[0]
+        if isinstance(first, list):
+            first = first[0] if first else None
         cands = obj[1] if len(obj) > 1 and isinstance(obj[1], (list, tuple)) else []
         return (first if isinstance(first, dict) else None), list(cands)
 
