@@ -7,13 +7,14 @@ Examples:
     --ground-truth USA_AU_data/au_us_ground_truth.csv \\
     --predictions USA_AU_data/processed/au_us_matches_rag.csv \\
     --limit 15 \\
-    --out-csv /tmp/au_us_mismatches.csv
+    --out-csv /tmp/au_us_mismatches.csv \\
+    --top3-miss-csv USA_AU_data/processed/missmatches.csv
 """
 
 import argparse
 import csv
 from dataclasses import dataclass
-from typing import Dict, Iterable, List, Optional
+from typing import Dict, Iterable, List, Optional, Tuple
 
 
 @dataclass
@@ -89,7 +90,7 @@ def _safe_float(value: Optional[str]) -> Optional[float]:
 
 def evaluate(
     ground_truth: Dict[str, str], predictions: Iterable[Prediction]
-) -> None:
+) -> Tuple[List[Prediction], List[List[Prediction]]]:
     preds = list(predictions)
     gt_count = len(ground_truth)
     pred_count = len(preds)
@@ -111,12 +112,16 @@ def evaluate(
     overlap = [grouped[au] for au in overlap_ids]
 
     hits = {1: 0, 2: 0, 3: 0}
+    top3_misses: List[List[Prediction]] = []
     for preds_for_au in overlap:
         gt_us = ground_truth[preds_for_au[0].au_id]
         for k in hits.keys():
             topk = preds_for_au[:k]
             if any(p.us_id_norm == gt_us for p in topk):
                 hits[k] += 1
+        top3 = preds_for_au[:3]
+        if not any(p.us_id_norm == gt_us for p in top3):
+            top3_misses.append(top3)
 
     denom = len(overlap) if overlap else 0
     accuracy = hits[1] / denom if denom else 0.0
@@ -137,13 +142,14 @@ def evaluate(
     print(f"Ground truth entries: {gt_count}")
     print(f"Predicted entries:    {pred_count}")
     print(f"Overlap (by au_id):   {len(overlap)}")
+    print(f"Top-3 misses:         {len(top3_misses)}")
     print(f"Hit@1:                {accuracy:.2%}")
     print(f"Hit@2:                {hit2:.2%}")
     print(f"Hit@3:                {hit3:.2%}")
     print(f"Coverage:             {coverage:.2%}")
     print(f"Correct over GT:      {correct_gt:.2%}")
 
-    return mismatches
+    return mismatches, top3_misses
 
 
 def print_mismatches(
@@ -170,11 +176,14 @@ def write_mismatches_csv(
     mismatches: List[Prediction],
     ground_truth: Dict[str, str],
     path: str,
+    label: str = "Mismatch",
+    us_names: Optional[Dict[str, str]] = None,
 ) -> None:
     fieldnames = [
         "au_id",
         "rank",
         "gt_us_id",
+        "gt_us_name",
         "pred_us_id_raw",
         "pred_us_id_norm",
         "au_name",
@@ -185,11 +194,13 @@ def write_mismatches_csv(
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
         for p in mismatches:
+            gt_us_id = ground_truth[p.au_id]
             writer.writerow(
                 {
                     "au_id": p.au_id,
                     "rank": p.rank,
-                    "gt_us_id": ground_truth[p.au_id],
+                    "gt_us_id": gt_us_id,
+                    "gt_us_name": (us_names or {}).get(gt_us_id, ""),
                     "pred_us_id_raw": p.us_id_raw,
                     "pred_us_id_norm": p.us_id_norm,
                     "au_name": p.au_name,
@@ -197,7 +208,30 @@ def write_mismatches_csv(
                     "confidence": p.confidence,
                 }
             )
-    print(f"\nMismatch CSV written to: {path}")
+    print(f"\n{label} CSV written to: {path}")
+
+
+def load_us_names(path: Optional[str]) -> Dict[str, str]:
+    """Load USDA id → name mapping if available."""
+    if not path:
+        return {}
+    us_names: Dict[str, str] = {}
+    try:
+        with open(path, newline="") as f:
+            reader = csv.DictReader(f)
+            fieldnames = reader.fieldnames or []
+            id_field = "id" if "id" in fieldnames else "us_id" if "us_id" in fieldnames else None
+            name_field = "name" if "name" in fieldnames else None
+            if not id_field or not name_field:
+                return {}
+            for row in reader:
+                us_id = (row.get(id_field) or "").strip()
+                us_name = (row.get(name_field) or "").strip()
+                if us_id:
+                    us_names[us_id] = us_name
+    except FileNotFoundError:
+        print(f"Warning: USDA names file not found: {path}")
+    return us_names
 
 
 def parse_args() -> argparse.Namespace:
@@ -226,6 +260,23 @@ def parse_args() -> argparse.Namespace:
         "--out-csv",
         help="Optional path to write all mismatches as CSV.",
     )
+    parser.add_argument(
+        "--top3-miss-csv",
+        default="USA_AU_data/processed/missmatches.csv",
+        help=(
+            "Path to write rows where the ground truth is missing from the top-3 "
+            "predictions (default: USA_AU_data/processed/missmatches.csv). Use an "
+            "empty string to skip."
+        ),
+    )
+    parser.add_argument(
+        "--usda-names",
+        default="USA_AU_data/processed/usda_complete.csv",
+        help=(
+            "Optional USDA CSV with columns including id and name; used to add "
+            "gt_us_name to outputs."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -233,10 +284,27 @@ def main() -> None:
     args = parse_args()
     ground_truth = load_ground_truth(args.ground_truth)
     predictions = load_predictions(args.predictions)
-    mismatches = evaluate(ground_truth, predictions)
+    us_names = load_us_names(args.usda_names)
+    mismatches, top3_misses = evaluate(ground_truth, predictions)
     print_mismatches(mismatches, ground_truth, limit=args.limit)
     if args.out_csv:
-        write_mismatches_csv(mismatches, ground_truth, path=args.out_csv)
+        write_mismatches_csv(
+            mismatches, ground_truth, path=args.out_csv, us_names=us_names
+        )
+    if args.top3_miss_csv:
+        top3_flat: List[Prediction] = [
+            p for group in top3_misses for p in group
+        ]
+        if top3_flat:
+            write_mismatches_csv(
+                top3_flat,
+                ground_truth,
+                path=args.top3_miss_csv,
+                label="Top-3 miss",
+                us_names=us_names,
+            )
+        else:
+            print("\nNo top-3 misses to write.")
 
 
 if __name__ == "__main__":
