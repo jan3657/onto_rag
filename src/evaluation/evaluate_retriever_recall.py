@@ -6,7 +6,7 @@ import logging
 from collections import defaultdict
 
 from src.utils.logging_config import setup_run_logging
-from src.infrastructure.retrieval.hybrid_retriever import HybridRetriever
+from src.components.retriever import HybridRetriever
 
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 from src.config import (

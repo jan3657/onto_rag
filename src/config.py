@@ -35,17 +35,6 @@ ONTOLOGIES_CONFIG = {
         'whoosh_index_dir': DATA_DIR / "whoosh_index_foodon",
         'faiss_index_path': DATA_DIR / "faiss_index_foodon.bin",
         'faiss_metadata_path': DATA_DIR / "faiss_metadata_foodon.json",
-    },
-    'chebi': {
-        'path': ONTOLOGIES_DIR / "chebi.owl",
-        'prefix': 'CHEBI:',
-        'id_pattern': r'^CHEBI:\d+$',
-        'dump_json_path': DATA_DIR / "ontology_dump_chebi.json",
-        'enriched_docs_path': DATA_DIR / "enriched_documents_chebi.json",
-        'embeddings_path': DATA_DIR / "embeddings_chebi.json",
-        'whoosh_index_dir': DATA_DIR / "whoosh_index_chebi",
-        'faiss_index_path': DATA_DIR / "faiss_index_chebi.bin",
-        'faiss_metadata_path': DATA_DIR / "faiss_metadata_chebi.json",
     }
 }
 # NOTE: The loop that created Whoosh directories has been removed.

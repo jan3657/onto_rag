@@ -11,9 +11,9 @@ import argparse
 import time
 import statistics
 
-from src.adapters.pipeline_factory import create_pipeline
-from src.application.pipeline import BaseRAGPipeline
-from src.application.pipeline_verbose import run_pipeline_verbose
+from src.pipeline import create_pipeline
+from src.pipeline import RAGPipeline
+from src.pipeline_verbose import run_pipeline_verbose
 from src import config
 from src.utils.ontology_utils import uri_to_curie
 from src.utils.cache import load_cache, save_cache
@@ -70,7 +70,7 @@ def parse_evaluation_xml(xml_file_path: Path) -> list:
 
 # --- REFACTORED ASYNC EVALUATION LOGIC (Unchanged from previous step) ---
 async def evaluate_full_pipeline(
-    pipeline: BaseRAGPipeline,
+    pipeline: RAGPipeline,
     gold_standard_data: list,
     cache: dict,
     semaphore: asyncio.Semaphore,

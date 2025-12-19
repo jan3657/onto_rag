@@ -1,4 +1,4 @@
-# scripts/run_on_off.py
+# evaluation/evaluate_on_off.py
 """
 Script to run the RAG-based ontology mapping pipeline on a batch of products
 from an input file (e.g., parsed Open Food Facts data).
@@ -22,7 +22,7 @@ from tqdm.asyncio import tqdm as asyncio_tqdm
 from pathlib import Path
 
 from src.utils.logging_config import setup_run_logging
-from src.adapters.pipeline_factory import create_pipeline
+from src.pipeline import create_pipeline
 from src import config
 from src.utils.cache import load_cache, save_cache
 

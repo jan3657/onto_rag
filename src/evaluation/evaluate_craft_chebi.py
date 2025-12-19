@@ -11,8 +11,8 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 from tqdm.asyncio import tqdm_asyncio
 
 from src import config
-from src.application.pipeline import BaseRAGPipeline
-from src.adapters.pipeline_factory import create_pipeline
+from src.pipeline import RAGPipeline
+from src.pipeline import create_pipeline
 from src.utils.cache import load_cache, save_cache
 from src.utils.logging_config import setup_run_logging
 from src.utils.ontology_utils import uri_to_curie
@@ -217,7 +217,7 @@ def parse_craft_bionlp_dir(
 
 
 async def evaluate_full_pipeline(
-    pipeline: BaseRAGPipeline,
+    pipeline: RAGPipeline,
     gold_data: List[Dict[str, Any]],
     cache: Dict[str, Any],
     semaphore: asyncio.Semaphore,
@@ -500,7 +500,7 @@ async def main() -> None:
         cache: Dict[str, Any] = {}
 
     try:
-        pipeline: BaseRAGPipeline = create_pipeline(config.PIPELINE)
+        pipeline: RAGPipeline = create_pipeline(config.PIPELINE)
         semaphore = asyncio.Semaphore(max_conc)
 
         (
