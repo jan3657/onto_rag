@@ -1,5 +1,8 @@
 # onto_rag/requirements.txt
 
+# Entity Linking framework
+bioel>=0.1.13
+
 # Core Ontology Processing
 rdflib>=6.0.0
 
