@@ -1,0 +1,277 @@
+{
+  "metrics": {
+    "total": 20,
+    "correct": 15,
+    "accuracy": 0.75
+  },
+  "results": [
+    {
+      "query": "ataxia-telangiectasia",
+      "gold_ids": [
+        "MESH:D001260"
+      ],
+      "predicted_id": "MESH:D001260",
+      "is_correct": true,
+      "confidence": 1.0,
+      "candidate_labels": [
+        "Ataxia Telangiectasia",
+        "Ataxia Telangiectasia Like Disorder",
+        "Ataxia"
+      ]
+    },
+    {
+      "query": "sporadic T-cell leukaemia",
+      "gold_ids": [
+        "MESH:D015458"
+      ],
+      "predicted_id": null,
+      "is_correct": false,
+      "confidence": null,
+      "candidate_labels": []
+    },
+    {
+      "query": "Ataxia-telangiectasia",
+      "gold_ids": [
+        "MESH:D001260"
+      ],
+      "predicted_id": "MESH:D001260",
+      "is_correct": true,
+      "confidence": 1.0,
+      "candidate_labels": [
+        "Ataxia Telangiectasia",
+        "Ataxia Telangiectasia Like Disorder",
+        "Ataxia"
+      ]
+    },
+    {
+      "query": "A-T",
+      "gold_ids": [
+        "MESH:D001260"
+      ],
+      "predicted_id": "MESH:D001260",
+      "is_correct": true,
+      "confidence": 1.0,
+      "candidate_labels": [
+        "Ataxia Telangiectasia",
+        "Ataxia Telangiectasia Like Disorder",
+        "Ataxia"
+      ]
+    },
+    {
+      "query": "recessive multi-system disorder",
+      "gold_ids": [
+        "MESH:D030342"
+      ],
+      "predicted_id": "MESH:C567015",
+      "is_correct": false,
+      "confidence": 0.55,
+      "candidate_labels": [
+        "Nervous System Diseases",
+        "Heredodegenerative Disorders, Nervous System",
+        "Lysosomal Storage Diseases, Nervous System"
+      ]
+    },
+    {
+      "query": "cancer",
+      "gold_ids": [
+        "MESH:D009369"
+      ],
+      "predicted_id": null,
+      "is_correct": false,
+      "confidence": null,
+      "candidate_labels": []
+    },
+    {
+      "query": "lymphoid neoplasias",
+      "gold_ids": [
+        "MESH:D008223"
+      ],
+      "predicted_id": "MESH:D008223",
+      "is_correct": true,
+      "confidence": 0.9,
+      "candidate_labels": [
+        "Leukemia, Lymphoid",
+        "Prostatic Intraepithelial Neoplasia",
+        "Tertiary Lymphoid Structures"
+      ]
+    },
+    {
+      "query": "A-T",
+      "gold_ids": [
+        "MESH:D001260"
+      ],
+      "predicted_id": "MESH:D001260",
+      "is_correct": true,
+      "confidence": 1.0,
+      "candidate_labels": [
+        "Ataxia Telangiectasia",
+        "Ataxia Telangiectasia Like Disorder",
+        "Ataxia"
+      ]
+    },
+    {
+      "query": "tumour",
+      "gold_ids": [
+        "MESH:D009369"
+      ],
+      "predicted_id": "MESH:D009369",
+      "is_correct": true,
+      "confidence": 0.9,
+      "candidate_labels": [
+        "Neoplasms by Site",
+        "Neoplasms",
+        "Skull Neoplasms"
+      ]
+    },
+    {
+      "query": "sporadic T-cell prolymphocytic leukaemia",
+      "gold_ids": [
+        "MESH:D015461"
+      ],
+      "predicted_id": "MESH:D015461",
+      "is_correct": true,
+      "confidence": 1.0,
+      "candidate_labels": [
+        "Leukemia, Prolymphocytic, B-Cell",
+        "Leukemia, Prolymphocytic, T-Cell",
+        "Leukemia, Prolymphocytic"
+      ]
+    },
+    {
+      "query": "T-PLL",
+      "gold_ids": [
+        "MESH:D015461"
+      ],
+      "predicted_id": "MESH:D015461",
+      "is_correct": true,
+      "confidence": 1.0,
+      "candidate_labels": [
+        "Leukemia, Prolymphocytic, T-Cell",
+        "Leukemia, Prolymphocytic, B-Cell",
+        "Leukemia, Prolymphocytic"
+      ]
+    },
+    {
+      "query": "clonal malignancy",
+      "gold_ids": [
+        "MESH:D007945"
+      ],
+      "predicted_id": "MESH:D054219",
+      "is_correct": false,
+      "confidence": 0.6,
+      "candidate_labels": [
+        "Pregnancy Complications, Neoplastic",
+        "Neoplastic Cells, Circulating",
+        "Cell Transformation, Neoplastic"
+      ]
+    },
+    {
+      "query": "mature T-cell leukaemia",
+      "gold_ids": [
+        "MESH:D015458"
+      ],
+      "predicted_id": null,
+      "is_correct": false,
+      "confidence": null,
+      "candidate_labels": []
+    },
+    {
+      "query": "A-T",
+      "gold_ids": [
+        "MESH:D001260"
+      ],
+      "predicted_id": "MESH:D001260",
+      "is_correct": true,
+      "confidence": 1.0,
+      "candidate_labels": [
+        "Ataxia Telangiectasia",
+        "Ataxia Telangiectasia Like Disorder",
+        "Ataxia"
+      ]
+    },
+    {
+      "query": "T-PLL",
+      "gold_ids": [
+        "MESH:D015461"
+      ],
+      "predicted_id": "MESH:D015461",
+      "is_correct": true,
+      "confidence": 1.0,
+      "candidate_labels": [
+        "Leukemia, Prolymphocytic, T-Cell",
+        "Leukemia, Prolymphocytic, B-Cell",
+        "Leukemia, Prolymphocytic"
+      ]
+    },
+    {
+      "query": "A-T",
+      "gold_ids": [
+        "MESH:D001260"
+      ],
+      "predicted_id": "MESH:D001260",
+      "is_correct": true,
+      "confidence": 1.0,
+      "candidate_labels": [
+        "Ataxia Telangiectasia",
+        "Ataxia Telangiectasia Like Disorder",
+        "Ataxia"
+      ]
+    },
+    {
+      "query": "leukaemia",
+      "gold_ids": [
+        "MESH:D007938"
+      ],
+      "predicted_id": "MESH:D007938",
+      "is_correct": true,
+      "confidence": 0.95,
+      "candidate_labels": [
+        "Familial Acute Myeloid Leukemia with Mutated Cebpa",
+        "Leukemia",
+        "Leukemia, Acute, X-Linked"
+      ]
+    },
+    {
+      "query": "T-PLL",
+      "gold_ids": [
+        "MESH:D015461"
+      ],
+      "predicted_id": "MESH:D015461",
+      "is_correct": true,
+      "confidence": 1.0,
+      "candidate_labels": [
+        "Leukemia, Prolymphocytic, T-Cell",
+        "Leukemia, Prolymphocytic, B-Cell",
+        "Leukemia, Prolymphocytic"
+      ]
+    },
+    {
+      "query": "A-T",
+      "gold_ids": [
+        "MESH:D001260"
+      ],
+      "predicted_id": "MESH:D001260",
+      "is_correct": true,
+      "confidence": 1.0,
+      "candidate_labels": [
+        "Ataxia Telangiectasia",
+        "Ataxia Telangiectasia Like Disorder",
+        "Ataxia"
+      ]
+    },
+    {
+      "query": "tumour",
+      "gold_ids": [
+        "MESH:D009369"
+      ],
+      "predicted_id": "MESH:D009369",
+      "is_correct": true,
+      "confidence": 0.9,
+      "candidate_labels": [
+        "Neoplasms by Site",
+        "Neoplasms",
+        "Skull Neoplasms"
+      ]
+    }
+  ]
+}

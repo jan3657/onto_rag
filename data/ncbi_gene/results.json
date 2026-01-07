@@ -1,0 +1,695 @@
+{
+  "metrics": {
+    "total": 20,
+    "correct": 10,
+    "accuracy": 0.5
+  },
+  "results": [
+    {
+      "id": "12486105.1",
+      "query": "DEC-205",
+      "context": "",
+      "gold_ids": [
+        "NCBIGene:17076"
+      ],
+      "predicted_id": "NCBIGene:17076",
+      "is_correct": true,
+      "confidence": 1.0,
+      "mapping_result": {
+        "label": "Ly75",
+        "synonyms": [
+          "CD205",
+          "DEC-205",
+          "DEC205"
+        ],
+        "definition": "lymphocyte antigen 75",
+        "relations_text": "",
+        "id": "NCBIGene:17076",
+        "selector_explanation": "High-Confidence: The user mention 'DEC-205' is a well-known alias for the gene 'Ly75', and is listed as a synonym.",
+        "confidence_score": 1.0,
+        "scorer_explanation": "The User Mention 'DEC-205' is listed as a direct synonym for the Chosen Gene 'Ly75' (NCBIGene:17076) in its synonyms list. This is a strong, direct match.",
+        "suggested_alternatives": []
+      },
+      "candidates": [
+        "NCBIGene:387201",
+        "NCBIGene:70699",
+        "NCBIGene:171251",
+        "NCBIGene:235043",
+        "NCBIGene:226695"
+      ]
+    },
+    {
+      "id": "12486105.2",
+      "query": "major histocompatibility complex class I",
+      "context": "",
+      "gold_ids": [
+        "NCBIGene:14972"
+      ],
+      "predicted_id": "NCBIGene:15064",
+      "is_correct": false,
+      "confidence": 0.3,
+      "mapping_result": {
+        "label": "Mr1",
+        "synonyms": [
+          "H2ls"
+        ],
+        "definition": "major histocompatibility complex, class I-related",
+        "relations_text": "",
+        "id": "NCBIGene:15064",
+        "selector_explanation": "Plausible match. The user mention 'major histocompatibility complex class I' refers to a gene family, and the candidate 'Mr1' (major histocompatibility complex, class I-related) is a specific member of this family.",
+        "confidence_score": 0.3,
+        "scorer_explanation": "Low confidence. The user mention 'major histocompatibility complex class I' refers to a broad category of genes, while the chosen gene 'Mr1' (major histocompatibility complex, class I-related) is a specific, related but distinct entity. Mr1 is classified as MHC class I-related, not a canonical MHC class I gene itself. The mention does not specifically point to Mr1 over other MHC class I genes (like H2-K1, H2-D1 in mouse context) or even other MHC class I-related molecules.",
+        "suggested_alternatives": [
+          "H2-K1",
+          "H2-D1",
+          "H2-L"
+        ]
+      },
+      "candidates": [
+        "NCBIGene:15064",
+        "NCBIGene:16149",
+        "NCBIGene:14960",
+        "NCBIGene:14961",
+        "NCBIGene:14969"
+      ]
+    },
+    {
+      "id": "12486105.3",
+      "query": "CD8",
+      "context": "",
+      "gold_ids": [
+        "NCBIGene:12526"
+      ],
+      "predicted_id": "NCBIGene:12525",
+      "is_correct": false,
+      "confidence": 0.8,
+      "mapping_result": {
+        "label": "Cd8a",
+        "synonyms": [
+          "Ly-2",
+          "Ly-35",
+          "Ly-B",
+          "Lyt-2"
+        ],
+        "definition": "CD8 subunit alpha",
+        "relations_text": "",
+        "id": "NCBIGene:12525",
+        "selector_explanation": "Plausible. The user mention 'CD8' is commonly used to refer to the CD8 protein complex, which consists of CD8 alpha (Cd8a) and CD8 beta (Cd8b1) subunits. Cd8a is a primary component and a direct match to the 'CD8' abbreviation in many contexts. However, without further context, it is ambiguous whether the mention refers to the alpha subunit specifically, the beta subunit, or the complex as a whole.",
+        "confidence_score": 0.8,
+        "scorer_explanation": "High confidence match. The User Mention 'CD8' is a common abbreviation for the CD8 gene family. The Chosen Gene 'Cd8a' is a primary member of this family and is often referred to simply as CD8, especially in contexts where the alpha subunit is the dominant or implied component. The synonyms provided for Cd8a also support this direct association.",
+        "suggested_alternatives": []
+      },
+      "candidates": [
+        "NCBIGene:12525",
+        "NCBIGene:12526",
+        "NCBIGene:493037",
+        "NCBIGene:493038",
+        "NCBIGene:493039"
+      ]
+    },
+    {
+      "id": "12486105.4",
+      "query": "major histocompatibility complex (MHC) class I",
+      "context": "",
+      "gold_ids": [
+        "NCBIGene:14972"
+      ],
+      "predicted_id": "NCBIGene:547348",
+      "is_correct": false,
+      "confidence": 0.3,
+      "mapping_result": {
+        "label": "H2-T3-like",
+        "synonyms": [],
+        "definition": "MHC class I antigen",
+        "relations_text": "",
+        "id": "NCBIGene:547348",
+        "selector_explanation": "Plausible. The user mention 'major histocompatibility complex (MHC) class I' refers to a gene family or complex. Candidate 'H2-T3-like' (NCBIGene:547348) is defined as 'MHC class I antigen', a specific member of this class. Other candidates like Mr1, LOC547349, and LOC676689 also relate to MHC class I, but H2-T3-like is a more direct descriptor of 'MHC class I antigen'.",
+        "confidence_score": 0.3,
+        "scorer_explanation": "Low confidence. The User Mention 'major histocompatibility complex (MHC) class I' refers to a broad category of genes. The Chosen Gene 'H2-T3-like' is a specific gene within this category, but the mention does not specifically identify it. Therefore, it's a weak match as the mention could refer to many other MHC class I genes.",
+        "suggested_alternatives": [
+          "H2",
+          "Mr1",
+          "LOC547349"
+        ]
+      },
+      "candidates": [
+        "NCBIGene:111364",
+        "NCBIGene:15064",
+        "NCBIGene:547348",
+        "NCBIGene:547349",
+        "NCBIGene:16149"
+      ]
+    },
+    {
+      "id": "12486105.5",
+      "query": "DEC-205",
+      "context": "",
+      "gold_ids": [
+        "NCBIGene:17076"
+      ],
+      "predicted_id": "NCBIGene:17076",
+      "is_correct": true,
+      "confidence": 1.0,
+      "mapping_result": {
+        "label": "Ly75",
+        "synonyms": [
+          "CD205",
+          "DEC-205",
+          "DEC205"
+        ],
+        "definition": "lymphocyte antigen 75",
+        "relations_text": "",
+        "id": "NCBIGene:17076",
+        "selector_explanation": "High-Confidence: The user mention 'DEC-205' is a well-known alias and matches the synonym 'DEC-205' for the gene Ly75.",
+        "confidence_score": 1.0,
+        "scorer_explanation": "The user mention 'DEC-205' is an exact synonym for the chosen gene 'Ly75' according to the provided synonyms. This constitutes a direct and strong match.",
+        "suggested_alternatives": []
+      },
+      "candidates": [
+        "NCBIGene:387201",
+        "NCBIGene:70699",
+        "NCBIGene:171251",
+        "NCBIGene:235043",
+        "NCBIGene:226695"
+      ]
+    },
+    {
+      "id": "12486105.6",
+      "query": "Ovalbumin",
+      "context": "",
+      "gold_ids": [
+        "NCBIGene:396058"
+      ],
+      "predicted_id": "NCBIGene:244199",
+      "is_correct": false,
+      "confidence": 0.2,
+      "mapping_result": {
+        "label": "Ovch2",
+        "synonyms": [
+          "9230106D23Rik",
+          "Ovtn"
+        ],
+        "definition": "ovochymase 2",
+        "relations_text": "",
+        "id": "NCBIGene:244199",
+        "selector_explanation": "Plausible match. The user mention 'Ovt' is an abbreviation of the synonym 'Ovtn' for the gene Ovch2.",
+        "confidence_score": 0.2,
+        "scorer_explanation": "The user mention 'Ovalbumin' refers to a protein, a specific type of egg white protein, not a gene. While the chosen gene 'Ovch2' (ovochymase 2) has a similar-sounding name and might be related to egg white components in some organisms, it is not the gene that encodes ovalbumin itself. The primary gene for ovalbumin is typically named 'ovalbumin' or 'OVA'.",
+        "suggested_alternatives": [
+          "OVA",
+          "OVM",
+          "Ovum"
+        ]
+      },
+      "candidates": [
+        "NCBIGene:244199",
+        "NCBIGene:18375",
+        "NCBIGene:18260",
+        "NCBIGene:18287",
+        "NCBIGene:18256"
+      ]
+    },
+    {
+      "id": "12486105.7",
+      "query": "OVA",
+      "context": "",
+      "gold_ids": [
+        "NCBIGene:396058"
+      ],
+      "predicted_id": "NCBIGene:18788",
+      "is_correct": false,
+      "confidence": 0.9,
+      "mapping_result": {
+        "label": "Serpinb2",
+        "synonyms": [
+          "PAI-2",
+          "Planh2",
+          "ovalbumin"
+        ],
+        "definition": "serine (or cysteine) peptidase inhibitor, clade B, member 2",
+        "relations_text": "",
+        "id": "NCBIGene:18788",
+        "selector_explanation": "Plausible: The user mention 'Ovalbumin' refers to a specific protein. Several candidates are members of the 'serine (or cysteine) peptidase inhibitor, clade B (ovalbumin)' family, and 'ovalbumin' is listed as a synonym for Serpinb2 (NCBIGene:18788), Serpinb1c (NCBIGene:380839), Serpinb1b (NCBIGene:282663), Serpinb6b (NCBIGene:20708), Serpinb9e (NCBIGene:20710), Serpinb9d (NCBIGene:20726), Serpinb7 (NCBIGene:116872), and Serpinb6e (NCBIGene:435350). However, Serpinb2 is a commonly associated gene with ovalbumin due to historical nomenclature. Given the direct association and listing as a synonym, Serpinb2 is the most plausible match, though ambiguity exists as 'ovalbumin' itself is a protein, not a gene symbol.",
+        "confidence_score": 0.9,
+        "scorer_explanation": "Strong match. The user mention 'OVA' is a direct synonym for the chosen gene 'Serpinb2' (ovalbumin). This aligns with rule 3, where matching a synonym or symbol is strong evidence.",
+        "suggested_alternatives": []
+      },
+      "candidates": [
+        "NCBIGene:20248",
+        "NCBIGene:66957",
+        "NCBIGene:71869",
+        "NCBIGene:241196",
+        "NCBIGene:241197"
+      ]
+    },
+    {
+      "id": "12486105.8",
+      "query": "DEC-205",
+      "context": "",
+      "gold_ids": [
+        "NCBIGene:17076"
+      ],
+      "predicted_id": "NCBIGene:17076",
+      "is_correct": true,
+      "confidence": 1.0,
+      "mapping_result": {
+        "label": "Ly75",
+        "synonyms": [
+          "CD205",
+          "DEC-205",
+          "DEC205"
+        ],
+        "definition": "lymphocyte antigen 75",
+        "relations_text": "",
+        "id": "NCBIGene:17076",
+        "selector_explanation": "High-Confidence: The user mention 'DEC-205' is a well-known alias and matches the synonym 'DEC-205' for the gene Ly75.",
+        "confidence_score": 1.0,
+        "scorer_explanation": "The User Mention 'DEC-205' is explicitly listed as a synonym for the Chosen Gene 'Ly75' (NCBIGene:17076). This is a direct and unambiguous match.",
+        "suggested_alternatives": []
+      },
+      "candidates": [
+        "NCBIGene:387201",
+        "NCBIGene:70699",
+        "NCBIGene:171251",
+        "NCBIGene:235043",
+        "NCBIGene:226695"
+      ]
+    },
+    {
+      "id": "12486105.9",
+      "query": "CD11c",
+      "context": "",
+      "gold_ids": [
+        "NCBIGene:16411"
+      ],
+      "predicted_id": "NCBIGene:16411",
+      "is_correct": true,
+      "confidence": 1.0,
+      "mapping_result": {
+        "label": "Itgax",
+        "synonyms": [
+          "Cd11c",
+          "Cr4",
+          "N418"
+        ],
+        "definition": "integrin alpha X",
+        "relations_text": "",
+        "id": "NCBIGene:16411",
+        "selector_explanation": "Exact match. The user mention 'CD11c' matches the synonym 'Cd11c' for the gene Itgax (NCBIGene:16411).",
+        "confidence_score": 1.0,
+        "scorer_explanation": "Strong match. The user mention 'CD11c' is listed as a synonym for the chosen gene 'Itgax' (NCBIGene:16411).",
+        "suggested_alternatives": []
+      },
+      "candidates": [
+        "NCBIGene:16411",
+        "NCBIGene:72208",
+        "NCBIGene:16411",
+        "NCBIGene:387565",
+        "NCBIGene:100043125"
+      ]
+    },
+    {
+      "id": "12486105.10",
+      "query": "CD11c",
+      "context": "",
+      "gold_ids": [
+        "NCBIGene:16411"
+      ],
+      "predicted_id": "NCBIGene:16411",
+      "is_correct": true,
+      "confidence": 1.0,
+      "mapping_result": {
+        "label": "Itgax",
+        "synonyms": [
+          "Cd11c",
+          "Cr4",
+          "N418"
+        ],
+        "definition": "integrin alpha X",
+        "relations_text": "",
+        "id": "NCBIGene:16411",
+        "selector_explanation": "Exact match. The user mention 'CD11c' matches the synonym 'Cd11c' for the gene Itgax.",
+        "confidence_score": 1.0,
+        "scorer_explanation": "Direct match found. The user mention 'CD11c' is listed as a synonym for the chosen gene 'Itgax' (NCBIGene:16411). This is a strong match based on gene identity and synonym usage.",
+        "suggested_alternatives": []
+      },
+      "candidates": [
+        "NCBIGene:16411",
+        "NCBIGene:72208",
+        "NCBIGene:16411",
+        "NCBIGene:387565",
+        "NCBIGene:100043125"
+      ]
+    },
+    {
+      "id": "12486105.11",
+      "query": "OVA",
+      "context": "",
+      "gold_ids": [
+        "NCBIGene:396058"
+      ],
+      "predicted_id": "NCBIGene:246257",
+      "is_correct": false,
+      "confidence": 0.8,
+      "mapping_result": {
+        "label": "Ovca2",
+        "synonyms": [
+          "9030414M07Rik"
+        ],
+        "definition": "candidate tumor suppressor in ovarian cancer 2",
+        "relations_text": "",
+        "id": "NCBIGene:246257",
+        "selector_explanation": "Exact match. The user mention 'Ovca2' matches the gene symbol Ovca2 directly.",
+        "confidence_score": 0.8,
+        "scorer_explanation": "Strong match. The user mention 'OVA' is a common abbreviation for 'Ovolbumin', but in the context of biomedical text and given the 'Other Top Candidates' which include 'Ovca2' (candidate tumor suppressor in ovarian cancer 2), it is highly probable that 'OVA' refers to a gene or a disease-related entity. 'Ovca2' directly relates to ovarian cancer, a common interpretation of 'OVA' in a medical/biological context. While 'OVA' can also refer to Ovalbumin (a protein and allergen), the presence of ovarian cancer related genes in the candidates strongly suggests this interpretation.",
+        "suggested_alternatives": []
+      },
+      "candidates": [
+        "NCBIGene:246257",
+        "NCBIGene:244199",
+        "NCBIGene:18256",
+        "NCBIGene:246257",
+        "NCBIGene:107586"
+      ]
+    },
+    {
+      "id": "12486105.12",
+      "query": "CD4",
+      "context": "",
+      "gold_ids": [
+        "NCBIGene:12504"
+      ],
+      "predicted_id": "NCBIGene:12504",
+      "is_correct": true,
+      "confidence": 1.0,
+      "mapping_result": {
+        "label": "Cd4",
+        "synonyms": [
+          "L3T4",
+          "Ly-4"
+        ],
+        "definition": "CD4 antigen",
+        "relations_text": "",
+        "id": "NCBIGene:12504",
+        "selector_explanation": "Exact match. The user mention 'CD4' matches the gene symbol 'Cd4' exactly.",
+        "confidence_score": 1.0,
+        "scorer_explanation": "The User Mention 'CD4' is the official gene symbol for the Chosen Gene (Cd4). The definition 'CD4 antigen' further confirms the match.",
+        "suggested_alternatives": []
+      },
+      "candidates": [
+        "NCBIGene:12504",
+        "NCBIGene:492882",
+        "NCBIGene:492883",
+        "NCBIGene:492884",
+        "NCBIGene:492885"
+      ]
+    },
+    {
+      "id": "12486105.13",
+      "query": "CD8",
+      "context": "",
+      "gold_ids": [
+        "NCBIGene:12526"
+      ],
+      "predicted_id": "NCBIGene:12525",
+      "is_correct": false,
+      "confidence": 0.9,
+      "mapping_result": {
+        "label": "Cd8a",
+        "synonyms": [
+          "Ly-2",
+          "Ly-35",
+          "Ly-B",
+          "Lyt-2"
+        ],
+        "definition": "CD8 subunit alpha",
+        "relations_text": "",
+        "id": "NCBIGene:12525",
+        "selector_explanation": "Plausible. The user mention 'CD8' refers to the CD8 protein complex, which is typically composed of CD8 alpha and CD8 beta subunits. Candidate 'Cd8a' is a subunit of this complex. As 'CD8' can refer to either subunit or the complex itself, this is a plausible, but not certain, match.",
+        "confidence_score": 0.9,
+        "scorer_explanation": "High confidence match. 'CD8' is a commonly used abbreviation for the CD8 alpha chain, which is the gene symbol 'Cd8a'. While CD8 is a complex of alpha and beta chains, 'CD8' often refers primarily to the alpha chain in many contexts, and 'Cd8a' is the most direct match among the candidates.",
+        "suggested_alternatives": []
+      },
+      "candidates": [
+        "NCBIGene:12525",
+        "NCBIGene:12526",
+        "NCBIGene:493037",
+        "NCBIGene:493038",
+        "NCBIGene:493039"
+      ]
+    },
+    {
+      "id": "12486105.14",
+      "query": "OVA",
+      "context": "",
+      "gold_ids": [
+        "NCBIGene:396058"
+      ],
+      "predicted_id": "NCBIGene:20248",
+      "is_correct": false,
+      "confidence": 0.8,
+      "mapping_result": {
+        "label": "Serpinb3a",
+        "synonyms": [
+          "1110001H02Rik",
+          "1110013A16Rik",
+          "Scca2",
+          "Serpinb4",
+          "Sqn5"
+        ],
+        "definition": "serine (or cysteine) peptidase inhibitor, clade B (ovalbumin), member 3A",
+        "relations_text": "",
+        "id": "NCBIGene:20248",
+        "selector_explanation": "The user mention 'OVALBUMIN' is the protein product of the gene Serpinb3a (NCBIGene:20248), which is defined as 'serine (or cysteine) peptidase inhibitor, clade B (ovalbumin), member 3A'. This fits the rubric level 0.7 (Strong) as the mention describes the protein product of the gene.",
+        "confidence_score": 0.8,
+        "scorer_explanation": "The user mention 'OVA' is a synonym for ovalbumin, and the chosen gene 'Serpinb3a' has 'ovalbumin' in its definition and is part of the 'ovalbumin' clade. This direct semantic link strongly supports the match.",
+        "suggested_alternatives": []
+      },
+      "candidates": [
+        "NCBIGene:20248",
+        "NCBIGene:66957",
+        "NCBIGene:71869",
+        "NCBIGene:241196",
+        "NCBIGene:241197"
+      ]
+    },
+    {
+      "id": "12486105.15",
+      "query": "MHC class I",
+      "context": "",
+      "gold_ids": [
+        "NCBIGene:14972"
+      ],
+      "predicted_id": "NCBIGene:14972",
+      "is_correct": true,
+      "confidence": 0.4,
+      "mapping_result": {
+        "label": "H2-K1",
+        "synonyms": [
+          "H-2K",
+          "H-2K(d)",
+          "H2-D1",
+          "H2-K",
+          "K-f"
+        ],
+        "definition": "histocompatibility 2, K1, K region",
+        "relations_text": "",
+        "id": "NCBIGene:14972",
+        "selector_explanation": "Exact match. The user mention 'H2-K1' matches the gene label 'H2-K1' and is also listed as a synonym for candidate genes NCBIGene:14964, NCBIGene:14963, NCBIGene:15013, NCBIGene:15007, NCBIGene:110557, NCBIGene:630499, and NCBIGene:547349. However, the primary label match for 'H2-K1' is NCBIGene:14972.",
+        "confidence_score": 0.4,
+        "scorer_explanation": "The user mention 'MHC class I' refers to a broad category of genes, not a specific gene. The chosen gene, H2-K1, is a member of the MHC class I family, but the mention does not uniquely identify it. Other MHC class I genes are also strong candidates within this category.",
+        "suggested_alternatives": [
+          "H2-D1",
+          "H2-L",
+          "B2m"
+        ]
+      },
+      "candidates": [
+        "NCBIGene:14972",
+        "NCBIGene:111861",
+        "NCBIGene:110131",
+        "NCBIGene:110151",
+        "NCBIGene:14964"
+      ]
+    },
+    {
+      "id": "12486105.16",
+      "query": "transporter of antigenic peptides",
+      "context": "",
+      "gold_ids": [
+        "NCBIGene:21354"
+      ],
+      "predicted_id": "NCBIGene:21354",
+      "is_correct": true,
+      "confidence": 0.8,
+      "mapping_result": {
+        "label": "Tap1",
+        "synonyms": [
+          "ABC17",
+          "APT1",
+          "Abcb2",
+          "Ham-1",
+          "Ham1",
+          "MTP1",
+          "PSF1",
+          "RING4",
+          "TAP",
+          "Tap-1",
+          "Y3"
+        ],
+        "definition": "transporter 1, ATP-binding cassette, sub-family B (MDR/TAP)",
+        "relations_text": "",
+        "id": "NCBIGene:21354",
+        "selector_explanation": "Exact match. The user mention 'Tap1' matches the gene symbol Tap1 directly.",
+        "confidence_score": 0.8,
+        "scorer_explanation": "The user mention 'transporter of antigenic peptides' directly describes the function of the TAP (transporter of antigenic peptide) family of genes. The chosen gene, Tap1 (NCBIGene:21354), is a key member of this family, with 'TAP' being a direct synonym. The definition further confirms its role as a transporter. While 'transporter of antigenic peptides' could potentially refer to Tap2 as well, Tap1 is a very strong candidate given the direct functional and synonymous match.",
+        "suggested_alternatives": []
+      },
+      "candidates": [
+        "NCBIGene:21354",
+        "NCBIGene:21356",
+        "NCBIGene:213233",
+        "NCBIGene:12520",
+        "NCBIGene:21840"
+      ]
+    },
+    {
+      "id": "12486105.17",
+      "query": "TAP",
+      "context": "",
+      "gold_ids": [
+        "NCBIGene:21354"
+      ],
+      "predicted_id": "NCBIGene:21354",
+      "is_correct": true,
+      "confidence": 0.8,
+      "mapping_result": {
+        "label": "Tap1",
+        "synonyms": [
+          "ABC17",
+          "APT1",
+          "Abcb2",
+          "Ham-1",
+          "Ham1",
+          "MTP1",
+          "PSF1",
+          "RING4",
+          "TAP",
+          "Tap-1",
+          "Y3"
+        ],
+        "definition": "transporter 1, ATP-binding cassette, sub-family B (MDR/TAP)",
+        "relations_text": "",
+        "id": "NCBIGene:21354",
+        "selector_explanation": "Exact match. The user mention 'TAP' is listed as a synonym for the gene Tap1.",
+        "confidence_score": 0.8,
+        "scorer_explanation": "Strong match. The User Mention 'TAP' is a direct synonym for the Chosen Gene 'Tap1' according to the provided synonym list. The definition also supports this, indicating 'TAP' is part of the gene's full name (e.g., MDR/TAP).",
+        "suggested_alternatives": []
+      },
+      "candidates": [
+        "NCBIGene:21356",
+        "NCBIGene:213233",
+        "NCBIGene:21354",
+        "NCBIGene:21355",
+        "NCBIGene:103655"
+      ]
+    },
+    {
+      "id": "12486105.18",
+      "query": "DEC-205",
+      "context": "",
+      "gold_ids": [
+        "NCBIGene:17076"
+      ],
+      "predicted_id": "NCBIGene:17076",
+      "is_correct": true,
+      "confidence": 1.0,
+      "mapping_result": {
+        "label": "Ly75",
+        "synonyms": [
+          "CD205",
+          "DEC-205",
+          "DEC205"
+        ],
+        "definition": "lymphocyte antigen 75",
+        "relations_text": "",
+        "id": "NCBIGene:17076",
+        "selector_explanation": "High-Confidence: The user mention 'DEC-205' is listed as a synonym for the gene Ly75.",
+        "confidence_score": 1.0,
+        "scorer_explanation": "The user mention 'DEC-205' is directly listed as a synonym for the chosen gene Ly75 (NCBIGene:17076). This is a strong and direct match based on the provided synonym information.",
+        "suggested_alternatives": []
+      },
+      "candidates": [
+        "NCBIGene:387201",
+        "NCBIGene:70699",
+        "NCBIGene:171251",
+        "NCBIGene:235043",
+        "NCBIGene:226695"
+      ]
+    },
+    {
+      "id": "12486105.19",
+      "query": "OVA",
+      "context": "",
+      "gold_ids": [
+        "NCBIGene:396058"
+      ],
+      "predicted_id": "NCBIGene:246257",
+      "is_correct": false,
+      "confidence": 0.9,
+      "mapping_result": {
+        "label": "Ovca2",
+        "synonyms": [
+          "9030414M07Rik"
+        ],
+        "definition": "candidate tumor suppressor in ovarian cancer 2",
+        "relations_text": "",
+        "id": "NCBIGene:246257",
+        "selector_explanation": "Exact match. The user mention 'Ovca2' matches the gene symbol Ovca2 directly.",
+        "confidence_score": 0.9,
+        "scorer_explanation": "Strong match. The User Mention 'OVA' is a common abbreviation and likely refers to the gene 'Ovca2' (candidate tumor suppressor in ovarian cancer 2), especially given the context of ovarian cancer provided in the gene definition. While OVA can also stand for Ovalbumin, 'Ovca2' is a plausible gene entity given the provided information and the context implied by 'ovarian cancer'.",
+        "suggested_alternatives": []
+      },
+      "candidates": [
+        "NCBIGene:246257",
+        "NCBIGene:244199",
+        "NCBIGene:18256",
+        "NCBIGene:246257",
+        "NCBIGene:107586"
+      ]
+    },
+    {
+      "id": "12486105.20",
+      "query": "OVA",
+      "context": "",
+      "gold_ids": [
+        "NCBIGene:396058"
+      ],
+      "predicted_id": "NCBIGene:109599",
+      "is_correct": false,
+      "confidence": 0.3,
+      "mapping_result": {
+        "label": "Om",
+        "synonyms": [],
+        "definition": "ovum mutant",
+        "relations_text": "",
+        "id": "NCBIGene:109599",
+        "selector_explanation": "Plausible. The user mention 'OVA' could refer to 'ovum mutant', and NCBIGene:109599 (Om) is a specific member of this general category. The ambiguity arises because 'OVA' is not a direct match to any symbol or synonym.",
+        "confidence_score": 0.3,
+        "scorer_explanation": "Weak match. The user mention 'OVA' is a very common abbreviation in biology, often referring to Ovalbumin, a protein, or an ovarian tumor. The chosen gene 'Om' (ovum mutant) is a plausible match for 'OVA' in a specific genetic context, but the abbreviation is not unique to this gene and lacks specific context within the mention. Without further context, it's difficult to be certain.",
+        "suggested_alternatives": [
+          "Oe",
+          "Ocln",
+          "Ovch2"
+        ]
+      },
+      "candidates": [
+        "NCBIGene:244199",
+        "NCBIGene:18287",
+        "NCBIGene:18260",
+        "NCBIGene:13130",
+        "NCBIGene:109599"
+      ]
+    }
+  ]
+}
