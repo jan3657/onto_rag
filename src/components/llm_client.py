@@ -11,13 +11,14 @@ class GeminiClient(LLMClient):
     def __init__(self, api_key: str, timeout_ms: int = 60000):
         self.client = genai.Client(api_key=api_key, http_options=HttpOptions(timeout=timeout_ms))
 
-    async def generate_json(self, prompt: str, *, model: str, timeout_seconds: float = 90.0) -> Tuple[Optional[str], Optional[Dict[str, int]]]:
+    async def generate_json(self, prompt: str, *, model: str, timeout_seconds: float = 90.0, json_schema: dict = None) -> Tuple[Optional[str], Optional[Dict[str, int]]]:
         """Call Gemini with light retry/backoff on 429 quota errors.
         
         Args:
             prompt: The prompt to send
             model: Model name to use
             timeout_seconds: Maximum time for entire operation including retries
+            json_schema: Ignored for Gemini (structured output not supported this way)
         """
         attempts = 5
         backoff = 2.0

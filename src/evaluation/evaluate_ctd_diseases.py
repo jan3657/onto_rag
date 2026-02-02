@@ -16,6 +16,7 @@ import asyncio
 import gzip
 import json
 import logging
+import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -72,8 +73,7 @@ config.SYNONYM_PROMPT_TEMPLATE_PATH = PROJECT_ROOT / "prompts" / "disease_synony
 # Dataset paths
 DATASET_DIR = DATA_DIR / "datasets" / "ncbi_disease"
 INPUT_FILE = DATASET_DIR / "test.jsonl.gz"
-OUTPUT_FILE = ONTOLOGY_DIR / "results.json"
-CACHE_PATH = ONTOLOGY_DIR / "cache.json"
+# OUTPUT_FILE and CACHE_PATH are now dynamic based on model - see main()
 
 # ============================================================
 # LOGGING SETUP
@@ -179,34 +179,43 @@ def load_dataset(input_path: Path, limit: Optional[int] = None) -> List[Dict[str
 
 async def evaluate_item(pipeline, item, semaphore, cache):
     """Evaluate single item."""
+    start_time = time.perf_counter()
     try:
         query = item["query"]
         gold_ids = set(item["gold_ids"])
         
         # Check cache
-        if query in cache:
-            result = cache[query]
+        cache_key = query
+        from_cache = False
+        
+        if cache_key in cache:
+            result = cache[cache_key]
+            from_cache = True
+            retrieval_meta = None
         else:
-            result, candidates = await pipeline.run(
+            result, candidates, retrieval_meta = await pipeline.run(
                 query=query,
                 context="",
                 semaphore=semaphore,
                 target_ontologies=[ONTOLOGY_KEY],
+                gold_ids=gold_ids,
             )
             # Only cache high-confidence results
             if result and isinstance(result, dict):
                 conf = result.get('confidence_score', 0)
                 if conf and conf >= config.CONFIDENCE_THRESHOLD:
-                    cache[query] = (result, candidates)
-            result = (result, candidates)
+                    cache[cache_key] = (result, candidates, retrieval_meta)
+            result = (result, candidates, retrieval_meta)
             
         # Unpack - handle tuple (from runtime) or list (from JSON cache)
         if isinstance(result, (tuple, list)):
             mapping_result = result[0]
             candidates = result[1] if len(result) > 1 else []
+            retrieval_meta = result[2] if len(result) > 2 else None
         else:
             mapping_result = result
             candidates = []
+            retrieval_meta = None
         
         # Robustness: if mapping_result is a list (rare LLM output edge case), take first item
         if isinstance(mapping_result, list):
@@ -219,6 +228,9 @@ async def evaluate_item(pipeline, item, semaphore, cache):
         
         # Correctness check (exact string match for now)
         is_correct = pred_id in gold_ids if pred_id else False
+        elapsed_time = time.perf_counter() - start_time
+        candidate_ids = [c.get("id") for c in candidates[:10]] if candidates else []
+        gold_in_candidates = bool(gold_ids & set(candidate_ids)) if candidate_ids else False
         
         return {
             "query": query,
@@ -226,14 +238,24 @@ async def evaluate_item(pipeline, item, semaphore, cache):
             "predicted_id": pred_id,
             "is_correct": is_correct,
             "confidence": mapping_result.get("confidence_score") if isinstance(mapping_result, dict) else None,
-            "candidate_labels": [c.get("label") for c in candidates[:3]] if candidates else []
+            "candidate_labels": [c.get("label") for c in candidates[:3]] if candidates else [],
+            "gold_in_candidates": gold_in_candidates,
+            "gold_first_found_at_attempt": retrieval_meta.get("gold_first_found_at") if retrieval_meta else None,
+            "total_retrieval_attempts": retrieval_meta.get("total_attempts", 1) if retrieval_meta else 1,
+            "time_seconds": round(elapsed_time, 3),
+            "from_cache": from_cache,
         }
     except Exception as e:
+        elapsed_time = time.perf_counter() - start_time
         logger.error(f"Error evaluating item '{item.get('query')}': {e}", exc_info=True)
         return {
             "query": item.get("query", "unknown"),
             "is_correct": False,
-            "error": str(e)
+            "error": str(e),
+            "gold_first_found_at_attempt": None,
+            "total_retrieval_attempts": 0,
+            "time_seconds": round(elapsed_time, 3),
+            "from_cache": False,
         }
 
 async def main():
@@ -242,8 +264,14 @@ async def main():
     parser.add_argument("--ingest-limit", type=int)
     parser.add_argument("--limit", type=int)
     parser.add_argument("--no-cache", action="store_true")
-    parser.add_argument("--debug", action="store_true", help="Enable DEBUG logging for deep traceability")
+    parser.add_argument("--debug", action="store_true", help="Enable DEBUG logging")
+    parser.add_argument("--provider", type=str, default=config.PIPELINE,
+                        choices=["gemini", "vllm", "ollama"],
+                        help="LLM provider to use (default: from config.PIPELINE)")
     args = parser.parse_args()
+    
+    # Update config.PIPELINE to match CLI arg (affects logging and model naming)
+    config.PIPELINE = args.provider
     
     # Setup logging with appropriate level
     config.LOG_LEVEL = "DEBUG" if args.debug else "INFO"
@@ -255,20 +283,28 @@ async def main():
         return
         
     # Evaluation
-    print(f"\n{'='*60}\nEVALUATING: CTD Diseases\n{'='*60}")
+    print(f"\n{'='*60}\nEVALUATING: CTD Diseases ({args.provider})\n{'='*60}")
     
-    cache = load_cache(CACHE_PATH) if not args.no_cache and CACHE_PATH.exists() else {}
+    # Build dynamic paths based on MODEL for separate results per model
+    from src.utils.model_utils import get_model_file_suffix
+    model_suffix = get_model_file_suffix()
+    output_file = ONTOLOGY_DIR / f"results_{model_suffix}.json"
+    cache_path = ONTOLOGY_DIR / f"cache_{model_suffix}.json"
+    
+    cache = load_cache(cache_path) if not args.no_cache and cache_path.exists() else {}
     items = load_dataset(INPUT_FILE, limit=args.limit)
     
-    pipeline = create_pipeline(config.PIPELINE)
+    pipeline = create_pipeline(args.provider)
     semaphore = asyncio.Semaphore(config.MAX_CONCURRENT_REQUESTS)
     
     try:
+        start_eval_time = time.perf_counter()
         tasks = [evaluate_item(pipeline, i, semaphore, cache) for i in items]
         
         # Use asyncio.gather with return_exceptions (tqdm.asyncio.gather doesn't support it)
         print(f"Evaluating {len(tasks)} items...")
         results = await asyncio.gather(*tasks, return_exceptions=True)
+        wall_clock_time = time.perf_counter() - start_eval_time
         
         # Filter out exceptions and log them
         valid_results = []
@@ -279,10 +315,59 @@ async def main():
                 valid_results.append(r)
         results = valid_results
         
-        # Calculate metrics
+        # Calculate detailed metrics
         total = len(results)
         correct = sum(1 for r in results if r["is_correct"])
         accuracy = correct / total if total > 0 else 0.0
+
+        # Timing metrics
+        # 'time_seconds' from evaluating an item includes semaphore wait time + processing time.
+        # This is effectively "Latency" from the task's perspective.
+        individual_times = [r.get("time_seconds", 0) for r in results if not r.get("from_cache")]
+        avg_latency = sum(individual_times) / len(individual_times) if individual_times else 0.0
+        
+        # Throughput: Items processed per second (wall clock)
+        items_per_second = total / wall_clock_time if wall_clock_time > 0 else 0.0
+
+        # Retrieval metrics
+        retrieval_success = sum(1 for r in results if r.get("gold_in_candidates"))
+        retrieval_rate = retrieval_success / total if total > 0 else 0.0
+
+        # Confidence metrics
+        confidences = [r.get("confidence") for r in results if r.get("confidence") is not None]
+        avg_confidence = sum(confidences) / len(confidences) if confidences else 0.0
+        high_conf_count = sum(1 for c in confidences if c >= config.CONFIDENCE_THRESHOLD)
+        high_conf_results = [r for r in results if (r.get("confidence") or 0) >= config.CONFIDENCE_THRESHOLD]
+        high_conf_correct = sum(1 for r in high_conf_results if r["is_correct"])
+        high_conf_precision = high_conf_correct / len(high_conf_results) if high_conf_results else 0.0
+
+        # Error counts
+        error_count = sum(1 for r in results if r.get("error"))
+        no_prediction_count = sum(1 for r in results if r.get("predicted_id") is None and not r.get("error"))
+        cache_hits = sum(1 for r in results if r.get("from_cache"))
+
+        metrics = {
+            "total": total,
+            "correct": correct,
+            "accuracy": accuracy,
+            "total_time_seconds": round(wall_clock_time, 2),
+            "items_per_second": round(items_per_second, 2),
+            "avg_latency_seconds": round(avg_latency, 3),
+            "concurrent_requests": config.MAX_CONCURRENT_REQUESTS,
+            "retrieval_success_count": retrieval_success,
+            "retrieval_success_rate": round(retrieval_rate, 4),
+            **{f"retrieval_success_rate@{k}": round(
+                sum(1 for r in results 
+                    if r.get("gold_first_found_at_attempt") is not None 
+                    and r.get("gold_first_found_at_attempt") <= k) / total, 4
+            ) if total > 0 else 0.0 for k in range(1, config.MAX_PIPELINE_LOOPS + 1)},
+            "avg_confidence": round(avg_confidence, 4),
+            "high_confidence_count": high_conf_count,
+            "high_confidence_precision": round(high_conf_precision, 4),
+            "error_count": error_count,
+            "no_prediction_count": no_prediction_count,
+            "cache_hits": cache_hits
+        }
 
         print(f"\n{'='*60}")
         print("RESULTS")
@@ -297,20 +382,20 @@ async def main():
              print(f"{'✅' if r['is_correct'] else '❌'} '{r['query']}' → {r['predicted_id']} (Gold: {r['gold_ids']})")
              
         # Save
-        OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
-        with OUTPUT_FILE.open("w") as f:
+        output_file.parent.mkdir(parents=True, exist_ok=True)
+        with output_file.open("w") as f:
             json.dump({
-                "metrics": {"total": total, "correct": correct, "accuracy": accuracy},
+                "metrics": metrics,
                 "results": results
             }, f, indent=2)
             
-        print(f"\nResults saved to: {OUTPUT_FILE}")
+        print(f"\nResults saved to: {output_file}")
             
     finally:
         if 'pipeline' in locals() and pipeline:
             pipeline.close()
         if not args.no_cache:
-            save_cache(CACHE_PATH, cache)
+            save_cache(cache_path, cache)
         
         logging.shutdown()
 

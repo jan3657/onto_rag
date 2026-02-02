@@ -2,22 +2,33 @@ import logging
 import json
 from typing import List, Dict, Any, Optional
 
+from src.interfaces import LLMClient
 from src.components.llm_client import GeminiClient
 from src import config
 from src.utils.token_tracker import token_tracker
 from src.utils.tracing import trace_log
+from src.utils.response_parsing import clean_llm_json_response
+from src.utils.json_schemas import SCORER_SCHEMA
 
 logger = logging.getLogger(__name__)
 
 class ConfidenceScorer:
-    """Uses Google Gemini to assess the confidence of an ontology mapping."""
+    """Uses an LLM to assess the confidence of an ontology mapping."""
 
-    def __init__(self):
-        self.model_name = config.GEMINI_SCORER_MODEL_NAME
+    def __init__(
+        self,
+        llm_client: Optional[LLMClient] = None,
+        model_name: Optional[str] = None,
+    ):
+        self.model_name = model_name or config.GEMINI_SCORER_MODEL_NAME
         
-        if not config.GEMINI_API_KEY:
-            raise ValueError("GEMINI_API_KEY not found in environment variables.")
-        self.client = GeminiClient(api_key=config.GEMINI_API_KEY)
+        if llm_client:
+            self.client = llm_client
+        else:
+            # Fallback to Gemini for backwards compatibility
+            if not config.GEMINI_API_KEY:
+                raise ValueError("GEMINI_API_KEY not found in environment variables.")
+            self.client = GeminiClient(api_key=config.GEMINI_API_KEY)
         
         self.prompt_template = self._load_prompt_template()
         self.last_prompt: str = ""
@@ -51,7 +62,7 @@ class ConfidenceScorer:
     
     def _parse_response(self, response_text: str) -> Optional[Dict[str, Any]]:
         try:
-            cleaned_response = response_text.strip().lstrip("```json").rstrip("```").strip()
+            cleaned_response = clean_llm_json_response(response_text)
             result = json.loads(cleaned_response)
 
             if 'confidence_score' not in result and 'explanation' not in result:
@@ -104,7 +115,9 @@ class ConfidenceScorer:
                       chosen_id=chosen_term_details.get('id'),
                       prompt_length=len(prompt))
 
-        response_text, token_usage = await self.client.generate_json(prompt, model=self.model_name)
+        response_text, token_usage = await self.client.generate_json(
+            prompt, model=self.model_name, json_schema=SCORER_SCHEMA
+        )
         self.last_raw_response = response_text or ""
 
         if token_usage:

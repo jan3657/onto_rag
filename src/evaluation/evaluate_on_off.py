@@ -35,7 +35,7 @@ PRODUCT_LIMIT = 10 # Increased for a better demo
 # --- Paths Configuration (using pathlib) ---
 DATA_DIR = PROJECT_ROOT / 'data' / 'outputs'
 INPUT_FILE = DATA_DIR / 'parsed_ingredients_output.json'
-OUTPUT_FILE = DATA_DIR / 'mapped_ingredients_output_10_samples.json'
+# OUTPUT_FILE is now dynamic based on model - see main()
 
 
 # --- Setup Logging ---
@@ -75,24 +75,40 @@ async def main():
         action="store_true",
         help="Enable DEBUG logging for deep traceability",
     )
+    parser.add_argument(
+        "--provider",
+        type=str,
+        default=config.PIPELINE,
+        choices=["gemini", "vllm", "ollama"],
+        help="LLM provider to use (default: from config.PIPELINE)",
+    )
     # parse_known_args to ignore unrelated args
     args, _ = parser.parse_known_args()
     no_cache = bool(args.no_cache)
+    
+    # Update config.PIPELINE to match CLI arg (affects logging and model naming)
+    config.PIPELINE = args.provider
     
     # Setup logging with appropriate level
     config.LOG_LEVEL = "DEBUG" if args.debug else "INFO"
     setup_run_logging("run_on_off")
 
     logger.info("Starting BATCH ontology mapping process...")
-    logger.info(f"Using pipeline: {config.PIPELINE}")
+    logger.info(f"Using provider: {args.provider}")
     if no_cache:
         logger.warning("Cache disabled: ignoring cache and not persisting it.")
+    
+    # Build dynamic paths based on MODEL for separate results per model
+    from src.utils.model_utils import get_model_file_suffix
+    model_suffix = get_model_file_suffix()
+    output_file = DATA_DIR / f'mapped_ingredients_{model_suffix}.json'
+    cache_path = DATA_DIR / f'cache_{model_suffix}.json'
 
-    OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
+    output_file.parent.mkdir(parents=True, exist_ok=True)
 
     pipeline = None
     # --- Load the cache (unless disabled) ---
-    cache = {} if no_cache else load_cache(config.PIPELINE_CACHE_PATH)
+    cache = {} if no_cache else (load_cache(cache_path) if cache_path.exists() else {})
     # -----------------------------------------
     try:
         # --- 1. Load Input Data ---
@@ -107,7 +123,7 @@ async def main():
 
         # --- 2. Initialize RAG Pipeline ---
         logger.info("Initializing RAG pipeline...")
-        pipeline = create_pipeline(config.PIPELINE)
+        pipeline = create_pipeline(args.provider)
         logger.info("RAG pipeline initialized successfully.")
 
         # --- 3. Process Ingredients Concurrently ---
@@ -135,8 +151,8 @@ async def main():
                 all_mappings[product_id] = product_result
 
         # --- 4. Save Results ---
-        logger.info(f"Saving mapped results to: {OUTPUT_FILE}")
-        with OUTPUT_FILE.open('w', encoding='utf-8') as f:
+        logger.info(f"Saving mapped results to: {output_file}")
+        with output_file.open('w', encoding='utf-8') as f:
             json.dump(all_mappings, f, indent=4)
 
         logger.info("Mapping process completed successfully!")
@@ -150,7 +166,7 @@ async def main():
             pipeline.close()
         # Save the updated cache at the end (unless disabled)
         if not no_cache:
-            save_cache(config.PIPELINE_CACHE_PATH, cache)
+            save_cache(cache_path, cache)
         # --------------------------------------------
 
 async def process_single_product(pipeline, product_id, product_data, semaphore, cache, no_cache: bool = False):

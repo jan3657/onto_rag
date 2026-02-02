@@ -75,10 +75,7 @@ config.RESTRICT_TARGET_ONTOLOGIES = [ONTOLOGY_KEY]
 
 # Dataset-specific paths
 INPUT_FILE = DATA_DIR / f"{ONTOLOGY_KEY}_dataset.json"
-OUTPUT_FILE = DATA_DIR / "outputs" / f"results_{ONTOLOGY_KEY}.json"
-
-# Cache path for this evaluation
-CACHE_PATH = DATA_DIR / f"cache_{ONTOLOGY_KEY}.json"
+# OUTPUT_FILE and CACHE_PATH are now dynamic based on model - see main()
 
 # ============================================================
 # LOGGING SETUP
@@ -257,8 +254,18 @@ async def main() -> None:
         action="store_true",
         help="Enable DEBUG logging for deep traceability",
     )
+    parser.add_argument(
+        "--provider",
+        type=str,
+        default=config.PIPELINE,
+        choices=["gemini", "vllm", "ollama"],
+        help="LLM provider to use (default: from config.PIPELINE)",
+    )
     
     args = parser.parse_args()
+    
+    # Update config.PIPELINE to match CLI arg (affects logging and model naming)
+    config.PIPELINE = args.provider
     
     # Setup logging with appropriate level
     config.LOG_LEVEL = "DEBUG" if args.debug else "INFO"
@@ -273,14 +280,19 @@ async def main() -> None:
     # --- EVALUATION MODE ---
     
     print(f"\n{'='*60}")
-    print(f"EVALUATING: {ONTOLOGY_KEY}")
-    print(f"Pipeline: {config.PIPELINE}")
+    print(f"EVALUATING: {ONTOLOGY_KEY} ({args.provider})")
     print(f"{'='*60}\n")
+    
+    # Build dynamic paths based on MODEL for separate results per model
+    from src.utils.model_utils import get_model_file_suffix
+    model_suffix = get_model_file_suffix()
+    output_file = DATA_DIR / "outputs" / f"results_{ONTOLOGY_KEY}_{model_suffix}.json"
+    cache_path = DATA_DIR / f"cache_{ONTOLOGY_KEY}_{model_suffix}.json"
     
     # Load cache
     cache: Dict[str, Any] = {}
-    if not args.no_cache and CACHE_PATH.exists():
-        cache = load_cache(CACHE_PATH)
+    if not args.no_cache and cache_path.exists():
+        cache = load_cache(cache_path)
         logger.info(f"Loaded {len(cache)} cached results")
     
     pipeline = None
@@ -290,7 +302,7 @@ async def main() -> None:
         
         # Initialize pipeline
         logger.info("Initializing RAG pipeline...")
-        pipeline = create_pipeline(config.PIPELINE)
+        pipeline = create_pipeline(args.provider)
         
         # Setup concurrency
         max_conc = args.max_concurrency or config.MAX_CONCURRENT_REQUESTS
@@ -316,13 +328,13 @@ async def main() -> None:
         results = valid_results
         
         # Save results
-        OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
-        with OUTPUT_FILE.open("w", encoding="utf-8") as f:
+        output_file.parent.mkdir(parents=True, exist_ok=True)
+        with output_file.open("w", encoding="utf-8") as f:
             json.dump(results, f, indent=2, ensure_ascii=False)
         
         print(f"\n✅ Evaluation complete!")
         print(f"   Processed: {len(results)} items")
-        print(f"   Results saved to: {OUTPUT_FILE}")
+        print(f"   Results saved to: {output_file}")
         
     except FileNotFoundError as e:
         logger.error(str(e))
@@ -340,7 +352,7 @@ async def main() -> None:
         if pipeline:
             pipeline.close()
         if not args.no_cache:
-            save_cache(CACHE_PATH, cache)
+            save_cache(cache_path, cache)
             logger.info(f"Saved {len(cache)} cached results")
 
 

@@ -1,23 +1,34 @@
 import logging
 import json
-from typing import List
+from typing import List, Optional
 
+from src.interfaces import LLMClient
 from src.components.llm_client import GeminiClient
 from src import config
 from src.utils.token_tracker import token_tracker
 from src.utils.tracing import trace_log
+from src.utils.response_parsing import clean_llm_json_response
+from src.utils.json_schemas import SYNONYM_SCHEMA
 
 logger = logging.getLogger(__name__)
 
 class SynonymGenerator:
-    """Uses Google Gemini to generate synonyms for a query."""
+    """Uses an LLM to generate synonyms for a query."""
 
-    def __init__(self):
-        self.model_name = config.GEMINI_SYNONYM_MODEL_NAME
+    def __init__(
+        self,
+        llm_client: Optional[LLMClient] = None,
+        model_name: Optional[str] = None,
+    ):
+        self.model_name = model_name or config.GEMINI_SYNONYM_MODEL_NAME
         
-        if not config.GEMINI_API_KEY:
-            raise ValueError("GEMINI_API_KEY not found in environment variables.")
-        self.client = GeminiClient(api_key=config.GEMINI_API_KEY)
+        if llm_client:
+            self.client = llm_client
+        else:
+            # Fallback to Gemini for backwards compatibility
+            if not config.GEMINI_API_KEY:
+                raise ValueError("GEMINI_API_KEY not found in environment variables.")
+            self.client = GeminiClient(api_key=config.GEMINI_API_KEY)
         
         self.prompt_template = self._load_prompt_template()
         self.last_prompt: str = ""
@@ -35,7 +46,7 @@ class SynonymGenerator:
 
     def _parse_response(self, response_text: str) -> List[str]:
         try:
-            cleaned_response = response_text.strip().lstrip("```json").rstrip("```").strip()
+            cleaned_response = clean_llm_json_response(response_text)
             result = json.loads(cleaned_response)
             synonyms = result.get("synonyms", [])
             if isinstance(synonyms, list):
@@ -64,7 +75,9 @@ class SynonymGenerator:
                       context_length=len(context),
                       feedback_length=len(feedback))
 
-        response_text, token_usage = await self.client.generate_json(prompt, model=self.model_name)
+        response_text, token_usage = await self.client.generate_json(
+            prompt, model=self.model_name, json_schema=SYNONYM_SCHEMA
+        )
         self.last_raw_response = response_text or ""
         
         if token_usage:

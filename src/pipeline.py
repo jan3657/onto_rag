@@ -36,12 +36,16 @@ class RAGPipeline:
             vector_k: int = config.DEFAULT_K_VECTOR,
             target_ontologies: Optional[List[str]] = None,
             semaphore: Optional[asyncio.Semaphore] = None,
-    ) -> Optional[tuple[Dict[str, Any], List[Dict[str, Any]]]]:
+            gold_ids: Optional[set] = None,
+    ) -> Optional[tuple[Dict[str, Any], List[Dict[str, Any]], Dict[str, Any]]]:
         """
         Run the RAG pipeline with full traceability.
         
+        Args:
+            gold_ids: Optional set of gold IDs for tracking retrieval success per attempt.
+        
         Returns:
-            Tuple of (best_result, candidates) or None
+            Tuple of (best_result, candidates, retrieval_meta) or None
         """
         # Generate unique trace ID for this query
         trace_id = generate_trace_id()
@@ -57,6 +61,7 @@ class RAGPipeline:
             best_candidates_so_far: list[dict] = []
             attempt_index = 0
             last_feedback = ""
+            retrieval_history = []  # Track retrieval success at each attempt
 
             while queries_to_try and attempt_index < config.MAX_PIPELINE_LOOPS:
                 current_query = queries_to_try.pop(0)
@@ -73,20 +78,42 @@ class RAGPipeline:
                 trace_log("retrieval_start", trace_id, query, current_query, attempt_index)
                 
                 effective_targets = target_ontologies if target_ontologies is not None else getattr(config, "RESTRICT_TARGET_ONTOLOGIES", None)
-                retriever_output = self.retriever.search(
-                    current_query,
-                    lexical_limit=lexical_k,
-                    vector_k=vector_k,
-                    target_ontologies=effective_targets,
-                    trace_id=trace_id,
-                )
-                
+                try:
+                    # Add timeout for retrieval to prevent hanging on corrupted index queries
+                    # Whoosh sometimes hangs on specific terms if index is weird
+                    retriever_output = await asyncio.wait_for(
+                        self.retriever.search_async(
+                            current_query,
+                            lexical_limit=lexical_k,
+                            vector_k=vector_k,
+                            target_ontologies=effective_targets,
+                            trace_id=trace_id,
+                        ),
+                        timeout=60.0  # 60s timeout for retrieval
+                    )
+                except asyncio.TimeoutError:
+                    logger.error(f"Retrieval timed out for query: '{current_query}'")
+                    trace_log("retrieval_error", trace_id, query, current_query, attempt_index,
+                              error="timeout")
+                    retriever_output = {}
+
                 # Use merged candidates (deduplicated)
                 candidates = retriever_output.get("merged_candidates", [])
                 merge_stats = retriever_output.get("merge_stats", {})
                 
+                # Track retrieval success at this attempt
+                candidate_ids_set = {c.get("id") for c in candidates}
+                gold_found_this_attempt = bool(gold_ids & candidate_ids_set) if gold_ids else None
+                retrieval_history.append({
+                    "attempt": attempt_index,
+                    "query": current_query,
+                    "candidate_count": len(candidates),
+                    "gold_found": gold_found_this_attempt,
+                })
+                
                 trace_log("retrieval_complete", trace_id, query, current_query, attempt_index,
-                          candidate_count=len(candidates), merge_stats=merge_stats)
+                          candidate_count=len(candidates), merge_stats=merge_stats,
+                          gold_found=gold_found_this_attempt)
 
                 if not candidates:
                     trace_log("retry_triggered", trace_id, query, current_query, attempt_index,
@@ -209,7 +236,12 @@ class RAGPipeline:
                               confidence_score=score,
                               reason="above_confidence_threshold",
                               threshold=config.CONFIDENCE_THRESHOLD)
-                    return current_result, candidates
+                    retrieval_meta = {
+                        "total_attempts": attempt_index,
+                        "gold_first_found_at": next((h["attempt"] for h in retrieval_history if h.get("gold_found")), None),
+                        "retrieval_history": retrieval_history,
+                    }
+                    return current_result, candidates, retrieval_meta
 
                 # Check if below minimum confidence
                 if score < config.MIN_CONFIDENCE:
@@ -249,7 +281,12 @@ class RAGPipeline:
                       total_attempts=attempt_index,
                       stop_condition="max_loops_reached" if attempt_index >= config.MAX_PIPELINE_LOOPS else "no_more_queries")
 
-            return best_result_so_far, best_candidates_so_far
+            retrieval_meta = {
+                "total_attempts": attempt_index,
+                "gold_first_found_at": next((h["attempt"] for h in retrieval_history if h.get("gold_found")), None),
+                "retrieval_history": retrieval_history,
+            }
+            return best_result_so_far, best_candidates_so_far, retrieval_meta
         
         # Execute with or without semaphore
         if semaphore:
@@ -314,14 +351,45 @@ class RAGPipeline:
 
 
 def create_pipeline(provider: str = "gemini") -> RAGPipeline:
-    """Creates/Instantiates the pipeline with Gemini components."""
-    if provider != "gemini":
-         logger.warning(f"Provider '{provider}' requested, but only 'gemini' is supported in this simplified version. Using Gemini.")
+    """
+    Creates/Instantiates the pipeline with the specified LLM provider.
     
+    Args:
+        provider: LLM provider to use. Options: "gemini" (default), "vllm"
+        
+    Returns:
+        Configured RAGPipeline instance
+    """
     retriever = HybridRetriever()
-    selector = Selector(retriever)
-    confidence = ConfidenceScorer()
-    synonym = SynonymGenerator()
+    
+    if provider == "vllm":
+        from src.components.vllm_client import VLLMClient
+        
+        # Create shared vLLM client
+        client = VLLMClient(
+            base_url=config.VLLM_BASE_URL,
+            api_key=config.VLLM_API_KEY,
+            model=config.VLLM_MODEL_NAME,  # Auto-discovers if None
+        )
+        
+        # Get model names (fall back to discovered model if not specified)
+        selector_model = config.VLLM_SELECTOR_MODEL_NAME or client.model
+        scorer_model = config.VLLM_SCORER_MODEL_NAME or client.model
+        synonym_model = config.VLLM_SYNONYM_MODEL_NAME or client.model
+        
+        logger.info(f"Creating vLLM pipeline with model: {client.model}")
+        
+        selector = Selector(retriever, llm_client=client, model_name=selector_model)
+        confidence = ConfidenceScorer(llm_client=client, model_name=scorer_model)
+        synonym = SynonymGenerator(llm_client=client, model_name=synonym_model)
+    else:
+        if provider != "gemini":
+            logger.warning(f"Provider '{provider}' not recognized. Using 'gemini'.")
+        
+        # Default to Gemini (backwards compatible)
+        selector = Selector(retriever)
+        confidence = ConfidenceScorer()
+        synonym = SynonymGenerator()
 
     return RAGPipeline(
         retriever=retriever,

@@ -39,15 +39,9 @@ def setup_run_logging(query: str):
     # --- 1. Create the Dynamic Log Filename ---
     sanitized_query = sanitize_filename(query)
     
-    # Get the appropriate model name based on the PIPELINE config
-    if config.PIPELINE == "ollama":
-        model_name = sanitize_filename(config.OLLAMA_SELECTOR_MODEL_NAME)
-    elif config.PIPELINE == "gemini":
-        model_name = sanitize_filename(config.GEMINI_SELECTOR_MODEL_NAME)
-    elif config.PIPELINE == "huggingface":
-        model_name = sanitize_filename(config.HF_SELECTOR_MODEL_ID)
-    else:
-        model_name = "unknown_model"
+    # Get the model name using centralized utility
+    from src.utils.model_utils import get_model_file_suffix
+    model_name = get_model_file_suffix()
 
     log_filename = f"run_{sanitized_query}_{model_name}.log"
     

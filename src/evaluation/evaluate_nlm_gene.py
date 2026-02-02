@@ -16,6 +16,7 @@ import asyncio
 import gzip
 import json
 import logging
+import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -79,10 +80,7 @@ config.SYNONYM_PROMPT_TEMPLATE_PATH = PROJECT_ROOT / "prompts" / "gene_synonyms.
 # Dataset paths
 DATASET_DIR = DATA_DIR / "datasets" / "nlm_gene"
 INPUT_FILE = DATASET_DIR / "test.jsonl.gz"
-OUTPUT_FILE = ONTOLOGY_DIR / "results.json"
-
-# Cache path
-CACHE_PATH = ONTOLOGY_DIR / "cache.json"
+# OUTPUT_FILE and CACHE_PATH are now dynamic based on model - see main()
 
 # ============================================================
 # INGESTION CONFIGURATION
@@ -247,6 +245,7 @@ async def evaluate_item(
     cache: Dict[str, Any],
 ) -> Dict[str, Any]:
     """Evaluate a single mention using the pipeline."""
+    start_time = time.perf_counter()
     query = item["query"]
     context = item.get("context", "")
     item_id = item["id"]
@@ -254,28 +253,34 @@ async def evaluate_item(
     
     # Check cache
     cache_key = f"{query}|||{context[:100]}" if context else query
+    from_cache = False
     if cache_key in cache:
         logger.debug(f"Cache hit: {query}")
         result = cache[cache_key]
+        from_cache = True
+        retrieval_meta = None
     else:
-        result, candidates = await pipeline.run(
+        result, candidates, retrieval_meta = await pipeline.run(
             query=query,
             context=context,
             semaphore=semaphore,
             target_ontologies=[ONTOLOGY_KEY],
+            gold_ids=gold_ids,
         )
         # Only cache high-confidence results
         if result and isinstance(result, dict):
             conf = result.get('confidence_score', 0)
             if conf and conf >= config.CONFIDENCE_THRESHOLD:
-                cache[cache_key] = (result, candidates)
-        result = (result, candidates)
+                cache[cache_key] = (result, candidates, retrieval_meta)
+        result = (result, candidates, retrieval_meta)
     
-    # Unpack result
+    # Unpack result (now 3-tuple)
     if isinstance(result, tuple):
-        mapping_result, candidates = result
+        mapping_result = result[0]
+        candidates = result[1] if len(result) > 1 else []
+        retrieval_meta = result[2] if len(result) > 2 else None
     else:
-        mapping_result, candidates = result, []
+        mapping_result, candidates, retrieval_meta = result, [], None
     
     # Extract predicted ID
     pred_id = None
@@ -284,6 +289,9 @@ async def evaluate_item(
     
     # Check if correct
     is_correct = pred_id in gold_ids if pred_id else False
+    elapsed_time = time.perf_counter() - start_time
+    candidate_ids = [c.get("id") for c in candidates[:10]] if candidates else []
+    gold_in_candidates = bool(gold_ids & set(candidate_ids)) if candidate_ids else False
     
     simplified = simplify_mapping_result(mapping_result)
     
@@ -297,6 +305,11 @@ async def evaluate_item(
         "confidence": mapping_result.get("confidence_score") if mapping_result else None,
         "mapping_result": simplified if simplified else "No mapping found",
         "candidates": [c.get("id") for c in candidates[:5]] if candidates else [],
+        "gold_in_candidates": gold_in_candidates,
+        "gold_first_found_at_attempt": retrieval_meta.get("gold_first_found_at") if retrieval_meta else None,
+        "total_retrieval_attempts": retrieval_meta.get("total_attempts", 1) if retrieval_meta else 1,
+        "time_seconds": round(elapsed_time, 3),
+        "from_cache": from_cache,
     }
 
 
@@ -341,8 +354,18 @@ async def main() -> None:
         action="store_true", 
         help="Enable DEBUG logging for deep traceability",
     )
+    parser.add_argument(
+        "--provider",
+        type=str,
+        default=config.PIPELINE,
+        choices=["gemini", "vllm", "ollama"],
+        help="LLM provider to use (default: from config.PIPELINE)",
+    )
     
     args = parser.parse_args()
+    
+    # Update config.PIPELINE to match CLI arg (affects logging and model naming)
+    config.PIPELINE = args.provider
     
     # Setup logging with appropriate level
     config.LOG_LEVEL = "DEBUG" if args.debug else "INFO"
@@ -357,14 +380,19 @@ async def main() -> None:
     # --- EVALUATION MODE ---
     
     print(f"\n{'='*60}")
-    print(f"EVALUATING: NLM Gene → NCBI Gene")
-    print(f"Pipeline: {config.PIPELINE}")
+    print(f"EVALUATING: NLM Gene → NCBI Gene ({args.provider})")
     print(f"{'='*60}\n")
+    
+    # Build dynamic paths based on MODEL for separate results per model
+    from src.utils.model_utils import get_model_file_suffix
+    model_suffix = get_model_file_suffix()
+    output_file = ONTOLOGY_DIR / f"results_{model_suffix}.json"
+    cache_path = ONTOLOGY_DIR / f"cache_{model_suffix}.json"
     
     # Load cache
     cache: Dict[str, Any] = {}
-    if not args.no_cache and CACHE_PATH.exists():
-        cache = load_cache(CACHE_PATH)
+    if not args.no_cache and cache_path.exists():
+        cache = load_cache(cache_path)
         logger.info(f"Loaded {len(cache)} cached results")
     
     pipeline = None
@@ -375,13 +403,14 @@ async def main() -> None:
         
         # Initialize pipeline
         logger.info("Initializing RAG pipeline...")
-        pipeline = create_pipeline(config.PIPELINE)
+        pipeline = create_pipeline(args.provider)
         
         # Setup concurrency
         max_conc = args.max_concurrency or config.MAX_CONCURRENT_REQUESTS
         semaphore = asyncio.Semaphore(max_conc)
         
         # Process items
+        start_eval_time = time.perf_counter()
         tasks = [
             evaluate_item(pipeline, item, semaphore, cache)
             for item in items
@@ -390,6 +419,7 @@ async def main() -> None:
         # Use asyncio.gather with return_exceptions (tqdm.asyncio.gather doesn't support it)
         print(f"Evaluating {len(tasks)} items...")
         results = await asyncio.gather(*tasks, return_exceptions=True)
+        wall_clock_time = time.perf_counter() - start_eval_time
         
         # Filter out exceptions and log them
         valid_results = []
@@ -400,11 +430,60 @@ async def main() -> None:
                 valid_results.append(r)
         results = valid_results
         
-        # Calculate metrics
+        # Calculate detailed metrics
         total = len(results)
         correct = sum(1 for r in results if r["is_correct"])
         accuracy = correct / total if total > 0 else 0.0
+
+        # Timing metrics
+        # 'time_seconds' from evaluating an item includes semaphore wait time + processing time.
+        # This is effectively "Latency" from the task's perspective.
+        individual_times = [r.get("time_seconds", 0) for r in results if not r.get("from_cache")]
+        avg_latency = sum(individual_times) / len(individual_times) if individual_times else 0.0
         
+        # Throughput: Items processed per second (wall clock)
+        items_per_second = total / wall_clock_time if wall_clock_time > 0 else 0.0
+
+        # Retrieval metrics
+        retrieval_success = sum(1 for r in results if r.get("gold_in_candidates"))
+        retrieval_rate = retrieval_success / total if total > 0 else 0.0
+
+        # Confidence metrics
+        confidences = [r.get("confidence") for r in results if r.get("confidence") is not None]
+        avg_confidence = sum(confidences) / len(confidences) if confidences else 0.0
+        high_conf_count = sum(1 for c in confidences if c >= config.CONFIDENCE_THRESHOLD)
+        high_conf_results = [r for r in results if (r.get("confidence") or 0) >= config.CONFIDENCE_THRESHOLD]
+        high_conf_correct = sum(1 for r in high_conf_results if r["is_correct"])
+        high_conf_precision = high_conf_correct / len(high_conf_results) if high_conf_results else 0.0
+
+        # Error counts
+        error_count = sum(1 for r in results if r.get("error"))
+        no_prediction_count = sum(1 for r in results if r.get("predicted_id") is None and not r.get("error"))
+        cache_hits = sum(1 for r in results if r.get("from_cache"))
+
+        metrics = {
+            "total": total,
+            "correct": correct,
+            "accuracy": accuracy,
+            "total_time_seconds": round(wall_clock_time, 2),
+            "items_per_second": round(items_per_second, 2),
+            "avg_latency_seconds": round(avg_latency, 3),
+            "concurrent_requests": config.MAX_CONCURRENT_REQUESTS,
+            "retrieval_success_count": retrieval_success,
+            "retrieval_success_rate": round(retrieval_rate, 4),
+            **{f"retrieval_success_rate@{k}": round(
+                sum(1 for r in results 
+                    if r.get("gold_first_found_at_attempt") is not None 
+                    and r.get("gold_first_found_at_attempt") <= k) / total, 4
+            ) if total > 0 else 0.0 for k in range(1, config.MAX_PIPELINE_LOOPS + 1)},
+            "avg_confidence": round(avg_confidence, 4),
+            "high_confidence_count": high_conf_count,
+            "high_confidence_precision": round(high_conf_precision, 4),
+            "error_count": error_count,
+            "no_prediction_count": no_prediction_count,
+            "cache_hits": cache_hits
+        }
+
         print(f"\n{'='*60}")
         print("RESULTS")
         print(f"{'='*60}")
@@ -419,14 +498,14 @@ async def main() -> None:
             print(f"{status} '{r['query']}' → {r['predicted_id']} (gold: {r['gold_ids']})")
         
         # Save results
-        OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
-        with OUTPUT_FILE.open("w", encoding="utf-8") as f:
+        output_file.parent.mkdir(parents=True, exist_ok=True)
+        with output_file.open("w", encoding="utf-8") as f:
             json.dump({
-                "metrics": {"total": total, "correct": correct, "accuracy": accuracy},
+                "metrics": metrics,
                 "results": results,
             }, f, indent=2, ensure_ascii=False)
         
-        print(f"\nResults saved to: {OUTPUT_FILE}")
+        print(f"\nResults saved to: {output_file}")
         
     except FileNotFoundError as e:
         logger.error(str(e))
@@ -443,7 +522,7 @@ async def main() -> None:
         if pipeline:
             pipeline.close()
         if not args.no_cache:
-            save_cache(CACHE_PATH, cache)
+            save_cache(cache_path, cache)
             logger.info(f"Saved {len(cache)} cached results")
 
 

@@ -2,24 +2,35 @@ import logging
 import json
 from typing import List, Dict, Any, Optional, Tuple
 
-from src.interfaces import Retriever
+from src.interfaces import Retriever, LLMClient
 from src.components.llm_client import GeminiClient
 from src import config
 from src.utils.token_tracker import token_tracker
 from src.utils.tracing import trace_log
+from src.utils.response_parsing import clean_llm_json_response
+from src.utils.json_schemas import SELECTOR_SCHEMA
 
 logger = logging.getLogger(__name__)
 
 class Selector:
-    """Uses the Google Gemini model to select the best ontology term."""
+    """Uses an LLM to select the best ontology term from candidates."""
 
-    def __init__(self, retriever: Retriever):
+    def __init__(
+        self,
+        retriever: Retriever,
+        llm_client: Optional[LLMClient] = None,
+        model_name: Optional[str] = None,
+    ):
         self.retriever = retriever
-        self.model_name = config.GEMINI_SELECTOR_MODEL_NAME
+        self.model_name = model_name or config.GEMINI_SELECTOR_MODEL_NAME
         
-        if not config.GEMINI_API_KEY:
-            raise ValueError("GEMINI_API_KEY not found in environment variables.")
-        self.client = GeminiClient(api_key=config.GEMINI_API_KEY)
+        if llm_client:
+            self.client = llm_client
+        else:
+            # Fallback to Gemini for backwards compatibility
+            if not config.GEMINI_API_KEY:
+                raise ValueError("GEMINI_API_KEY not found in environment variables.")
+            self.client = GeminiClient(api_key=config.GEMINI_API_KEY)
         
         self.prompt_template = self._load_prompt_template()
         self.last_prompt: str = ""
@@ -110,6 +121,9 @@ class Selector:
             }
 
         raw = (response_text or "").strip()
+        
+        # Strip thinking blocks from reasoning models like Nemotron
+        raw = clean_llm_json_response(raw)
 
         if raw in {"-1", "0", '"-1"', '"0"'}:
             return _wrap_no_selection()
@@ -185,7 +199,9 @@ class Selector:
             trace_log("llm_selector_prompt", trace_id, query, query, 0,
                       prompt_length=len(prompt), candidate_count=len(candidates))
 
-        response_text, token_usage = await self.client.generate_json(prompt, model=self.model_name)
+        response_text, token_usage = await self.client.generate_json(
+            prompt, model=self.model_name, json_schema=SELECTOR_SCHEMA
+        )
         self.last_raw_response = response_text or ""
         
         if token_usage:

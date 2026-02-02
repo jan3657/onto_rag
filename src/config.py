@@ -143,7 +143,7 @@ CONFIDENCE_THRESHOLD = 0.6  # If score is below this, try to generate synonyms
 MIN_CONFIDENCE = 0.4        # Minimum confidence to accept (below triggers retry with logged reason)
 MAX_PIPELINE_LOOPS = 4     # Max number of attempts (initial + retries)
 # Max number of concurrent LLM API calls for async processing
-MAX_CONCURRENT_REQUESTS = 20
+MAX_CONCURRENT_REQUESTS = 8
 
 
 # Restrict retrieval to specific ontologies (keys in ONTOLOGIES_CONFIG), e.g. ["foodon"]
@@ -155,6 +155,15 @@ GEMINI_API_KEY = getenv("GEMINI_API_KEY")
 GEMINI_SELECTOR_MODEL_NAME = "gemini-2.5-flash-lite"
 GEMINI_SCORER_MODEL_NAME = "gemini-2.5-flash-lite"  # "gemini-2.5-pro"t
 GEMINI_SYNONYM_MODEL_NAME = "gemini-2.5-flash-lite"
+
+# vLLM Configuration (OpenAI-compatible server)
+VLLM_BASE_URL = getenv("VLLM_BASE_URL", "http://127.0.0.1:8000/v1")
+VLLM_API_KEY = getenv("VLLM_API_KEY", "EMPTY")
+VLLM_MODEL_NAME = getenv("VLLM_MODEL_NAME", None)  # Auto-discover if None
+# Per-component model overrides (optional, falls back to VLLM_MODEL_NAME)
+VLLM_SELECTOR_MODEL_NAME = getenv("VLLM_SELECTOR_MODEL_NAME", None)
+VLLM_SCORER_MODEL_NAME = getenv("VLLM_SCORER_MODEL_NAME", None)
+VLLM_SYNONYM_MODEL_NAME = getenv("VLLM_SYNONYM_MODEL_NAME", None)
 
 OLLAMA_SELECTOR_MODEL_NAME = 'llama3.1:8b'
 OLLAMA_SCORER_MODEL_NAME = 'llama3.1:8b'
@@ -179,7 +188,7 @@ CONFIDENCE_PROMPT_TEMPLATE_PATH = PROJECT_ROOT / "prompts" / \
 SYNONYM_PROMPT_TEMPLATE_PATH = PROJECT_ROOT /"prompts" / \
     "synonym_generation.tpl" #"chebi_synonyms.tpl" #"synonym_generation.tpl"
 
-PIPELINE = "gemini"  # "gemini", "ollama", or "huggingface"
+PIPELINE = "gemini" 
 
 # Logging configuration
 LOG_LEVEL = "WARNING"  # Options: DEBUG, INFO, WARNING, ERROR, CRITICAL
