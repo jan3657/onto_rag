@@ -39,7 +39,7 @@ OUTPUT_FILE = DATA_DIR / 'mapped_ingredients_output_10_samples.json'
 
 
 # --- Setup Logging ---
-setup_run_logging("run_on_off")
+# Logging is configured dynamically in main() based on --debug flag
 logger = logging.getLogger(__name__)
 
 
@@ -70,9 +70,18 @@ async def main():
         action="store_true",
         help="Run without reading or writing the persistent cache",
     )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Enable DEBUG logging for deep traceability",
+    )
     # parse_known_args to ignore unrelated args
     args, _ = parser.parse_known_args()
     no_cache = bool(args.no_cache)
+    
+    # Setup logging with appropriate level
+    config.LOG_LEVEL = "DEBUG" if args.debug else "INFO"
+    setup_run_logging("run_on_off")
 
     logger.info("Starting BATCH ontology mapping process...")
     logger.info(f"Using pipeline: {config.PIPELINE}")
@@ -173,11 +182,15 @@ async def process_single_product(pipeline, product_id, product_data, semaphore, 
     # 2. Run the pipeline concurrently for all cache misses
     if tasks_to_run:
         logger.info(f"Executing pipeline for {len(tasks_to_run)} cache misses in Product {product_id}.")
-        pipeline_results = await asyncio.gather(*tasks_to_run)
+        pipeline_results = await asyncio.gather(*tasks_to_run, return_exceptions=True)
         
         # 3. Process new results and update both the local results and the main cache
         for i, result_tuple in enumerate(pipeline_results):
             query = queries_for_tasks[i]
+            if isinstance(result_tuple, Exception):
+                logger.error(f"Pipeline failed for '{query}': {result_tuple}")
+                all_ingredient_results[query] = (None, [])
+                continue
             all_ingredient_results[query] = result_tuple
             # Persist only compact, high-confidence cache entries for consistency
             if (not no_cache) and result_tuple and result_tuple[0]:

@@ -5,6 +5,7 @@ from typing import List, Dict, Any, Optional
 from src.components.llm_client import GeminiClient
 from src import config
 from src.utils.token_tracker import token_tracker
+from src.utils.tracing import trace_log
 
 logger = logging.getLogger(__name__)
 
@@ -85,7 +86,7 @@ class ConfidenceScorer:
             logger.error(f"Failed to decode or parse confidence scorer response: {response_text}. Error: {e}")
             return None
 
-    async def score_confidence(self, query: str, chosen_term_details: Dict[str, Any], all_candidates: List[Dict[str, Any]], context: str = "") -> Optional[Dict[str, Any]]:
+    async def score_confidence(self, query: str, chosen_term_details: Dict[str, Any], all_candidates: List[Dict[str, Any]], context: str = "", trace_id: str = "") -> Optional[Dict[str, Any]]:
         """Formats the prompt, calls the LLM, and parses the response for confidence scoring."""
         chosen_details_str = self._format_term_details(chosen_term_details)
         other_candidates_str = self._format_other_candidates(all_candidates, chosen_term_details.get('id', ''))
@@ -97,6 +98,11 @@ class ConfidenceScorer:
                   .replace("[CONTEXT]", context or ""))
         logger.debug(f"Formatted prompt for confidence scoring:\n{prompt}")
         self.last_prompt = prompt
+        
+        if trace_id:
+            trace_log("llm_scorer_prompt", trace_id, query, query, 0,
+                      chosen_id=chosen_term_details.get('id'),
+                      prompt_length=len(prompt))
 
         response_text, token_usage = await self.client.generate_json(prompt, model=self.model_name)
         self.last_raw_response = response_text or ""
@@ -110,6 +116,22 @@ class ConfidenceScorer:
             )
 
         if response_text is None:
+            if trace_id:
+                trace_log("llm_scorer_error", trace_id, query, query, 0,
+                          error="No response from LLM")
             return None
         
-        return self._parse_response(response_text)
+        parsed = self._parse_response(response_text)
+        
+        if trace_id:
+            if parsed:
+                trace_log("llm_scorer_response", trace_id, query, query, 0,
+                          confidence_score=parsed.get('confidence_score'),
+                          explanation=parsed.get('scorer_explanation', '')[:200],
+                          alternatives=parsed.get('suggested_alternatives', []))
+            else:
+                trace_log("llm_scorer_parse_error", trace_id, query, query, 0,
+                          raw_response=response_text[:500],
+                          error="Failed to parse scorer response")
+        
+        return parsed

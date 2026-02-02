@@ -6,6 +6,7 @@ from src.interfaces import Retriever
 from src.components.llm_client import GeminiClient
 from src import config
 from src.utils.token_tracker import token_tracker
+from src.utils.tracing import trace_log
 
 logger = logging.getLogger(__name__)
 
@@ -162,6 +163,7 @@ class Selector:
         candidates: List[Dict[str, Any]],
         context: str = "",
         feedback: str = "",
+        trace_id: str = "",
     ) -> Optional[Dict[str, Any]]:
         """Run the selector LLM to choose the best candidate."""
         if not candidates:
@@ -176,8 +178,12 @@ class Selector:
                 .replace("[SCORER_FEEDBACK]", feedback or "")
         )
 
-        logger.debug(f"Selector Prompt:\n---\n{prompt}\n---")
+        logger.debug(f"[SELECTOR_PROMPT] query='{query}' | full_prompt:\n{prompt}")
         self.last_prompt = prompt
+        
+        if trace_id:
+            trace_log("llm_selector_prompt", trace_id, query, query, 0,
+                      prompt_length=len(prompt), candidate_count=len(candidates))
 
         response_text, token_usage = await self.client.generate_json(prompt, model=self.model_name)
         self.last_raw_response = response_text or ""
@@ -193,6 +199,18 @@ class Selector:
         if response_text is None:
             return None
             
-        logger.debug(f"Selector Raw Response:\n---\n{response_text}\n---") 
+        logger.debug(f"[SELECTOR_RAW_LLM_RESPONSE] query='{query}' | raw_text:\n{response_text}")
         
-        return self._parse_and_validate_response(response_text)
+        parsed = self._parse_and_validate_response(response_text)
+        
+        if trace_id:
+            if parsed:
+                trace_log("llm_selector_response", trace_id, query, query, 0,
+                          chosen_id=parsed.get('chosen_id'),
+                          explanation=parsed.get('selector_explanation', '')[:200])
+            else:
+                trace_log("llm_selector_parse_error", trace_id, query, query, 0,
+                          raw_response=response_text[:500],
+                          error="Failed to parse LLM response")
+        
+        return parsed

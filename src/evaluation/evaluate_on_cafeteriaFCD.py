@@ -308,7 +308,16 @@ async def main():
         default=None,
         help="Override max concurrent pipeline runs (default from config)",
     )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Enable DEBUG logging for deep traceability",
+    )
     args, _ = parser.parse_known_args()
+    
+    # --- NEW: Set up run-specific logging with appropriate level ---
+    config.LOG_LEVEL = "DEBUG" if args.debug else "INFO"
+    setup_run_logging("evaluation_run")
     no_cache = bool(args.no_cache)
     limit = int(args.limit) if args.limit is not None else 10
     # Resolve effective K values and threshold

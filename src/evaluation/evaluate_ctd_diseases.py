@@ -1,14 +1,14 @@
-# src/evaluation/evaluate_craft_chebi.py
+# src/evaluation/evaluate_ctd_diseases.py
 """
-Evaluate the RAG pipeline on the CRAFT dataset (ChEBI subset).
+Evaluate the RAG pipeline on the NCBI Disease dataset.
 
-The dataset links chemical mentions to ChEBI types.
-The ontology source is chebi.owl (OWL format).
+The dataset links disease mentions to MeSH/OMIM IDs via the CTD Diseases ontology.
+The ontology source is CTD_diseases.tsv.
 
 Usage:
-  python -m src.evaluation.evaluate_craft_chebi --ingest   # Build indexes
-  python -m src.evaluation.evaluate_craft_chebi --limit 10 # Test
-  python -m src.evaluation.evaluate_craft_chebi            # Full evaluation
+  python -m src.evaluation.evaluate_ctd_diseases --ingest   # Build indexes
+  python -m src.evaluation.evaluate_ctd_diseases --limit 5  # Test
+  python -m src.evaluation.evaluate_ctd_diseases            # Full evaluation
 """
 
 import argparse
@@ -34,10 +34,10 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 DATA_DIR = PROJECT_ROOT / "data"
 
 # ============================================================
-# CONFIGURATION - CRAFT ChEBI
+# CONFIGURATION - CTD Diseases
 # ============================================================
 
-ONTOLOGY_KEY = "chebi"
+ONTOLOGY_KEY = "ctd_diseases"
 
 # Subfolder for artifacts
 ONTOLOGY_DIR = DATA_DIR / ONTOLOGY_KEY
@@ -45,9 +45,11 @@ ONTOLOGY_DIR = DATA_DIR / ONTOLOGY_KEY
 # Override global config for this ontology
 config.ONTOLOGIES_CONFIG = {
     ONTOLOGY_KEY: {
-        'path': DATA_DIR / "ontologies" / "chebi.owl",
-        'prefix': 'CHEBI:', 
-        'id_pattern': r'^(CHEBI):\d+',
+        'path': DATA_DIR / "ontologies" / "CTD_diseases.tsv",
+        # Prefix handling is tricky as file has "MESH:..." but keys need consistency
+        # We'll rely on the full CURIEs in the file
+        'prefix': 'MESH:', # Primary prefix
+        'id_pattern': r'^(MESH|OMIM):.+',
         
         # Generated artifact paths
         'dump_json_path': ONTOLOGY_DIR / "ontology_dump.json",
@@ -62,13 +64,13 @@ config.ONTOLOGIES_CONFIG = {
 # Restrict pipeline
 config.RESTRICT_TARGET_ONTOLOGIES = [ONTOLOGY_KEY]
 
-# Override prompts with Chemical-specific ones
-config.SELECTOR_PROMPT_TEMPLATE_PATH = PROJECT_ROOT / "prompts" / "food_selection.tpl"
-config.CONFIDENCE_PROMPT_TEMPLATE_PATH = PROJECT_ROOT / "prompts" / "food_confidence.tpl"
-config.SYNONYM_PROMPT_TEMPLATE_PATH = PROJECT_ROOT / "prompts" / "food_synonyms.tpl"
+# Override prompts
+config.SELECTOR_PROMPT_TEMPLATE_PATH = PROJECT_ROOT / "prompts" / "disease_selection.tpl"
+config.CONFIDENCE_PROMPT_TEMPLATE_PATH = PROJECT_ROOT / "prompts" / "disease_confidence.tpl"
+config.SYNONYM_PROMPT_TEMPLATE_PATH = PROJECT_ROOT / "prompts" / "disease_synonyms.tpl"
 
 # Dataset paths
-DATASET_DIR = DATA_DIR / "datasets" / "craft_chebi"
+DATASET_DIR = DATA_DIR / "datasets" / "ncbi_disease"
 INPUT_FILE = DATASET_DIR / "test.jsonl.gz"
 OUTPUT_FILE = ONTOLOGY_DIR / "results.json"
 CACHE_PATH = ONTOLOGY_DIR / "cache.json"
@@ -86,31 +88,46 @@ logger = logging.getLogger(__name__)
 # INGESTION
 # ============================================================
 
-def run_ingestion() -> None:
-    """Build indexes for ChEBI."""
-    from src.ingestion import parse_ontology, build_whoosh_index, build_embeddings, build_faiss_index
+def run_ingestion(max_rows: Optional[int] = None) -> None:
+    """Build indexes for CTD Diseases."""
+    from src.ingestion import parse_tsv, build_whoosh_index, build_embeddings, build_faiss_index
     
     cfg = config.ONTOLOGIES_CONFIG[ONTOLOGY_KEY]
     
     print(f"\n{'='*60}")
-    print(f"INGESTING: ChEBI (OWL)")
+    print(f"INGESTING: CTD Diseases")
     print(f"{'='*60}")
     
-    # Ensure directory exists
-    cfg['dump_json_path'].parent.mkdir(parents=True, exist_ok=True)
-    
-    print(f"\n[1/4] Parsing chebi.owl (this may take time)...")
+    print(f"\n[1/4] Parsing CTD_diseases.tsv...")
     if not cfg['path'].exists():
         raise FileNotFoundError(f"Ontology file not found: {cfg['path']}")
     
-    # Use parse_ontology for OWL files
-    parse_ontology(
-        ontology_path=cfg['path'],
-        output_path=cfg['dump_json_path']
-        # include_obsolete=False (default behavior implied or handled by parser logic?)
-        # Checking parse_ontology.py I see no include_obsolete param in signature view earlier
-        # BUT I passed it in my plan. I should stick to signature I saw:
-        # def parse_ontology(ontology_path: Path, output_path: Path, ...)
+    # Custom transform to handle synonyms and prefixes
+    def transform_ctd_row(row: Dict[str, str]) -> Dict[str, Any]:
+        # Synonyms are pipe-separated
+        syn_str = row.get("Synonyms", "")
+        synonyms = [s.strip() for s in syn_str.split("|") if s.strip()]
+        
+        # Alt IDs are useful as synonyms too? Maybe not for lexical matching but useful context
+        
+        return {
+            "label": row.get("DiseaseName", ""),
+            "synonyms": synonyms,
+            "definition": row.get("Definition", ""),
+            "parents": row.get("ParentIDs", "").split("|"),
+            "relations": [], # Could extract tree numbers etc if needed
+            "relations_text": "",
+        }
+
+    parse_tsv(
+        tsv_path=cfg['path'],
+        output_path=cfg['dump_json_path'],
+        id_column="DiseaseID",
+        label_column="DiseaseName",
+        id_prefix="", # IDs already have prefix (e.g. 'MESH:D000000')
+        header_starts_with="# DiseaseName", # Critical for skipping comments
+        transform_func=transform_ctd_row,
+        max_rows=max_rows,
     )
     
     print(f"\n[2/4] Building Whoosh index...")
@@ -132,7 +149,7 @@ def run_ingestion() -> None:
 # ============================================================
 
 def load_dataset(input_path: Path, limit: Optional[int] = None) -> List[Dict[str, Any]]:
-    """Load CRAFT ChEBI test set."""
+    """Load NCBI Disease test set."""
     if not input_path.exists():
         raise FileNotFoundError(f"Dataset not found: {input_path}")
     
@@ -142,12 +159,11 @@ def load_dataset(input_path: Path, limit: Optional[int] = None) -> List[Dict[str
             if not line.strip(): continue
             item = json.loads(line)
             
-            # CRAFT jsonl should follow standard format
             items.append({
-                "id": str(len(items)),
+                "id": str(len(items)), # No native ID in basic jsonl
                 "query": item["mention"],
-                "context": "", # Not populated in current test sets
-                "gold_ids": item["gold_ids"], 
+                "context": "", # Not provided/used in this simple format?
+                "gold_ids": item["gold_ids"],
             })
             
             if limit and len(items) >= limit:
@@ -158,7 +174,7 @@ def load_dataset(input_path: Path, limit: Optional[int] = None) -> List[Dict[str
 
 
 # ============================================================
-# EVALUATION LOGIC
+# MAIN
 # ============================================================
 
 async def evaluate_item(pipeline, item, semaphore, cache):
@@ -177,13 +193,11 @@ async def evaluate_item(pipeline, item, semaphore, cache):
                 semaphore=semaphore,
                 target_ontologies=[ONTOLOGY_KEY],
             )
-            # Only cache high-confidence results to prevent bad matches from poisoning cache
+            # Only cache high-confidence results
             if result and isinstance(result, dict):
                 conf = result.get('confidence_score', 0)
                 if conf and conf >= config.CONFIDENCE_THRESHOLD:
                     cache[query] = (result, candidates)
-                else:
-                    logger.debug(f"Not caching low-confidence result for '{query}' (score={conf})")
             result = (result, candidates)
             
         # Unpack - handle tuple (from runtime) or list (from JSON cache)
@@ -203,6 +217,7 @@ async def evaluate_item(pipeline, item, semaphore, cache):
 
         pred_id = mapping_result.get("id") if isinstance(mapping_result, dict) else None
         
+        # Correctness check (exact string match for now)
         is_correct = pred_id in gold_ids if pred_id else False
         
         return {
@@ -224,6 +239,7 @@ async def evaluate_item(pipeline, item, semaphore, cache):
 async def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--ingest", action="store_true")
+    parser.add_argument("--ingest-limit", type=int)
     parser.add_argument("--limit", type=int)
     parser.add_argument("--no-cache", action="store_true")
     parser.add_argument("--debug", action="store_true", help="Enable DEBUG logging for deep traceability")
@@ -235,10 +251,11 @@ async def main():
     logger = logging.getLogger(__name__)
     
     if args.ingest:
-        run_ingestion()
+        run_ingestion(args.ingest_limit)
         return
         
-    print(f"\n{'='*60}\nEVALUATING: CRAFT ChEBI\n{'='*60}")
+    # Evaluation
+    print(f"\n{'='*60}\nEVALUATING: CTD Diseases\n{'='*60}")
     
     cache = load_cache(CACHE_PATH) if not args.no_cache and CACHE_PATH.exists() else {}
     items = load_dataset(INPUT_FILE, limit=args.limit)

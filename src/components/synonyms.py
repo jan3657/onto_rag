@@ -5,6 +5,7 @@ from typing import List
 from src.components.llm_client import GeminiClient
 from src import config
 from src.utils.token_tracker import token_tracker
+from src.utils.tracing import trace_log
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +46,7 @@ class SynonymGenerator:
             logger.error(f"Failed to decode or parse synonym generator response: {response_text}. Error: {e}")
             return []
 
-    async def generate_synonyms(self, query: str, context: str = "", feedback: str = "") -> List[str]:
+    async def generate_synonyms(self, query: str, context: str = "", feedback: str = "", trace_id: str = "") -> List[str]:
         """Formats the prompt, calls the LLM, and parses the response to get synonyms."""
         prompt = (
             self.prompt_template
@@ -54,8 +55,14 @@ class SynonymGenerator:
                 .replace("[SCORER_FEEDBACK]", feedback or "")
         )
 
-        logger.debug(f"Synonym Generator Prompt:\n---\n{prompt}\n---")
+        logger.debug(f"[SYNONYM_GENERATOR_PROMPT] query='{query}' context='{context[:100]}...' feedback='{feedback[:100]}...' | full_prompt:\n{prompt}")
         self.last_prompt = prompt
+        
+        if trace_id:
+            trace_log("llm_synonym_prompt", trace_id, query, query, 0,
+                      prompt_length=len(prompt),
+                      context_length=len(context),
+                      feedback_length=len(feedback))
 
         response_text, token_usage = await self.client.generate_json(prompt, model=self.model_name)
         self.last_raw_response = response_text or ""
@@ -71,6 +78,13 @@ class SynonymGenerator:
         if response_text is None:
             return []
             
-        logger.debug(f"Synonym Generator Raw Response:\n---\n{response_text}\n---")
+        logger.debug(f"[SYNONYM_GENERATOR_RAW_RESPONSE] query='{query}' | raw_text:\n{response_text}")
 
-        return self._parse_response(response_text)
+        parsed = self._parse_response(response_text)
+        
+        if trace_id:
+            trace_log("llm_synonym_response", trace_id, query, query, 0,
+                      synonyms=parsed,
+                      synonym_count=len(parsed))
+        
+        return parsed

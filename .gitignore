@@ -14,10 +14,10 @@ project_contents_for_llm.txt
 .DS_Store
 
 # Large generated data and ontology files
-/data/
+# /data/
 /ontologies/
 /models/
 /outputs/
 
 # Log files
-*.log
+#*.log

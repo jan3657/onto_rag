@@ -11,8 +11,14 @@ class GeminiClient(LLMClient):
     def __init__(self, api_key: str, timeout_ms: int = 60000):
         self.client = genai.Client(api_key=api_key, http_options=HttpOptions(timeout=timeout_ms))
 
-    async def generate_json(self, prompt: str, *, model: str) -> Tuple[Optional[str], Optional[Dict[str, int]]]:
-        """Call Gemini with light retry/backoff on 429 quota errors."""
+    async def generate_json(self, prompt: str, *, model: str, timeout_seconds: float = 90.0) -> Tuple[Optional[str], Optional[Dict[str, int]]]:
+        """Call Gemini with light retry/backoff on 429 quota errors.
+        
+        Args:
+            prompt: The prompt to send
+            model: Model name to use
+            timeout_seconds: Maximum time for entire operation including retries
+        """
         attempts = 5
         backoff = 2.0
         last_err: Optional[Exception] = None
@@ -66,3 +72,13 @@ class GeminiClient(LLMClient):
         if last_err:
             raise last_err
         return None, None
+    
+    async def generate_json_with_timeout(self, prompt: str, *, model: str, timeout_seconds: float = 90.0) -> Tuple[Optional[str], Optional[Dict[str, int]]]:
+        """Wrapper that adds asyncio-level timeout protection."""
+        try:
+            return await asyncio.wait_for(
+                self.generate_json(prompt, model=model, timeout_seconds=timeout_seconds),
+                timeout=timeout_seconds
+            )
+        except asyncio.TimeoutError:
+            raise TimeoutError(f"LLM call timed out after {timeout_seconds}s")

@@ -29,12 +29,13 @@ ONTOLOGIES_CONFIG = {
         'path': ONTOLOGIES_DIR / "foodon.owl",
         'prefix': 'FOODON:',
         'id_pattern': r'^FOODON:\d+$',
-        'dump_json_path': DATA_DIR / "ontology_dump_foodon.json",
-        'enriched_docs_path': DATA_DIR / "enriched_documents_foodon.json",
-        'embeddings_path': DATA_DIR / "embeddings_foodon.json",
-        'whoosh_index_dir': DATA_DIR / "whoosh_index_foodon",
-        'faiss_index_path': DATA_DIR / "faiss_index_foodon.bin",
-        'faiss_metadata_path': DATA_DIR / "faiss_metadata_foodon.json",
+        # All artifacts stored in data/foodon/ subfolder
+        'dump_json_path': DATA_DIR / "foodon" / "ontology_dump.json",
+        'enriched_docs_path': DATA_DIR / "foodon" / "enriched_documents.json",
+        'embeddings_path': DATA_DIR / "foodon" / "embeddings.json",
+        'whoosh_index_dir': DATA_DIR / "foodon" / "whoosh_index",
+        'faiss_index_path': DATA_DIR / "foodon" / "faiss_index.bin",
+        'faiss_metadata_path': DATA_DIR / "foodon" / "faiss_metadata.json",
     }
 }
 # NOTE: The loop that created Whoosh directories has been removed.
@@ -50,6 +51,9 @@ EMBEDDING_DEVICE = 'cpu'
 DEFAULT_K_LEXICAL = 15
 DEFAULT_K_VECTOR = 15
 DEFAULT_RERANK_K = DEFAULT_K_LEXICAL + DEFAULT_K_VECTOR
+
+# --- Ingestion Configuration ---
+WHOOSH_FIELDS = ["label", "synonyms", "definition", "relations_text"]
 
 # --- Namespace Configuration ---
 RDFS_NS_STR = "http://www.w3.org/2000/01/rdf-schema#"
@@ -136,6 +140,7 @@ CURIE_PREFIX_MAP = {
 
 # --- Pipeline Loop Configuration ---
 CONFIDENCE_THRESHOLD = 0.6  # If score is below this, try to generate synonyms
+MIN_CONFIDENCE = 0.4        # Minimum confidence to accept (below triggers retry with logged reason)
 MAX_PIPELINE_LOOPS = 4     # Max number of attempts (initial + retries)
 # Max number of concurrent LLM API calls for async processing
 MAX_CONCURRENT_REQUESTS = 20
