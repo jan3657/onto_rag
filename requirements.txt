@@ -37,3 +37,8 @@ transformers>=4.39.0; python_version < "3.13"
 torch>=2.1.0; python_version < "3.13"
 accelerate>=0.28.0; python_version < "3.13"
 bitsandbytes>=0.42.0; python_version < "3.13"  # For 8-bit/4-bit quantization
+
+# Analysis / visualization extras
+scikit-learn>=1.4.0
+pyarrow>=14.0.0
+plotly>=5.18.0
