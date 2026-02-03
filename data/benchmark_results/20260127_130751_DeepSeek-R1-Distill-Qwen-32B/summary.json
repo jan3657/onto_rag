@@ -1,5 +1,5 @@
 {
-  "model": "vllm-model",
+  "model": "DeepSeek-R1-Distill-Qwen-32B",
   "provider": "vllm",
   "sample_size": 300,
   "timestamp": "2026-01-27T13:26:22.110321",
