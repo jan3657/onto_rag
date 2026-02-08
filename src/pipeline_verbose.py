@@ -12,7 +12,8 @@ async def run_pipeline_verbose(
     query: str,
     context: Optional[str] = None,
     lexical_k: int = config.DEFAULT_K_LEXICAL,
-    vector_k: int = config.DEFAULT_K_VECTOR,
+    minilm_k: int = config.DEFAULT_K_MINILM,
+    sapbert_k: int = config.DEFAULT_K_SAPBERT,
     target_ontologies: Optional[List[str]] = None,
 ) -> Tuple[Optional[Dict[str, Any]], List[Dict[str, Any]], List[Dict[str, Any]]]:
     """Run the pipeline and return rich debugging information for each step.
@@ -43,10 +44,11 @@ async def run_pipeline_verbose(
         retriever_output = pipeline.retriever.search(
             current_query,
             lexical_limit=lexical_k,
-            vector_k=vector_k,
+            minilm_k=minilm_k,
+            sapbert_k=sapbert_k,
             target_ontologies=target_ontologies,
         )
-        candidates = retriever_output.get("lexical_results", []) + retriever_output.get("vector_results", [])
+        candidates = retriever_output.get("lexical_results", []) + retriever_output.get("minilm_results", []) + retriever_output.get("sapbert_results", [])
         step["retrieved_entities"] = candidates
         if not candidates:
             history.append(step)

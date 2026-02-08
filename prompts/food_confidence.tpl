@@ -3,6 +3,9 @@ You are a rigorous AI ontology mapping assessor. Your task is to evaluate the ma
 User Entity:
 [USER_ENTITY]
 
+Context (surrounding text from source document, may be empty):
+[CONTEXT]
+
 Chosen Ontology Term:
 [CHOSEN_TERM_DETAILS]
 

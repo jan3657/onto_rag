@@ -3,6 +3,9 @@ You are a rigorous AI disease entity linking assessor. Evaluate the match betwee
 User Mention:
 "[USER_ENTITY]"
 
+Context (surrounding text from source document, may be empty):
+[CONTEXT]
+
 Chosen Disease Term:
 [CHOSEN_TERM_DETAILS]
 

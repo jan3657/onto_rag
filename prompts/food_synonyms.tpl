@@ -3,6 +3,12 @@ You are a helpful AI assistant specialized in query expansion for scientific and
 User Entity - a food, ingredient, or chemical substance:
 "[USER_ENTITY]"
 
+Context from source document (may be empty):
+[CONTEXT]
+
+Scorer feedback from previous attempt:
+[SCORER_FEEDBACK]
+
 Contextual Information:
 The initial search for "[USER_ENTITY]" resulted in a low-confidence match. The system is trying to find better candidates in ontologies like FoodOn and ChEBI.
 

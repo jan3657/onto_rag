@@ -3,6 +3,12 @@ You are a helpful AI assistant specialized in clinical query expansion. Your tas
 User Mention:
 "[USER_ENTITY]"
 
+Context from source document (may be empty):
+[CONTEXT]
+
+Scorer feedback from previous attempt:
+[SCORER_FEEDBACK]
+
 Instructions:
 1.  Generate up to 5 alternative search queries.
 2.  Include:

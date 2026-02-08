@@ -17,7 +17,8 @@ from src.config import (
     EMBEDDING_MODEL_NAME,
     CURIE_PREFIX_MAP,
     DEFAULT_K_LEXICAL,
-    DEFAULT_K_VECTOR,
+    DEFAULT_K_MINILM,
+    DEFAULT_K_SAPBERT,
     DEFAULT_RERANK_K
 )
 from src.utils.ontology_utils import uri_to_curie
@@ -56,7 +57,7 @@ def parse_evaluation_xml(xml_file_path: str) -> list:
         for doc_idx, document_node in enumerate(root.findall('.//document')):
             doc_id_node = document_node.find('id')
             doc_id = doc_id_node.text if doc_id_node is not None else f"doc_{doc_idx}"
-            
+
             annotations = document_node.findall('annotation')
             for ann_idx, annotation_node in enumerate(annotations):
                 entity_text_node = annotation_node.find('text')
@@ -66,22 +67,22 @@ def parse_evaluation_xml(xml_file_path: str) -> list:
 
                 if entity_text_node is not None and semantic_tags_node is not None and entity_text_node.text is not None and semantic_tags_node.text is not None:
                     entity_text = entity_text_node.text.strip()
-                    
+
                     raw_tags = semantic_tags_node.text.strip()
                     true_uris = {tag.strip() for tag in raw_tags.split(';') if tag.strip()}
-                    
+
                     true_curies = set()
                     for uri in true_uris:
                         try:
                             # Adjusted: Use CURIE_PREFIX_MAP
                             curie = uri_to_curie(uri, CURIE_PREFIX_MAP)
-                            if curie: 
+                            if curie:
                                 true_curies.add(curie)
                             else:
                                 logger.warning(f"Could not convert URI to CURIE: {uri} for entity '{entity_text}' in {doc_id} (ann: {ann_id_val})")
                         except Exception as e:
                             logger.error(f"Error converting URI {uri} to CURIE: {e}")
-                    
+
                     if entity_text and true_curies:
                         gold_standard_data.append({
                             'text': entity_text,
@@ -102,11 +103,11 @@ def parse_evaluation_xml(xml_file_path: str) -> list:
     except Exception as e:
         logger.error(f"An unexpected error occurred during XML parsing: {e}", exc_info=True)
         return []
-        
+
     logger.info(f"Successfully parsed {len(gold_standard_data)} entities with text and true CURIEs from {xml_file_path}")
     return gold_standard_data
 
-def evaluate_retriever(retriever: HybridRetriever, gold_standard_data: list, recall_at_k: int, lexical_k: int, vector_k: int) -> tuple[float, int, int]:
+def evaluate_retriever(retriever: HybridRetriever, gold_standard_data: list, recall_at_k: int, lexical_k: int, minilm_k: int, sapbert_k: int) -> tuple[float, int, int]:
     """
     Evaluates the retriever against the gold standard data.
 
@@ -115,14 +116,15 @@ def evaluate_retriever(retriever: HybridRetriever, gold_standard_data: list, rec
         gold_standard_data (list): List of gold standard entities and their CURIEs.
         recall_at_k (int): The K value for Recall@K (slice of combined results).
         lexical_k (int): Number of results to fetch from lexical search.
-        vector_k (int): Number of results to fetch from vector search.
+        minilm_k (int): Number of results to fetch from MiniLM vector search.
+        sapbert_k (int): Number of results to fetch from SapBERT vector search.
 
     Returns:
         tuple: (recall_score, total_entities_processed, hits)
     """
     total_entities_processed = 0
     hits = 0
-    
+
     if not gold_standard_data:
         logger.warning("No gold standard data provided for evaluation.")
         return 0.0, 0, 0
@@ -130,27 +132,29 @@ def evaluate_retriever(retriever: HybridRetriever, gold_standard_data: list, rec
     for i, item in enumerate(gold_standard_data):
         query_text = item['text']
         true_curies = item['true_curies']
-        
+
         if not query_text or not true_curies:
             # This should ideally be filtered by parse_evaluation_xml already
             logger.warning(f"Skipping item with empty query text or true_curies: {item}")
             continue
-            
+
         total_entities_processed += 1
-        
+
         logger.debug(f"({i+1}/{len(gold_standard_data)}) Querying for: '{query_text}', True CURIEs: {true_curies}")
 
         try:
-            # Adjusted: HybridRetriever.search returns a dict: {"lexical_results": [], "vector_results": []}
+            # Adjusted: HybridRetriever.search returns a dict with 3 result sources
             retriever_output_dict = retriever.search(
                 query_string=query_text,
                 lexical_limit=lexical_k,
-                vector_k=vector_k,
+                minilm_k=minilm_k,
+                sapbert_k=sapbert_k,
                 target_ontologies=["foodon", "chebi"], # Adjusted: Use target_ontologies to limit search
             )
-            
+
             lexical_results = retriever_output_dict.get("lexical_results", [])
-            vector_results = retriever_output_dict.get("vector_results", [])
+            minilm_results = retriever_output_dict.get("minilm_results", [])
+            sapbert_results = retriever_output_dict.get("sapbert_results", [])
 
             # Combine and deduplicate results, lexical first then vector.
             # Scores are not comparable, so this is a simple merge strategy.
@@ -163,13 +167,19 @@ def evaluate_retriever(retriever: HybridRetriever, gold_standard_data: list, rec
                 if doc_id and doc_id not in seen_ids:
                     combined_ordered_results.append(doc) # doc contains 'id', 'label', 'score', etc.
                     seen_ids.add(doc_id)
-            
-            for doc in vector_results:
+
+            for doc in minilm_results:
                 doc_id = doc.get('id') # 'id' is the CURIE
                 if doc_id and doc_id not in seen_ids:
                     combined_ordered_results.append(doc)
                     seen_ids.add(doc_id)
-            
+
+            for doc in sapbert_results:
+                doc_id = doc.get('id') # 'id' is the CURIE
+                if doc_id and doc_id not in seen_ids:
+                    combined_ordered_results.append(doc)
+                    seen_ids.add(doc_id)
+
             # Extract the CURIEs from the top `recall_at_k` combined documents
             # Adjusted: use doc['id'] as it stores the CURIE
             retrieved_curies_set = {doc['id'] for doc in combined_ordered_results[:recall_at_k]}
@@ -186,11 +196,11 @@ def evaluate_retriever(retriever: HybridRetriever, gold_standard_data: list, rec
 
         except Exception as e:
             logger.error(f"Error during retrieval or processing for query '{query_text}': {e}", exc_info=True)
-            
+
     if total_entities_processed == 0:
         logger.warning("No valid entities were processed for evaluation.")
         return 0.0, 0, 0
-        
+
     recall_score = hits / total_entities_processed
     return recall_score, total_entities_processed, hits
 
@@ -230,15 +240,16 @@ def main():
 
     # 3. Perform Evaluation
     logger.info(f"Starting evaluation with Recall@{RECALL_AT_K}...")
-    # Adjusted: Use DEFAULT_K_LEXICAL and DEFAULT_K_VECTOR
-    logger.info(f"HybridRetriever search params: Lexical K={DEFAULT_K_LEXICAL}, Vector K={DEFAULT_K_VECTOR}")
-    
+    # Adjusted: Use DEFAULT_K_LEXICAL, DEFAULT_K_MINILM, and DEFAULT_K_SAPBERT
+    logger.info(f"HybridRetriever search params: Lexical K={DEFAULT_K_LEXICAL}, MiniLM K={DEFAULT_K_MINILM}, SapBERT K={DEFAULT_K_SAPBERT}")
+
     recall_score, total_entities, hits = evaluate_retriever(
-        retriever, 
-        gold_standard_data, 
+        retriever,
+        gold_standard_data,
         recall_at_k=RECALL_AT_K,
         lexical_k=DEFAULT_K_LEXICAL, # Adjusted
-        vector_k=DEFAULT_K_VECTOR    # Adjusted
+        minilm_k=DEFAULT_K_MINILM,    # Adjusted
+        sapbert_k=DEFAULT_K_SAPBERT   # Adjusted
     )
 
     # 4. Print Results
@@ -268,7 +279,7 @@ if __name__ == "__main__":
         except OSError as e:
             logger.error(f"Failed to create directory {eval_dir}: {e}")
             sys.exit(1) # Exit if cannot create data directory for eval file
-    
+
     if not os.path.exists(EVALUATION_XML_FILE):
         logger.error(f"Evaluation XML file '{EVALUATION_XML_FILE}' not found. Please place it in the correct directory.")
     else:

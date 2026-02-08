@@ -1,7 +1,9 @@
-# Byte-compiled / cache
+# Python cache
 __pycache__/
 *.py[cod]
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
 
 # Environment & secrets
 .env
@@ -9,15 +11,40 @@ api_key.json
 project_contents_for_llm.yaml
 project_contents_for_llm.txt
 
-# VSCode, macOS
+# IDE and OS files
 .vscode/
 .DS_Store
 
-# Large generated data and ontology files
-# /data/
-/ontologies/
-/models/
-/outputs/
+# Local virtualenvs
+.venv/
+venv/
 
-# Log files
-#*.logdata/ontologies/gene_info.tsv
+# Local model caches and large local ontology files
+models/
+data/ontologies/gene_info.tsv
+
+# Logs
+logs/
+*.log
+
+# Generated retrieval/benchmark artifacts
+data/benchmark_results/*/
+data/outputs/
+data/*/analysis/
+data/*/cache*.json
+data/*/results*.json
+data/*/embeddings*.json
+data/*/faiss_index*.bin
+data/*/faiss_metadata*.json
+data/*/ontology_dump.json
+data/*/whoosh_index/
+
+# Downloaded raw corpora and local dataset backups
+data/datasets/*/raw/
+data/datasets/**/*_no_context*.jsonl.gz.bak
+data/datasets/**/*_backup*.jsonl.gz
+data/datasets/**/*_with_context.jsonl.gz
+
+# Local scratch files
+=1.0.0
+/download_models.py

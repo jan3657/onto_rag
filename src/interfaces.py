@@ -1,7 +1,7 @@
 from typing import Protocol, List, Dict, Any, Optional, Tuple
 
 class Retriever(Protocol):
-    def search(self, query_string: str, *, lexical_limit: int, vector_k: int,
+    def search(self, query_string: str, *, lexical_limit: int, minilm_k: int, sapbert_k: int,
                target_ontologies: Optional[List[str]] = None) -> Dict[str, Any]: ...
     def get_term_details(self, term_id: str) -> Optional[Dict[str, Any]]: ...
 

@@ -3,8 +3,8 @@ from pathlib import Path
 from dotenv import load_dotenv
 from rdflib import Namespace
 from os import getenv
-import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer
+# torch and transformers imports removed to improve startup time
+# from transformers import AutoModelForCausalLM, AutoTokenizer
 
 # --- Path Configuration (using pathlib) ---
 
@@ -32,25 +32,50 @@ ONTOLOGIES_CONFIG = {
         # All artifacts stored in data/foodon/ subfolder
         'dump_json_path': DATA_DIR / "foodon" / "ontology_dump.json",
         'enriched_docs_path': DATA_DIR / "foodon" / "enriched_documents.json",
+        # MiniLM embeddings (backward compatible - keep old path for now)
         'embeddings_path': DATA_DIR / "foodon" / "embeddings.json",
+        'embeddings_minilm_path': DATA_DIR / "foodon" / "embeddings_minilm.json",
+        'embeddings_sapbert_path': DATA_DIR / "foodon" / "embeddings_sapbert.json",
         'whoosh_index_dir': DATA_DIR / "foodon" / "whoosh_index",
+        # MiniLM FAISS (backward compatible - keep old path for now)
         'faiss_index_path': DATA_DIR / "foodon" / "faiss_index.bin",
         'faiss_metadata_path': DATA_DIR / "foodon" / "faiss_metadata.json",
+        # Explicit MiniLM paths
+        'faiss_index_minilm_path': DATA_DIR / "foodon" / "faiss_index_minilm.bin",
+        'faiss_metadata_minilm_path': DATA_DIR / "foodon" / "faiss_metadata_minilm.json",
+        # SapBERT FAISS
+        'faiss_index_sapbert_path': DATA_DIR / "foodon" / "faiss_index_sapbert.bin",
+        'faiss_metadata_sapbert_path': DATA_DIR / "foodon" / "faiss_metadata_sapbert.json",
     }
 }
 # NOTE: The loop that created Whoosh directories has been removed.
 # The script responsible for building the Whoosh index should create its own directory.
 
 # --- Model Configuration ---
+# MiniLM: General-purpose sentence embeddings
 EMBEDDING_MODEL_NAME = "all-MiniLM-L6-v2"
+# SapBERT: Biomedical entity linking embeddings.
+# Use the sentence-transformers-compatible mean-token variant to avoid
+# implicit fallback pooling mismatches.
+SAPBERT_MODEL_NAME = "cambridgeltl/SapBERT-from-PubMedBERT-fulltext-mean-token"
 RERANKER_MODEL_NAME = "cross-encoder/ms-marco-MiniLM-L-6-v2"
 EMBEDDING_BATCH_SIZE = 32
 EMBEDDING_DEVICE = 'cpu'
+# Local cache for models (for offline use on compute nodes)
+MODEL_CACHE_DIR = PROJECT_ROOT / "models" / "sentence-transformers"
+# If true, never attempt internet downloads from HuggingFace.
+# Useful on offline compute nodes.
+HF_LOCAL_FILES_ONLY = getenv("HF_LOCAL_FILES_ONLY", "0").lower() in {"1", "true", "yes"}
+
 
 # --- Retrieval and Reranking Configuration ---
-DEFAULT_K_LEXICAL = 15
-DEFAULT_K_VECTOR = 15
-DEFAULT_RERANK_K = DEFAULT_K_LEXICAL + DEFAULT_K_VECTOR
+DEFAULT_K_LEXICAL = 10  # Reduced from 15 to accommodate 3 sources
+DEFAULT_K_MINILM = 10   # Renamed from DEFAULT_K_VECTOR (MiniLM embeddings)
+DEFAULT_K_SAPBERT = 10  # NEW: SapBERT biomedical embeddings
+DEFAULT_RERANK_K = DEFAULT_K_LEXICAL + DEFAULT_K_MINILM + DEFAULT_K_SAPBERT
+# Reciprocal Rank Fusion constant used when merging lexical/MiniLM/SapBERT results.
+# Higher values flatten rank differences; 60 is a common robust default.
+RRF_K = 60
 
 # --- Ingestion Configuration ---
 WHOOSH_FIELDS = ["label", "synonyms", "definition", "relations_text"]
@@ -169,16 +194,18 @@ OLLAMA_SELECTOR_MODEL_NAME = 'llama3.1:8b'
 OLLAMA_SCORER_MODEL_NAME = 'llama3.1:8b'
 OLLAMA_SYNONYM_MODEL_NAME = 'llama3.1:8b'
 
-HF_SELECTOR_MODEL_ID = "arcee-ai/AFM-4.5B"
-HF_MODEL_KWARGS = {
-    "torch_dtype": torch.bfloat16,
-    "device_map": "mps",
-}
-HF_GENERATION_KWARGS = {
-    "max_new_tokens": 256,
-    "do_sample": False,
-    "top_k": 50
-}
+# Removed: HF_SELECTOR_MODEL_ID and HF_MODEL_KWARGS are not used in the codebase.
+# They were causing unnecessary torch imports.
+# HF_SELECTOR_MODEL_ID = "arcee-ai/AFM-4.5B"
+# HF_MODEL_KWARGS = {
+#     "torch_dtype": "bfloat16", # changed to string if ever needed
+#     "device_map": "mps",
+# }
+# HF_GENERATION_KWARGS = {
+#     "max_new_tokens": 256,
+#     "do_sample": False,
+#     "top_k": 50
+# }
 
 # Path to the prompt template for the selector
 SELECTOR_PROMPT_TEMPLATE_PATH = PROJECT_ROOT / "prompts" / \
@@ -188,7 +215,7 @@ CONFIDENCE_PROMPT_TEMPLATE_PATH = PROJECT_ROOT / "prompts" / \
 SYNONYM_PROMPT_TEMPLATE_PATH = PROJECT_ROOT /"prompts" / \
     "synonym_generation.tpl" #"chebi_synonyms.tpl" #"synonym_generation.tpl"
 
-PIPELINE = "gemini" 
+PIPELINE = "gemini"
 
 # Logging configuration
 LOG_LEVEL = "WARNING"  # Options: DEBUG, INFO, WARNING, ERROR, CRITICAL

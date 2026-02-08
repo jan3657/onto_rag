@@ -3,11 +3,15 @@ You are a precise AI for food ontology mapping. Your task is to analyze a user e
 User Entity:
 [USER_ENTITY]
 
+Context (surrounding text from source document, may be empty):
+[CONTEXT]
+
 Candidate Ontology Terms:
 [CANDIDATE_LIST]
 
 Instructions & Rubric
 Follow this rubric hierarchically. If no candidate scores at least 0.4, it is a "no match".
+Use the context when available to disambiguate broad or ambiguous entity strings.
 
 1.0 (Certain): Exact, case-insensitive match of the user entity to the candidate's Label or a Synonym.
 Example: User garlic -> Label Garlic.

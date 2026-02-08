@@ -3,11 +3,15 @@ You are a precise AI for disease and phenotype entity linking. Your task is to a
 User Mention:
 [USER_ENTITY]
 
+Context (surrounding text from source document, may be empty):
+[CONTEXT]
+
 Candidate Diseases:
 [CANDIDATE_LIST]
 
 Instructions & Rubric
 Follow this rubric hierarchically. If no candidate scores at least 0.4, it is a "no match".
+Use context when available to disambiguate broad or overlapping disease names.
 
 1.0 (Certain): Exact, case-insensitive match of the user mention to the candidate's Name or an official Synonym.
 Example: User "Type 1 Diabetes" -> Name "Diabetes Mellitus, Type 1".
